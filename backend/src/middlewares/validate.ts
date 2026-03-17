@@ -1,9 +1,12 @@
-//src/middlewares/validate.ts
+// src/middlewares/validate.ts
 
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { z, ZodError } from "zod";
 
-type HttpError = Error & { statusCode?: number; errors?: any };
+type HttpError = Error & {
+  statusCode?: number;
+  errors?: Array<{ path: string; message: string }>;
+};
 
 function toBadRequest(err: ZodError): HttpError {
   const e: HttpError = new Error("Dữ liệu không hợp lệ");
@@ -16,11 +19,11 @@ function toBadRequest(err: ZodError): HttpError {
 }
 
 type ParsedReq = Partial<{
-  body: any;
-  query: any;
-  params: any;
-  cookies: any;
-  headers: any;
+  body: Record<string, unknown>;
+  query: Record<string, unknown>;
+  params: Record<string, unknown>;
+  cookies: Record<string, unknown>;
+  headers: Record<string, unknown>;
 }>;
 
 export const validate = (schema: z.ZodTypeAny): RequestHandler => {
@@ -33,13 +36,23 @@ export const validate = (schema: z.ZodTypeAny): RequestHandler => {
       headers: req.headers,
     });
 
-    if (!result.success) return next(toBadRequest(result.error));
+    if (!result.success) {
+      return next(toBadRequest(result.error));
+    }
 
     const data = result.data as ParsedReq;
 
-    if (data.body !== undefined) (req as any).body = data.body;
-    if (data.query !== undefined) (req as any).query = data.query;
-    if (data.params !== undefined) (req as any).params = data.params;
+    if (data.body !== undefined) {
+      (req as any).body = data.body;
+    }
+
+    if (data.params !== undefined) {
+      Object.assign(req.params, data.params);
+    }
+
+    if (data.query !== undefined) {
+      Object.assign(req.query as Record<string, unknown>, data.query);
+    }
 
     return next();
   };

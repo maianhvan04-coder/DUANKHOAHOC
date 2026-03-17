@@ -1,7 +1,7 @@
 // src/modules/auth/auth.router.ts
 import { Router } from "express";
 import { authController } from "./auth.controller";
-import { authGuard } from "../../middlewares/authGuard";
+import { authGuard } from "../../middlewares/auth/authGuard";
 import { validate } from "../../middlewares/validate";
 import { authSchemas } from "./auth.validation";
 

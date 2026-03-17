@@ -1,8 +1,8 @@
 // src/middlewares/authGuard.ts
 import type { Request, Response, NextFunction } from "express";
-import { verifyAccessToken } from "../helpers/jwt";
-import { AccessToken } from "../modules/auth/models/auth.accessToken.model";
-import { sha256 } from "../helpers/token.util"; // chỉnh đúng path theo project bạn
+import { verifyAccessToken } from "../../helpers/jwt";
+import { AccessToken } from "../../modules/auth/models/auth.accessToken.model";
+import { sha256 } from "../../helpers/token.util"; // chỉnh đúng path theo project bạn
 
 export async function authGuard(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization || "";

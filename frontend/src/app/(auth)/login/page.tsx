@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
@@ -11,6 +12,8 @@ import {
   Facebook,
   ArrowRight,
 } from "lucide-react";
+import axios from "axios";
+import { authApi } from "@/app/api/auth.api";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -21,11 +24,17 @@ function AuthInput({
   placeholder,
   icon,
   passwordToggle = false,
+  value,
+  onChange,
+  name,
 }: {
   type?: string;
   placeholder: string;
   icon: ReactNode;
   passwordToggle?: boolean;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  name: string;
 }) {
   const [show, setShow] = useState(false);
 
@@ -36,6 +45,9 @@ function AuthInput({
       </span>
 
       <input
+        name={name}
+        value={value}
+        onChange={onChange}
         type={passwordToggle ? (show ? "text" : "password") : type}
         placeholder={placeholder}
         className={cn(
@@ -76,11 +88,7 @@ function DividerText({ text }: { text: string }) {
   );
 }
 
-function SocialButton({
-  type,
-}: {
-  type: "google" | "facebook";
-}) {
+function SocialButton({ type }: { type: "google" | "facebook" }) {
   const isGoogle = type === "google";
 
   return (
@@ -108,6 +116,58 @@ function SocialButton({
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [remember, setRemember] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErr("");
+
+    if (!form.email.trim() || !form.password.trim()) {
+      setErr("Vui lòng nhập đầy đủ email và mật khẩu.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await authApi.login({
+        email: form.email.trim(),
+        password: form.password, // bỏ dòng này nếu API của bạn không nhận remember
+      });
+
+      const role = res?.user?.role;
+
+      router.push(role === "ADMIN" ? "/admin" : "/");
+      router.refresh();
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setErr(
+          (error.response?.data as { message?: string } | undefined)?.message ||
+            error.message ||
+            "Đăng nhập thất bại"
+        );
+      } else {
+        setErr("Đăng nhập thất bại");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-[520px] rounded-[28px] border border-[#E2E8F0] bg-white p-7 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-9">
       <div className="text-center">
@@ -124,47 +184,66 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="mt-8 space-y-4">
-        <AuthInput
-          placeholder="Email hoặc số điện thoại"
-          icon={<Mail size={18} />}
-        />
-        <AuthInput
-          placeholder="Mật khẩu"
-          icon={<Lock size={18} />}
-          passwordToggle
-        />
-      </div>
-
-      <div className="mt-5 flex flex-col gap-3 text-[14px] md:flex-row md:items-center md:justify-between">
-        <label className="flex cursor-pointer items-center gap-3 text-[#334155]">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border border-[#CBD5E1] text-[#2563EB] focus:ring-[#93C5FD]"
+      <form onSubmit={onSubmit}>
+        <div className="mt-8 space-y-4">
+          <AuthInput
+            name="email"
+            value={form.email}
+            onChange={onChange}
+            placeholder="Email hoặc số điện thoại"
+            icon={<Mail size={18} />}
           />
-          <span className="font-medium">Ghi nhớ đăng nhập</span>
-        </label>
 
-        <Link
-          href="/quen-mat-khau"
-          className="font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
+          <AuthInput
+            name="password"
+            value={form.password}
+            onChange={onChange}
+            placeholder="Mật khẩu"
+            icon={<Lock size={18} />}
+            passwordToggle
+          />
+        </div>
+
+        <div className="mt-5 flex flex-col gap-3 text-[14px] md:flex-row md:items-center md:justify-between">
+          <label className="flex cursor-pointer items-center gap-3 text-[#334155]">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="h-4 w-4 rounded border border-[#CBD5E1] text-[#2563EB] focus:ring-[#93C5FD]"
+            />
+            <span className="font-medium">Ghi nhớ đăng nhập</span>
+          </label>
+
+          <Link
+            href="/quen-mat-khau"
+            className="font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
+          >
+            Quên mật khẩu?
+          </Link>
+        </div>
+
+        {err ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-600">
+            {err}
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={cn(
+            "mt-7 flex h-[56px] w-full items-center justify-center gap-2 rounded-2xl",
+            "bg-[linear-gradient(135deg,#2563EB,#1D4ED8)]",
+            "text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.28)]",
+            "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(37,99,235,0.34)]",
+            "disabled:cursor-not-allowed disabled:opacity-70"
+          )}
         >
-          Quên mật khẩu?
-        </Link>
-      </div>
-
-      <button
-        type="button"
-        className={cn(
-          "mt-7 flex h-[56px] w-full items-center justify-center gap-2 rounded-2xl",
-          "bg-[linear-gradient(135deg,#2563EB,#1D4ED8)]",
-          "text-[16px] font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.28)]",
-          "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(37,99,235,0.34)]"
-        )}
-      >
-        <span>Đăng nhập</span>
-        <ArrowRight size={18} />
-      </button>
+          <span>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</span>
+          <ArrowRight size={18} />
+        </button>
+      </form>
 
       <p className="mt-5 text-center text-[15px] text-[#64748B]">
         Bạn chưa có tài khoản?{" "}

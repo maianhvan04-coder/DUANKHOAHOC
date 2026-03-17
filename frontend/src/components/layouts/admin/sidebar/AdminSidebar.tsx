@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   BookOpen,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
@@ -13,7 +15,10 @@ import {
   Settings,
   Users,
   User,
+  FolderKanban,
+  Package2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
 
@@ -21,7 +26,25 @@ function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-const menuGroups = [
+type SidebarChildItem = {
+  href: string;
+  text: string;
+  icon: LucideIcon;
+};
+
+type SidebarItem = {
+  href?: string;
+  text: string;
+  icon: LucideIcon;
+  children?: SidebarChildItem[];
+};
+
+type SidebarGroup = {
+  label: string;
+  items: SidebarItem[];
+};
+
+const menuGroups: SidebarGroup[] = [
   {
     label: "HOME",
     items: [{ href: "/admin/dashboard", text: "Dashboard", icon: LayoutDashboard }],
@@ -37,7 +60,14 @@ const menuGroups = [
   {
     label: "GENERAL",
     items: [
-      { href: "/admin/courses", text: "Khóa học", icon: BookOpen },
+      {
+        text: "Khóa học",
+        icon: BookOpen,
+        children: [
+          { href: "/admin/category", text: "Danh mục", icon: FolderKanban },
+          { href: "/admin/products", text: "Sản phẩm", icon: Package2 },
+        ],
+      },
       { href: "/admin/schedule", text: "Lịch học", icon: CalendarDays },
     ],
   },
@@ -52,6 +82,17 @@ export default function AdminSidebar() {
   const { collapsed, toggleCollapsed } = useAdminLayout();
   const { theme } = useAdminTheme();
   const dark = theme === "dark";
+
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    "Khóa học": true,
+  });
+
+  const toggleSubmenu = (text: string) => {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [text]: !prev[text],
+    }));
+  };
 
   return (
     <aside
@@ -120,12 +161,100 @@ export default function AdminSidebar() {
               <div className="space-y-1">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const selected = pathname === item.href;
+
+                  if (item.children?.length) {
+                    const isOpen = !!openMenus[item.text];
+                    const childActive = item.children.some((child) =>
+                      pathname.startsWith(child.href)
+                    );
+
+                    return (
+                      <div key={item.text}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (collapsed) {
+                              toggleCollapsed();
+                            }
+                            toggleSubmenu(item.text);
+                          }}
+                          className={cn(
+                            "flex w-full items-center rounded-2xl transition-all",
+                            collapsed ? "justify-center px-0 py-3.5" : "justify-between px-4 py-3.5",
+                            childActive
+                              ? dark
+                                ? "bg-white/10 text-white"
+                                : "bg-[#eef3fa] text-[#0f172a]"
+                              : dark
+                              ? "text-slate-300 hover:bg-white/5"
+                              : "text-slate-700 hover:bg-[#f5f8fc]"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex items-center",
+                              collapsed ? "justify-center" : "gap-3"
+                            )}
+                          >
+                            <Icon className="h-5 w-5 shrink-0" />
+                            {!collapsed && (
+                              <span className="text-[18px] font-medium">{item.text}</span>
+                            )}
+                          </div>
+
+                          {!collapsed && (
+                            <ChevronDown
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-transform duration-200",
+                                isOpen && "rotate-180"
+                              )}
+                            />
+                          )}
+                        </button>
+
+                        {!collapsed && isOpen && (
+                          <div
+                            className={cn(
+                              "ml-6 mt-1 space-y-1 border-l pl-3",
+                              dark ? "border-white/10" : "border-black/8"
+                            )}
+                          >
+                            {item.children.map((child) => {
+                              const ChildIcon = child.icon;
+                              const selected = pathname.startsWith(child.href);
+
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  className={cn(
+                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
+                                    selected
+                                      ? dark
+                                        ? "bg-white/10 text-white"
+                                        : "bg-[#eef3fa] text-[#0f172a]"
+                                      : dark
+                                      ? "text-slate-300 hover:bg-white/5"
+                                      : "text-slate-700 hover:bg-[#f5f8fc]"
+                                  )}
+                                >
+                                  <ChildIcon className="h-4 w-4 shrink-0" />
+                                  <span className="text-[16px] font-medium">{child.text}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const selected = item.href ? pathname.startsWith(item.href) : false;
 
                   return (
                     <Link
                       key={item.href}
-                      href={item.href}
+                      href={item.href || "#"}
                       className={cn(
                         "flex items-center rounded-2xl transition-all",
                         collapsed ? "justify-center px-0 py-3.5" : "gap-3 px-4 py-3.5",
