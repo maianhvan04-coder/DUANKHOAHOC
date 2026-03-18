@@ -1,17 +1,34 @@
 import { http } from "@/lib/utils/http";
 
-export type Role = "USER" | "ADMIN";
+export type Role = "ADMIN" | "MANAGER" | "TEACHER" | "STUDENT" | "USER";
+export type PermissionKey = string;
 
 export type AuthUser = {
   id: string;
   name: string;
   email: string;
-  role: Role;
+};
+
+export type UserAccess = {
+  primaryRole: Role;
+  roles: Role[];
+  permissions: PermissionKey[];
 };
 
 export type AuthResponse = {
   accessToken: string;
   user: AuthUser;
+  access: UserAccess;
+};
+
+export type MeResponse = {
+  user: AuthUser;
+  access: UserAccess;
+};
+
+export type RefreshResponse = {
+  accessToken: string;
+  access: UserAccess;
 };
 
 export const authApi = {
@@ -19,16 +36,20 @@ export const authApi = {
     return (await http.post<AuthResponse>("/api/auth/login", body)).data;
   },
 
-  register: async (body: { name: string; email: string; password: string }) => {
+  register: async (body: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     return (await http.post<AuthResponse>("/api/auth/register", body)).data;
   },
 
   me: async () => {
-    return (await http.get<{ user: AuthUser }>("/api/auth/me")).data;
+    return (await http.get<MeResponse>("/api/auth/me")).data;
   },
 
   refresh: async () => {
-    return (await http.post<{ accessToken: string }>("/api/auth/refresh")).data;
+    return (await http.post<RefreshResponse>("/api/auth/refresh")).data;
   },
 
   logout: async () => {

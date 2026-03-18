@@ -19,7 +19,7 @@ import {
   productApi,
   type ProductItem,
   type ProductStatus,
-} from "@/app/api/product.api";
+} from "@/app/api/course.api";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");

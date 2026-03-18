@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       {/* content */}
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-[720px] rounded-[14px  p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] md:p-10">
+        <div className="w-full max-w-180 rounded-[14px  p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] md:p-10">
           {children}
         </div>
       </div>

@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
 import { UserModel } from "../user/user.model";
-import { signAccessToken } from "../../helpers/jwt"; // ✅ import đúng file jwt có jti (đổi path nếu bạn khác)
+import { signAccessToken } from "../../helpers/jwt";
 import { ROLES } from "../../constants/roles";
-
 import { Session } from "./models/auth.session.model";
 import { AccessToken } from "./models/auth.accessToken.model";
 import { randomToken, sha256 } from "../../helpers/token.util";
+import { getUserAccess, setRolesForUser } from "../rbac/rbac.service";
 
 function addDays(days: number) {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -16,11 +16,52 @@ function accessExpiresAt() {
   return new Date(Date.now() + ms);
 }
 
+function publicUser(user: { _id: unknown; name: string; email: string }) {
+  return {
+    id: String(user._id),
+    name: user.name,
+    email: user.email,
+  };
+}
+
+async function issueAccessToken(params: {
+  userId: string;
+  email: string;
+  sessionId: string;
+}) {
+  const access = await getUserAccess(params.userId);
+
+  const { token: accessToken, jti } = signAccessToken({
+    sub: params.userId,
+    email: params.email,
+    role: access.primaryRole,
+  });
+
+  await AccessToken.create({
+    user: params.userId,
+    session: params.sessionId,
+    jti,
+    tokenHash: sha256(accessToken),
+    expiresAt: accessExpiresAt(),
+  });
+
+  return { accessToken, access };
+}
+
 export const authService = {
-  async register(input: { name: string; email: string; password: string; ua?: string; ip?: string }) {
+  async register(input: {
+    name: string;
+    email: string;
+    password: string;
+    ua?: string;
+    ip?: string;
+  }) {
     const existed = await UserModel.findOne({ email: input.email }).lean();
+
     if (existed) {
-      const err: any = new Error("Email already exists");
+      const err = new Error("Email already exists") as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 409;
       throw err;
     }
@@ -34,7 +75,8 @@ export const authService = {
       role: ROLES.USER,
     });
 
-    // ✅ tạo refresh session
+    await setRolesForUser(String(user._id), [ROLES.USER]);
+
     const refreshToken = randomToken();
     const refreshDays = Number(process.env.JWT_REFRESH_DAYS || 7);
 
@@ -47,49 +89,46 @@ export const authService = {
       lastUsedAt: new Date(),
     });
 
-    // ✅ access token + lưu DB
-    const { token: accessToken, jti } = signAccessToken({
-      sub: String(user._id),
+    const { accessToken, access } = await issueAccessToken({
+      userId: String(user._id),
       email: user.email,
-      role: user.role,
-    });
-
-    await AccessToken.create({
-      user: user._id,
-      session: session._id,
-      jti,
-      tokenHash: sha256(accessToken),
-      expiresAt: accessExpiresAt(),
+      sessionId: String(session._id),
     });
 
     return {
       accessToken,
-      refreshToken, // controller sẽ set cookie, không trả ra FE
-      user: {
-        id: String(user._id),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      refreshToken,
+      user: publicUser(user),
+      access,
     };
   },
 
-  async login(input: { email: string; password: string; ua?: string; ip?: string }) {
+  async login(input: {
+    email: string;
+    password: string;
+    ua?: string;
+    ip?: string;
+  }) {
     const user = await UserModel.findOne({ email: input.email });
+
     if (!user || !user.passwordHash) {
-      const err: any = new Error("Invalid email or password");
+      const err = new Error("Invalid email or password") as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 401;
       throw err;
     }
 
     const ok = await bcrypt.compare(input.password, user.passwordHash);
+
     if (!ok) {
-      const err: any = new Error("Invalid email or password");
+      const err = new Error("Invalid email or password") as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 401;
       throw err;
     }
 
-    // ✅ 1) XOÁ TOÀN BỘ phiên cũ của user (single-session)
     const oldSessions = await Session.find({ user: user._id }).select("_id");
     const oldIds = oldSessions.map((s) => s._id);
 
@@ -98,7 +137,6 @@ export const authService = {
       await Session.deleteMany({ _id: { $in: oldIds } });
     }
 
-    // ✅ 2) tạo refresh session mới
     const refreshToken = randomToken();
     const refreshDays = Number(process.env.JWT_REFRESH_DAYS || 7);
 
@@ -111,75 +149,71 @@ export const authService = {
       lastUsedAt: new Date(),
     });
 
-    // ✅ 3) access token + lưu DB
-    const { token: accessToken, jti } = signAccessToken({
-      sub: String(user._id),
+    const { accessToken, access } = await issueAccessToken({
+      userId: String(user._id),
       email: user.email,
-      role: user.role,
-    });
-
-    await AccessToken.create({
-      user: user._id,
-      session: session._id,
-      jti,
-      tokenHash: sha256(accessToken),
-      expiresAt: accessExpiresAt(),
+      sessionId: String(session._id),
     });
 
     return {
       accessToken,
       refreshToken,
-      user: {
-        id: String(user._id),
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      user: publicUser(user),
+      access,
     };
   },
 
-  async refresh(input: { refreshToken: string; ua?: string; ip?: string }) {
+  async refresh(input: {
+    refreshToken: string;
+    ua?: string;
+    ip?: string;
+  }) {
     const sess = await Session.findOne({
       refreshTokenHash: sha256(input.refreshToken),
       expiresAt: { $gt: new Date() },
+      revokedAt: null,
     });
 
     if (!sess) {
-      const err: any = new Error("Refresh token invalid");
+      const err = new Error("Refresh token invalid") as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 401;
       throw err;
     }
 
-    // rotate refresh
     const newRefresh = randomToken();
     sess.refreshTokenHash = sha256(newRefresh);
     sess.lastUsedAt = new Date();
+
     if (input.ua) sess.userAgent = input.ua;
     if (input.ip) sess.ip = input.ip;
+
     await sess.save();
 
     const user = await UserModel.findById(sess.user);
+
     if (!user) {
-      const err: any = new Error("User not found");
+      const err = new Error("User not found") as Error & {
+        statusCode?: number;
+      };
       err.statusCode = 401;
       throw err;
     }
 
-    const { token: accessToken, jti } = signAccessToken({
-      sub: String(user._id),
+    await AccessToken.deleteMany({ session: sess._id });
+
+    const { accessToken, access } = await issueAccessToken({
+      userId: String(user._id),
       email: user.email,
-      role: user.role,
+      sessionId: String(sess._id),
     });
 
-    await AccessToken.create({
-      user: user._id,
-      session: sess._id,
-      jti,
-      tokenHash: sha256(accessToken),
-      expiresAt: accessExpiresAt(),
-    });
-
-    return { accessToken, refreshToken: newRefresh };
+    return {
+      accessToken,
+      refreshToken: newRefresh,
+      access,
+    };
   },
 
   async logout(refreshToken: string) {

@@ -32,7 +32,13 @@ function pickArray(raw: unknown): unknown[] {
 }
 
 function parseRole(x: unknown): Role {
-  return x === "ADMIN" || x === "USER" ? (x as Role) : "USER";
+  return x === "ADMIN" ||
+    x === "MANAGER" ||
+    x === "TEACHER" ||
+    x === "STUDENT" ||
+    x === "USER"
+    ? (x as Role)
+    : "USER";
 }
 
 function parseUser(it: unknown): UserRow | null {

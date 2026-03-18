@@ -1,5 +1,5 @@
 import { isValidObjectId, Types } from "mongoose";
-import { ProductModel, type Product, type ProductMode } from "./product.model";
+import { ProductModel, type Product, type ProductMode } from "./course.model";
 
 type CreateProductRepoPayload = {
   title: string;

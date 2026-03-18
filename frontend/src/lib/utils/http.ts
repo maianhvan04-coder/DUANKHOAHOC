@@ -1,7 +1,14 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
-import { getToken, setToken, clearToken, clearUser } from "./storage";
+import { getToken, setToken, setAccess, clearAuth } from "./storage";
 
-type RefreshResponse = { accessToken: string };
+type RefreshResponse = {
+  accessToken: string;
+  access: {
+    primaryRole: "ADMIN" | "MANAGER" | "TEACHER" | "STUDENT" | "USER";
+    roles: Array<"ADMIN" | "MANAGER" | "TEACHER" | "STUDENT" | "USER">;
+    permissions: string[];
+  };
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -45,6 +52,7 @@ async function refreshAccessToken(): Promise<string> {
       .post<RefreshResponse>("/api/auth/refresh")
       .then((r) => {
         setToken(r.data.accessToken);
+        setAccess(r.data.access);
         return r.data.accessToken;
       })
       .finally(() => {
@@ -75,18 +83,20 @@ http.interceptors.response.use(
 
       try {
         const newToken = await refreshAccessToken();
+
         original.headers = original.headers ?? {};
         (original.headers as Record<string, string>).Authorization =
           `Bearer ${newToken}`;
 
         return http(original);
       } catch {
-        clearToken();
-        clearUser();
+        clearAuth();
 
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
+
+        return Promise.reject(error);
       }
     }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import {
   BookOpen,
   CalendarDays,
@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  ShieldCheck,
   Users,
   User,
   FolderKanban,
@@ -21,6 +22,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
+import { authApi, type AuthUser } from "@/app/api/auth.api";
+import type { PermissionMetaItem, PermissionKey } from "@/app/api/rbac.api";
+import { clearAuth } from "@/lib/utils/storage";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -30,12 +34,14 @@ type SidebarChildItem = {
   href: string;
   text: string;
   icon: LucideIcon;
+  requiredGroupKeys?: string[];
 };
 
 type SidebarItem = {
   href?: string;
   text: string;
   icon: LucideIcon;
+  requiredGroupKeys?: string[];
   children?: SidebarChildItem[];
 };
 
@@ -44,17 +50,45 @@ type SidebarGroup = {
   items: SidebarItem[];
 };
 
+type AdminSidebarProps = {
+  currentUser: AuthUser | null;
+  permissionMeta: PermissionMetaItem[];
+  grantedPermissions: PermissionKey[];
+};
+
 const menuGroups: SidebarGroup[] = [
   {
     label: "HOME",
-    items: [{ href: "/admin/dashboard", text: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      {
+        href: "/admin/dashboard",
+        text: "Dashboard",
+        icon: LayoutDashboard,
+        requiredGroupKeys: ["DASHBOARD"],
+      },
+    ],
   },
   {
     label: "USER",
     items: [
-      { href: "/admin/users", text: "Người dùng", icon: User },
-      { href: "/admin/students", text: "Học viên", icon: Users },
-      { href: "/admin/teachers", text: "Giảng viên", icon: GraduationCap },
+      {
+        href: "/admin/users",
+        text: "Người dùng",
+        icon: User,
+        requiredGroupKeys: ["USERS"],
+      },
+      {
+        href: "/admin/students",
+        text: "Học viên",
+        icon: Users,
+        requiredGroupKeys: ["STUDENTS"],
+      },
+      {
+        href: "/admin/teachers",
+        text: "Giảng viên",
+        icon: GraduationCap,
+        requiredGroupKeys: ["TEACHERS"],
+      },
     ],
   },
   {
@@ -63,22 +97,57 @@ const menuGroups: SidebarGroup[] = [
       {
         text: "Khóa học",
         icon: BookOpen,
+        requiredGroupKeys: ["CATEGORIES", "COURSES"],
         children: [
-          { href: "/admin/category", text: "Danh mục", icon: FolderKanban },
-          { href: "/admin/products", text: "Sản phẩm", icon: Package2 },
+          {
+            href: "/admin/category",
+            text: "Danh mục",
+            icon: FolderKanban,
+            requiredGroupKeys: ["CATEGORIES"],
+          },
+          {
+            href: "/admin/course",
+            text: "Sản phẩm",
+            icon: Package2,
+            requiredGroupKeys: ["COURSES"],
+          },
         ],
       },
-      { href: "/admin/schedule", text: "Lịch học", icon: CalendarDays },
+      {
+        href: "/admin/schedule",
+        text: "Lịch học",
+        icon: CalendarDays,
+        requiredGroupKeys: ["SCHEDULES"],
+      },
     ],
   },
   {
     label: "SETTING",
-    items: [{ href: "/admin/settings", text: "Cài đặt", icon: Settings }],
-  },
+    items: [
+      {
+        href: "/admin/rbac",
+        text: "Phân quyền",
+        icon: ShieldCheck,
+        requiredGroupKeys: ["SYSTEM"],
+      },
+      {
+        href: "/admin/settings",
+        text: "Cài đặt",
+        icon: Settings,
+        requiredGroupKeys: ["SYSTEM"],
+      },
+    ],
+  }
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+
+  currentUser,
+  permissionMeta,
+  grantedPermissions,
+}: AdminSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { collapsed, toggleCollapsed } = useAdminLayout();
   const { theme } = useAdminTheme();
   const dark = theme === "dark";
@@ -87,11 +156,72 @@ export default function AdminSidebar() {
     "Khóa học": true,
   });
 
+  const grantedGroupKeys = useMemo(() => {
+    const grantedPermissionSet = new Set(grantedPermissions);
+
+    return new Set(
+      permissionMeta
+        .filter((item) => grantedPermissionSet.has(item.key))
+        .map((item) => item.groupKey)
+    );
+  }, [permissionMeta, grantedPermissions]);
+
+  const visibleMenuGroups = useMemo(() => {
+    const canShow = (requiredGroupKeys?: string[]) => {
+      if (!requiredGroupKeys || requiredGroupKeys.length === 0) return true;
+      return requiredGroupKeys.some((key) => grantedGroupKeys.has(key));
+    };
+
+    return menuGroups
+      .map((group) => {
+        const visibleItems = group.items
+          .map((item) => {
+            if (item.children?.length) {
+              const visibleChildren = item.children.filter((child) =>
+                canShow(child.requiredGroupKeys)
+              );
+
+              const parentVisible =
+                canShow(item.requiredGroupKeys) || visibleChildren.length > 0;
+
+              if (!parentVisible) return null;
+
+              return {
+                ...item,
+                children: visibleChildren,
+              };
+            }
+
+            if (!canShow(item.requiredGroupKeys)) return null;
+            return item;
+          })
+          .filter(Boolean) as SidebarItem[];
+
+        if (visibleItems.length === 0) return null;
+
+        return {
+          ...group,
+          items: visibleItems,
+        };
+      })
+      .filter(Boolean) as SidebarGroup[];
+  }, [grantedGroupKeys]);
+
   const toggleSubmenu = (text: string) => {
     setOpenMenus((prev) => ({
       ...prev,
       [text]: !prev[text],
     }));
+  };
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } finally {
+      clearAuth();
+      router.replace("/login");
+      router.refresh();
+    }
   };
 
   return (
@@ -122,8 +252,13 @@ export default function AdminSidebar() {
             >
               EduLearn
             </div>
-            <div className={cn("text-sm", dark ? "text-slate-400" : "text-slate-500")}>
-              Admin Panel
+            <div
+              className={cn(
+                "text-sm",
+                dark ? "text-slate-400" : "text-slate-500"
+              )}
+            >
+              {currentUser?.name || "Admin Panel"}
             </div>
           </div>
         )}
@@ -139,13 +274,17 @@ export default function AdminSidebar() {
           )}
           aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
         >
-          {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+          {collapsed ? (
+            <ChevronRight className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
         <nav className="space-y-6">
-          {menuGroups.map((group) => (
+          {visibleMenuGroups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
                 <div
@@ -173,21 +312,21 @@ export default function AdminSidebar() {
                         <button
                           type="button"
                           onClick={() => {
-                            if (collapsed) {
-                              toggleCollapsed();
-                            }
+                            if (collapsed) toggleCollapsed();
                             toggleSubmenu(item.text);
                           }}
                           className={cn(
                             "flex w-full items-center rounded-2xl transition-all",
-                            collapsed ? "justify-center px-0 py-3.5" : "justify-between px-4 py-3.5",
+                            collapsed
+                              ? "justify-center px-0 py-3.5"
+                              : "justify-between px-4 py-3.5",
                             childActive
                               ? dark
                                 ? "bg-white/10 text-white"
                                 : "bg-[#eef3fa] text-[#0f172a]"
                               : dark
-                              ? "text-slate-300 hover:bg-white/5"
-                              : "text-slate-700 hover:bg-[#f5f8fc]"
+                                ? "text-slate-300 hover:bg-white/5"
+                                : "text-slate-700 hover:bg-[#f5f8fc]"
                           )}
                         >
                           <div
@@ -198,7 +337,9 @@ export default function AdminSidebar() {
                           >
                             <Icon className="h-5 w-5 shrink-0" />
                             {!collapsed && (
-                              <span className="text-[18px] font-medium">{item.text}</span>
+                              <span className="text-[18px] font-medium">
+                                {item.text}
+                              </span>
                             )}
                           </div>
 
@@ -234,12 +375,14 @@ export default function AdminSidebar() {
                                         ? "bg-white/10 text-white"
                                         : "bg-[#eef3fa] text-[#0f172a]"
                                       : dark
-                                      ? "text-slate-300 hover:bg-white/5"
-                                      : "text-slate-700 hover:bg-[#f5f8fc]"
+                                        ? "text-slate-300 hover:bg-white/5"
+                                        : "text-slate-700 hover:bg-[#f5f8fc]"
                                   )}
                                 >
                                   <ChildIcon className="h-4 w-4 shrink-0" />
-                                  <span className="text-[16px] font-medium">{child.text}</span>
+                                  <span className="text-[16px] font-medium">
+                                    {child.text}
+                                  </span>
                                 </Link>
                               );
                             })}
@@ -249,7 +392,9 @@ export default function AdminSidebar() {
                     );
                   }
 
-                  const selected = item.href ? pathname.startsWith(item.href) : false;
+                  const selected = item.href
+                    ? pathname.startsWith(item.href)
+                    : false;
 
                   return (
                     <Link
@@ -257,18 +402,24 @@ export default function AdminSidebar() {
                       href={item.href || "#"}
                       className={cn(
                         "flex items-center rounded-2xl transition-all",
-                        collapsed ? "justify-center px-0 py-3.5" : "gap-3 px-4 py-3.5",
+                        collapsed
+                          ? "justify-center px-0 py-3.5"
+                          : "gap-3 px-4 py-3.5",
                         selected
                           ? dark
                             ? "bg-white/10 text-white"
                             : "bg-[#eef3fa] text-[#0f172a]"
                           : dark
-                          ? "text-slate-300 hover:bg-white/5"
-                          : "text-slate-700 hover:bg-[#f5f8fc]"
+                            ? "text-slate-300 hover:bg-white/5"
+                            : "text-slate-700 hover:bg-[#f5f8fc]"
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
-                      {!collapsed && <span className="text-[18px] font-medium">{item.text}</span>}
+                      {!collapsed && (
+                        <span className="text-[18px] font-medium">
+                          {item.text}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -278,17 +429,24 @@ export default function AdminSidebar() {
         </nav>
       </div>
 
-      <div className={cn("border-t p-4", dark ? "border-white/10" : "border-black/8")}>
+      <div
+        className={cn("border-t p-4", dark ? "border-white/10" : "border-black/8")}
+      >
         <button
           type="button"
+          onClick={handleLogout}
           className={cn(
             "flex w-full items-center gap-3 rounded-2xl px-4 py-3 transition-all",
             collapsed && "justify-center px-0",
-            dark ? "text-slate-200 hover:bg-white/5" : "text-slate-700 hover:bg-[#f5f8fc]"
+            dark
+              ? "text-slate-200 hover:bg-white/5"
+              : "text-slate-700 hover:bg-[#f5f8fc]"
           )}
         >
           <LogOut className="h-5 w-5 shrink-0" />
-          {!collapsed && <span className="text-[18px] font-medium">Đăng xuất</span>}
+          {!collapsed && (
+            <span className="text-[18px] font-medium">Đăng xuất</span>
+          )}
         </button>
       </div>
     </aside>

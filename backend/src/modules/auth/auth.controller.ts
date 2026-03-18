@@ -2,8 +2,10 @@ import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authService } from "./auth.service";
 import { loginSchema, registerSchema } from "../../helpers/auth.schema";
-
-import { REFRESH_COOKIE_NAME, refreshCookieOptions } from "../../helpers/auth.cookie";
+import {
+  REFRESH_COOKIE_NAME,
+  refreshCookieOptions,
+} from "../../helpers/auth.cookie";
 
 export const authController = {
   register: asyncHandler(async (req: Request, res: Response) => {
@@ -16,7 +18,11 @@ export const authController = {
     });
 
     res.cookie(REFRESH_COOKIE_NAME, data.refreshToken, refreshCookieOptions());
-    res.status(201).json({ accessToken: data.accessToken, user: data.user });
+    res.status(201).json({
+      accessToken: data.accessToken,
+      user: data.user,
+      access: data.access,
+    });
   }),
 
   login: asyncHandler(async (req: Request, res: Response) => {
@@ -29,12 +35,20 @@ export const authController = {
     });
 
     res.cookie(REFRESH_COOKIE_NAME, data.refreshToken, refreshCookieOptions());
-    res.json({ accessToken: data.accessToken, user: data.user });
+    res.json({
+      accessToken: data.accessToken,
+      user: data.user,
+      access: data.access,
+    });
   }),
 
   refresh: asyncHandler(async (req: Request, res: Response) => {
-    const rt = req.cookies?.[REFRESH_COOKIE_NAME];
-    if (!rt) return res.status(401).json({ message: "Missing refresh token" });
+    const rt =
+      req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+
+    if (!rt) {
+      return res.status(401).json({ message: "Missing refresh token" });
+    }
 
     const data = await authService.refresh({
       refreshToken: rt,
@@ -43,15 +57,25 @@ export const authController = {
     });
 
     res.cookie(REFRESH_COOKIE_NAME, data.refreshToken, refreshCookieOptions());
-    res.json({ accessToken: data.accessToken });
+    res.json({
+      accessToken: data.accessToken,
+      access: data.access,
+    });
   }),
 
   logout: asyncHandler(async (req: Request, res: Response) => {
-    const rt = req.cookies?.[REFRESH_COOKIE_NAME];
-    if (rt) await authService.logout(rt);
+    const rt =
+      req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
 
-    // ✅ thoát ra là refresh mất luôn ở cookie
-    res.clearCookie(REFRESH_COOKIE_NAME, { ...refreshCookieOptions(), maxAge: 0 });
+    if (rt) {
+      await authService.logout(rt);
+    }
+
+    res.clearCookie(REFRESH_COOKIE_NAME, {
+      ...refreshCookieOptions(),
+      maxAge: 0,
+    });
+
     res.json({ ok: true });
   }),
 };

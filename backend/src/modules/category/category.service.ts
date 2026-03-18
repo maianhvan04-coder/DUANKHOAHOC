@@ -1,5 +1,5 @@
 import { categoryRepository } from "./category.repository";
-import { ProductModel } from "../products/product.model";
+import { ProductModel } from "../course/course.model";
 import { slugify } from "../../utils/slug";
 
 export const categoryService = {

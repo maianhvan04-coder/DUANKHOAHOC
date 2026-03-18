@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -14,6 +19,8 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { authApi } from "@/app/api/auth.api";
+import { setAccess, setToken, setUser } from "@/lib/utils/storage";
+import { hasRole } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -146,12 +153,17 @@ export default function LoginPage() {
 
       const res = await authApi.login({
         email: form.email.trim(),
-        password: form.password, // bỏ dòng này nếu API của bạn không nhận remember
+        password: form.password,
       });
 
-      const role = res?.user?.role;
+      setToken(res.accessToken);
+      setUser(res.user);
+      setAccess(res.access);
 
-      router.push(role === "ADMIN" ? "/admin" : "/");
+      const goAdmin =
+        hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
+
+      router.push(goAdmin ? "/admin" : "/");
       router.refresh();
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

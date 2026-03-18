@@ -3,14 +3,18 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { hasAnyRole } from "@/lib/helpers/auth/access";
 
-export default function RequireAdmin({ children }: { children: React.ReactNode }) {
-  const { user, hydrated, isLoading } = useAuth(); // ✅ thêm isLoading
+export default function RequireAdmin({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { user, access, hydrated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // ✅ chờ AuthProvider bootstrap xong
     if (!hydrated || isLoading) return;
 
     if (!user) {
@@ -18,16 +22,22 @@ export default function RequireAdmin({ children }: { children: React.ReactNode }
       return;
     }
 
-    if (user.role !== "ADMIN") {
+    const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+
+    if (!allowed) {
       router.replace("/403");
     }
-  }, [hydrated, isLoading, user, router, pathname]);
+  }, [hydrated, isLoading, user, access, router, pathname]);
 
-  // ✅ show loading để khỏi redirect sớm
-  if (!hydrated || isLoading) return <div style={{ padding: 16 }}>Loading...</div>;
+  if (!hydrated || isLoading) {
+    return <div style={{ padding: 16 }}>Loading...</div>;
+  }
 
-  // ✅ đang redirect
-  if (!user || user.role !== "ADMIN") return null;
+  if (!user) return null;
+
+  const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+
+  if (!allowed) return null;
 
   return <>{children}</>;
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { productService } from "./product.service";
+import { productService } from "./course.service";
 import {
   deleteFromCloudinary,
   uploadBufferToCloudinary,

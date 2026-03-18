@@ -9,39 +9,60 @@ import React, {
   useSyncExternalStore,
   useEffect,
 } from "react";
-import { authApi, type AuthUser } from "@/app/api/auth.api";
+import {
+  authApi,
+  type AuthUser,
+  type UserAccess,
+} from "@/app/api/auth.api";
 import {
   AUTH_CHANGE_EVENT,
   setToken,
   setUser,
-  clearToken,
-  clearUser,
+  setAccess,
+  clearAuth,
   getToken,
   getUserRaw,
+  getAccessRaw,
 } from "@/lib/utils/storage";
 
 type AuthSnapshot = {
   token: string | null;
   user: AuthUser | null;
+  access: UserAccess | null;
   hydrated: boolean;
 };
 
 type AuthCtx = AuthSnapshot & {
   isLoading: boolean;
   login: (body: { email: string; password: string }) => Promise<AuthUser>;
-  register: (body: { name: string; email: string; password: string }) => Promise<AuthUser>;
+  register: (body: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthCtx | null>(null);
 
-const SERVER_SNAPSHOT: AuthSnapshot = { token: null, user: null, hydrated: false };
+const SERVER_SNAPSHOT: AuthSnapshot = {
+  token: null,
+  user: null,
+  access: null,
+  hydrated: false,
+};
 
-// cache để useSyncExternalStore không tạo object mới liên tục
 let lastToken: string | null = null;
 let lastUserRaw: string | null = null;
-let CLIENT_SNAPSHOT: AuthSnapshot = { token: null, user: null, hydrated: false };
+let lastAccessRaw: string | null = null;
+
+let CLIENT_SNAPSHOT: AuthSnapshot = {
+  token: null,
+  user: null,
+  access: null,
+  hydrated: false,
+};
 
 function subscribeAuth(cb: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -52,11 +73,19 @@ function subscribeAuth(cb: () => void) {
 function getClientSnapshot(): AuthSnapshot {
   const token = getToken();
   const userRaw = getUserRaw();
+  const accessRaw = getAccessRaw();
 
-  if (token === lastToken && userRaw === lastUserRaw) return CLIENT_SNAPSHOT;
+  if (
+    token === lastToken &&
+    userRaw === lastUserRaw &&
+    accessRaw === lastAccessRaw
+  ) {
+    return CLIENT_SNAPSHOT;
+  }
 
   lastToken = token;
   lastUserRaw = userRaw;
+  lastAccessRaw = accessRaw;
 
   let user: AuthUser | null = null;
   if (userRaw) {
@@ -67,38 +96,55 @@ function getClientSnapshot(): AuthSnapshot {
     }
   }
 
-  // hydrated ở đây để false, vì hydrated thật nằm ở state trong Provider
-  CLIENT_SNAPSHOT = { token, user, hydrated: false };
+  let access: UserAccess | null = null;
+  if (accessRaw) {
+    try {
+      access = JSON.parse(accessRaw) as UserAccess;
+    } catch {
+      access = null;
+    }
+  }
+
+  CLIENT_SNAPSHOT = {
+    token,
+    user,
+    access,
+    hydrated: false,
+  };
+
   return CLIENT_SNAPSHOT;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const snap = useSyncExternalStore(subscribeAuth, getClientSnapshot, () => SERVER_SNAPSHOT);
+  const snap = useSyncExternalStore(
+    subscribeAuth,
+    getClientSnapshot,
+    () => SERVER_SNAPSHOT
+  );
 
   const [isLoading, setLoading] = useState(false);
-  const [hydrated, setHydrated] = useState(false); // ✅ hydrated thật
+  const [hydrated, setHydrated] = useState(false);
 
   const hardLogout = useCallback(() => {
-    clearToken();
-    clearUser();
+    clearAuth();
   }, []);
 
-  // ✅ Bootstrap: cố refresh -> me (nếu có cookie rt)
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const r = await authApi.refresh(); // 401 nếu chưa login là bình thường
+        const r = await authApi.refresh();
         setToken(r.accessToken);
+        setAccess(r.access);
 
         const me = await authApi.me();
         setUser(me.user);
+        setAccess(me.access);
       } catch {
-        // chưa login / cookie hết hạn => coi như guest
         hardLogout();
       } finally {
         setLoading(false);
-        setHydrated(true); // ✅ báo đã bootstrap xong
+        setHydrated(true);
       }
     })();
   }, [hardLogout]);
@@ -109,9 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!getToken()) {
         const r = await authApi.refresh();
         setToken(r.accessToken);
+        setAccess(r.access);
       }
+
       const data = await authApi.me();
       setUser(data.user);
+      setAccess(data.access);
     } catch {
       hardLogout();
     } finally {
@@ -119,29 +168,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [hardLogout]);
 
-  const login = useCallback(async (body: { email: string; password: string }) => {
-    setLoading(true);
-    try {
-      const res = await authApi.login(body);
-      setToken(res.accessToken);
-      setUser(res.user);
-      return res.user;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const login = useCallback(
+    async (body: { email: string; password: string }) => {
+      setLoading(true);
+      try {
+        const res = await authApi.login(body);
+        setToken(res.accessToken);
+        setUser(res.user);
+        setAccess(res.access);
+        return res.user;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
-  const register = useCallback(async (body: { name: string; email: string; password: string }) => {
-    setLoading(true);
-    try {
-      const res = await authApi.register(body);
-      setToken(res.accessToken);
-      setUser(res.user);
-      return res.user;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const register = useCallback(
+    async (body: { name: string; email: string; password: string }) => {
+      setLoading(true);
+      try {
+        const res = await authApi.register(body);
+        setToken(res.accessToken);
+        setUser(res.user);
+        setAccess(res.access);
+        return res.user;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
     setLoading(true);
@@ -157,14 +214,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       token: snap.token,
       user: snap.user,
-      hydrated, // ✅ dùng hydrated thật
+      access: snap.access,
+      hydrated,
       isLoading,
       login,
       register,
       logout,
       refreshMe,
     }),
-    [snap.token, snap.user, hydrated, isLoading, login, register, logout, refreshMe]
+    [
+      snap.token,
+      snap.user,
+      snap.access,
+      hydrated,
+      isLoading,
+      login,
+      register,
+      logout,
+      refreshMe,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

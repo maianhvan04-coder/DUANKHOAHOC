@@ -22,7 +22,7 @@ import {
   productApi,
   type ProductItem,
   type ProductStatus,
-} from "@/app/api/product.api";
+} from "@/app/api/course.api";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");

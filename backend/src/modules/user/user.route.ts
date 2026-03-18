@@ -1,21 +1,63 @@
 import { Router } from "express";
 import { userController } from "./user.controller";
+import { authGuard } from "../../middlewares/auth/authGuard";
+import { authorize } from "../../middlewares/auth/authorize";
+import { PERMISSIONS } from "../../constants/permissions";
 
 export const userRouter = Router();
 
-userRouter.get("/", userController.list);
-userRouter.get("/:id", userController.get);
-userRouter.post("/", userController.create);
-userRouter.patch("/:id", userController.update);
+userRouter.get(
+  "/",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_READ] }),
+  userController.list
+);
 
-// ✅ toggle active
-userRouter.patch("/:id/active", userController.setActive);
+userRouter.get(
+  "/:id",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_READ] }),
+  userController.get
+);
 
-// ✅ Users tab: xoá mềm (=> INACTIVE + deletedAt)
-userRouter.delete("/:id", userController.remove);
+userRouter.post(
+  "/",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_CREATE] }),
+  userController.create
+);
 
-// ✅ Deleted tab: xoá cứng
-userRouter.delete("/:id/hard", userController.hardRemove);
+userRouter.patch(
+  "/:id",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_UPDATE] }),
+  userController.update
+);
 
-// ✅ restore
-userRouter.patch("/:id/restore", userController.restore);
+userRouter.patch(
+  "/:id/active",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_CHANGE_STATUS] }),
+  userController.setActive
+);
+
+userRouter.delete(
+  "/:id",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_DELETE] }),
+  userController.remove
+);
+
+userRouter.delete(
+  "/:id/hard",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_DELETE] }),
+  userController.hardRemove
+);
+
+userRouter.patch(
+  "/:id/restore",
+  authGuard,
+  authorize({ permissionsAny: [PERMISSIONS.USER_UPDATE] }),
+  userController.restore
+);

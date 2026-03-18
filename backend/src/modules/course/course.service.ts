@@ -1,6 +1,6 @@
 import { isValidObjectId, Types } from "mongoose";
-import { productRepository } from "./product.repository";
-import type { ProductLevel, ProductMode, ProductStatus } from "./product.model";
+import { productRepository } from "./course.repository";
+import type { ProductLevel, ProductMode, ProductStatus } from "./course.model";
 import { CategoryModel } from "../category/category.model";
 import { slugify } from "../../utils/slug";
 

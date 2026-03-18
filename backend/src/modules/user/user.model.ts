@@ -3,20 +3,55 @@ import { ROLES } from "../../constants/roles";
 
 const userSchema = new Schema(
   {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-    // để auth dùng (user tạo từ CRUD có thể chưa có password)
-    passwordHash: { type: String, default: null },
-    role: { type: String, enum: Object.values(ROLES), default: ROLES.USER },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+      index: true,
+    },
 
-    // ✅ status
-    active: { type: Boolean, default: true },
+    passwordHash: {
+      type: String,
+      default: null,
+    },
 
-    // ✅ soft delete flag (null = chưa xoá, có date = đã xoá)
-    deletedAt: { type: Date, default: null },
+    role: {
+      type: String,
+      enum: Object.values(ROLES),
+      default: ROLES.USER,
+      required: true,
+      index: true,
+    },
+
+    active: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true }
+);
+
+// chỉ unique với user chưa bị soft-delete
+userSchema.index(
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { deletedAt: null },
+  }
 );
 
 export const UserModel = model("User", userSchema);

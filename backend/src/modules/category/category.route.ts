@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { categoryController } from "./category.controller";
 import { validate } from "../../middlewares/validate";
+import { authGuard } from "../../middlewares/auth/authGuard";
 import {
   createCategorySchema,
   updateCategorySchema,
@@ -10,17 +11,18 @@ import {
 const router = Router();
 
 router.get("/", categoryController.getAll);
-router.get("/deleted", categoryController.getDeleted);
+router.get("/deleted", authGuard, categoryController.getDeleted);
 
-router.post("/", validate(createCategorySchema), categoryController.create);
-router.put("/:id", validate(updateCategorySchema), categoryController.update);
+router.post("/", authGuard, validate(createCategorySchema), categoryController.create);
+router.put("/:id", authGuard, validate(updateCategorySchema), categoryController.update);
 
 // soft delete
-router.delete("/:id", validate(categoryIdSchema), categoryController.softDelete);
+router.delete("/:id", authGuard, validate(categoryIdSchema), categoryController.softDelete);
 
 // restore
 router.patch(
   "/:id/restore",
+  authGuard,
   validate(categoryIdSchema),
   categoryController.restore
 );
@@ -28,6 +30,7 @@ router.patch(
 // force delete
 router.delete(
   "/:id/force",
+  authGuard,
   validate(categoryIdSchema),
   categoryController.forceDelete
 );

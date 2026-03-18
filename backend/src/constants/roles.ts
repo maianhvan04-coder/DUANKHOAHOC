@@ -1,8 +1,12 @@
 export const ROLES = {
   ADMIN: "ADMIN",
   MANAGER: "MANAGER",
-  STAFF: "STAFF",
+  TEACHER: "TEACHER",
+  STUDENT: "STUDENT",
   USER: "USER",
 } as const;
 
-export type Role = (typeof ROLES)[keyof typeof ROLES];
+export type RoleCode = (typeof ROLES)[keyof typeof ROLES];
+
+// alias để các file cũ import Role vẫn chạy
+export type Role = RoleCode;
