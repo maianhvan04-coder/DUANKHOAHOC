@@ -34,6 +34,15 @@ export const PERMISSIONS = Object.freeze({
   STUDENT_DELETE: "student:delete",
   STUDENT_CHANGE_STATUS: "student:status",
 
+  CLASSROOM_READ: "classroom:read",
+  CLASSROOM_CREATE: "classroom:create",
+  CLASSROOM_UPDATE: "classroom:update",
+  CLASSROOM_DELETE: "classroom:delete",
+  CLASSROOM_CHANGE_STATUS: "classroom:status",
+  CLASSROOM_ASSIGN_STUDENT: "classroom:assign_student",
+  CLASSROOM_UPDATE_LEARNING: "classroom:update_learning",
+  CLASSROOM_UPDATE_HONOR: "classroom:update_honor",
+
   ENROLLMENT_READ: "enrollment:read",
   ENROLLMENT_CREATE: "enrollment:create",
   ENROLLMENT_APPROVE: "enrollment:approve",

@@ -23,6 +23,10 @@ import {
   type ProductItem,
   type ProductStatus,
 } from "@/app/api/course.api";
+import {
+  teacherApi,
+  type TeacherItem,
+} from "@/app/api/teacher.api";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -33,7 +37,7 @@ type FormMode = "create" | "edit";
 
 type ProductFormState = {
   title: string;
-  teacherName: string;
+  teacher: string;
   category: string;
   image: File | null;
   shortDescription: string;
@@ -47,7 +51,7 @@ type ProductFormState = {
 
 const INITIAL_FORM: ProductFormState = {
   title: "",
-  teacherName: "",
+  teacher: "",
   category: "",
   image: null,
   shortDescription: "",
@@ -69,6 +73,25 @@ function getCategoryName(category: string | CategoryItem) {
 
 function getCategoryId(category: string | CategoryItem) {
   return typeof category === "string" ? category : category?._id || "";
+}
+
+function getTeacherId(teacher: ProductItem["teacher"]) {
+  if (!teacher) return "";
+  return typeof teacher === "string" ? teacher : teacher._id || "";
+}
+
+function getTeacherDisplayName(item: ProductItem) {
+  if (item.teacher && typeof item.teacher !== "string") {
+    return item.teacher.user?.name || item.teacherName || "Chưa có giảng viên";
+  }
+
+  return item.teacherName || "Chưa có giảng viên";
+}
+
+function getTeacherOptionLabel(item: TeacherItem) {
+  return item.specialty
+    ? `${item.name} - ${item.specialty}`
+    : item.name || "Giảng viên";
 }
 
 function getStatusClass(status: ProductStatus) {
@@ -112,6 +135,7 @@ function FilterSelect({
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [viewMode, setViewMode] = useState<ViewMode>("active");
@@ -160,15 +184,17 @@ export default function AdminProductsPage() {
     try {
       setLoading(true);
 
-      const [productRes, categoryRes] = await Promise.all([
+      const [productRes, categoryRes, teacherRes] = await Promise.all([
         mode === "active"
           ? productApi.getAll({ limit: 100 })
           : productApi.getDeleted(),
         categoryApi.getAll(),
+        teacherApi.list(),
       ]);
 
       setProducts(productRes.items || []);
       setCategories(categoryRes.items || []);
+      setTeachers(teacherRes || []);
     } catch (error) {
       console.error(error);
       alert(
@@ -192,7 +218,7 @@ export default function AdminProductsPage() {
       const matchSearch =
         !keyword ||
         item.title?.toLowerCase().includes(keyword) ||
-        item.teacherName?.toLowerCase().includes(keyword) ||
+        getTeacherDisplayName(item).toLowerCase().includes(keyword) ||
         getCategoryName(item.category).toLowerCase().includes(keyword);
 
       const matchCategory =
@@ -241,7 +267,7 @@ export default function AdminProductsPage() {
     setEditingItem(item);
     setForm({
       title: item.title || "",
-      teacherName: item.teacherName || "",
+      teacher: getTeacherId(item.teacher),
       category: getCategoryId(item.category),
       image: null,
       shortDescription: item.shortDescription || "",
@@ -266,7 +292,7 @@ export default function AdminProductsPage() {
 
   const handleSubmitForm = async () => {
     const title = form.title.trim();
-    const teacherName = form.teacherName.trim();
+    const teacher = form.teacher.trim();
     const category = form.category;
     const shortDescription = form.shortDescription.trim();
     const durationText = form.durationText.trim();
@@ -278,6 +304,11 @@ export default function AdminProductsPage() {
 
     if (!category) {
       alert("Vui lòng chọn danh mục");
+      return;
+    }
+
+    if (!teacher) {
+      alert("Vui lòng chọn giảng viên mặc định");
       return;
     }
 
@@ -306,7 +337,7 @@ export default function AdminProductsPage() {
 
       const payload = {
         title,
-        teacherName,
+        teacher,
         category,
         image: form.image,
         shortDescription,
@@ -392,10 +423,10 @@ export default function AdminProductsPage() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-slate-900">
-                  Product Management
+                  Course Management
                 </h1>
                 <p className="mt-1 text-sm text-slate-500">
-                  Create, edit and manage products.
+                  Tạo, sửa và quản lý khóa học.
                 </p>
 
                 <div className="mt-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
@@ -413,7 +444,7 @@ export default function AdminProductsPage() {
                     )}
                   >
                     <BookOpen className="h-4 w-4" />
-                    Products
+                    Courses
                   </button>
 
                   <button
@@ -443,7 +474,7 @@ export default function AdminProductsPage() {
                     className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800"
                   >
                     <Plus className="h-4 w-4" />
-                    New Product
+                    New Course
                   </button>
                 ) : null}
 
@@ -520,7 +551,7 @@ export default function AdminProductsPage() {
                       <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
                     </th>
                     <th className="min-w-[300px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Product
+                      Course
                     </th>
                     <th className="min-w-[160px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Category
@@ -585,7 +616,7 @@ export default function AdminProductsPage() {
                                 {item.title}
                               </div>
                               <div className="mt-0.5 text-sm text-slate-500">
-                                {item.teacherName || "Chưa có giảng viên"}
+                                {getTeacherDisplayName(item)}
                               </div>
                             </div>
                           </div>
@@ -734,12 +765,12 @@ export default function AdminProductsPage() {
             <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3">
               <div>
                 <h2 className="text-base font-semibold text-slate-900">
-                  {formMode === "create" ? "New Product" : "Edit Product"}
+                  {formMode === "create" ? "New Course" : "Edit Course"}
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {formMode === "create"
-                    ? "Create a new product."
-                    : "Update product information."}
+                    ? "Tạo khóa học mới."
+                    : "Cập nhật thông tin khóa học."}
                 </p>
               </div>
 
@@ -757,7 +788,7 @@ export default function AdminProductsPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Product name <span className="text-rose-600">*</span>
+                    Tên khóa học <span className="text-rose-600">*</span>
                   </label>
                   <input
                     value={form.title}
@@ -771,21 +802,27 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Teacher
+                    Giảng viên mặc định <span className="text-rose-600">*</span>
                   </label>
-                  <input
-                    value={form.teacherName}
+                  <select
+                    value={form.teacher}
                     onChange={(e) =>
-                      setForm((prev) => ({ ...prev, teacherName: e.target.value }))
+                      setForm((prev) => ({ ...prev, teacher: e.target.value }))
                     }
-                    placeholder="Nhập tên giảng viên"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
-                  />
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                  >
+                    <option value="">Chọn giảng viên</option>
+                    {teachers.map((item) => (
+                      <option key={item._id} value={item._id}>
+                        {getTeacherOptionLabel(item)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Category <span className="text-rose-600">*</span>
+                    Danh mục <span className="text-rose-600">*</span>
                   </label>
                   <select
                     value={form.category}
@@ -805,7 +842,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Status
+                    Trạng thái
                   </label>
                   <select
                     value={form.status}
@@ -825,7 +862,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Duration
+                    Thời lượng
                   </label>
                   <input
                     value={form.durationText}
@@ -839,7 +876,7 @@ export default function AdminProductsPage() {
 
                 <div className="md:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Image
+                    Ảnh
                   </label>
 
                   <input
@@ -856,7 +893,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Price <span className="text-rose-600">*</span>
+                    Giá bán <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="number"
@@ -872,7 +909,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Original Price
+                    Giá gốc
                   </label>
                   <input
                     type="number"
@@ -905,7 +942,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Student Count
+                    Số học viên
                   </label>
                   <input
                     type="number"
@@ -921,7 +958,7 @@ export default function AdminProductsPage() {
 
                 <div className="md:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Short Description
+                    Mô tả ngắn
                   </label>
                   <textarea
                     value={form.shortDescription}
@@ -975,7 +1012,7 @@ export default function AdminProductsPage() {
                     ? "Creating..."
                     : "Updating..."
                   : formMode === "create"
-                  ? "Create Product"
+                  ? "Create Course"
                   : "Save Changes"}
               </button>
             </div>

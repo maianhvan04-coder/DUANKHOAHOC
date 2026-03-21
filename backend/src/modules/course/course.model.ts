@@ -8,7 +8,10 @@ export interface Product {
   title: string;
   slug: string;
   shortDescription: string;
+
+  teacher?: Types.ObjectId | null;
   teacherName: string;
+
   image: string;
   imagePublicId: string;
   category: Types.ObjectId;
@@ -44,6 +47,13 @@ const productSchema = new Schema<Product>(
     shortDescription: {
       type: String,
       default: "",
+    },
+
+    teacher: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      default: null,
+      index: true,
     },
 
     teacherName: {

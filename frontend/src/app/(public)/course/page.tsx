@@ -37,6 +37,14 @@ function getCategoryId(category: string | CategoryItem) {
   return typeof category === "string" ? category : category?._id || "";
 }
 
+function getTeacherDisplayName(item: ProductItem) {
+  if (item.teacher && typeof item.teacher !== "string") {
+    return item.teacher.user?.name || item.teacherName || "Đang cập nhật giảng viên";
+  }
+
+  return item.teacherName || "Đang cập nhật giảng viên";
+}
+
 function getStatusLabel(status: ProductStatus) {
   if (status === "OPEN") return "Đang mở";
   if (status === "COMING") return "Sắp mở";
@@ -106,7 +114,7 @@ function ProductCard({ item }: { item: ProductItem }) {
         </h3>
 
         <p className="mt-1 line-clamp-1 text-[13px] text-slate-500">
-          {item.teacherName || "Đang cập nhật giảng viên"}
+          {getTeacherDisplayName(item)}
         </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-slate-500">

@@ -17,7 +17,7 @@ type ProductQuery = {
 type ProductBody = {
   title?: string;
   shortDescription?: string;
-  teacherName?: string;
+  teacher?: string;
   category?: string;
   level?: "Cơ bản" | "Trung cấp" | "Nâng cao";
   status?: "OPEN" | "COMING" | "FULL";
@@ -99,9 +99,7 @@ export const productController = {
       }
 
       const item = await productService.create(
-        req.body as Required<
-          Pick<ProductBody, "title" | "category" | "price">
-        > &
+        req.body as Required<Pick<ProductBody, "title" | "category" | "price">> &
           ProductBody,
         imageData
       );

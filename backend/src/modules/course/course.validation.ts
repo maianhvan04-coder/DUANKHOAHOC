@@ -11,7 +11,7 @@ export const createProductSchema = z.object({
   body: z.object({
     title: z.string().trim().min(1, "Tên khóa học là bắt buộc"),
     shortDescription: z.string().optional(),
-    teacherName: z.string().optional(),
+    teacher: objectId.optional(),
     category: objectId,
     level: levelSchema.optional(),
     status: statusSchema.optional(),
@@ -32,7 +32,7 @@ export const updateProductSchema = z.object({
   body: z.object({
     title: z.string().trim().min(1, "Tên khóa học không được để trống").optional(),
     shortDescription: z.string().optional(),
-    teacherName: z.string().optional(),
+    teacher: z.string().trim().optional(),
     category: objectId.optional(),
     level: levelSchema.optional(),
     status: statusSchema.optional(),

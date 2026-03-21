@@ -5,6 +5,7 @@ export const PERMISSION_GROUPS = Object.freeze({
   COURSES: { key: "COURSES", label: "Khóa học", icon: "book-open", order: 30 },
   TEACHERS: { key: "TEACHERS", label: "Giảng viên", icon: "graduation-cap", order: 40 },
   STUDENTS: { key: "STUDENTS", label: "Học viên", icon: "user-check", order: 50 },
+  CLASSROOMS: { key: "CLASSROOMS", label: "Lớp học", icon: "school", order: 55 },
   ENROLLMENTS: { key: "ENROLLMENTS", label: "Đăng ký học", icon: "clipboard-list", order: 60 },
   SCHEDULES: { key: "SCHEDULES", label: "Lịch học", icon: "calendar-days", order: 70 },
   SYSTEM: { key: "SYSTEM", label: "Hệ thống", icon: "shield", order: 99 },

@@ -18,6 +18,7 @@ import {
   User,
   FolderKanban,
   Package2,
+  NotebookPen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
@@ -113,6 +114,18 @@ const menuGroups: SidebarGroup[] = [
           },
         ],
       },
+    ],
+  },
+
+  {
+    label: "STUDY",
+    items: [
+      {
+        href: "/admin/classes",
+        text: "Lớp học",
+        icon: NotebookPen,
+        requiredGroupKeys: ["CLASSROOMS"],
+      },
       {
         href: "/admin/schedule",
         text: "Lịch học",
@@ -121,6 +134,7 @@ const menuGroups: SidebarGroup[] = [
       },
     ],
   },
+  
   {
     label: "SETTING",
     items: [

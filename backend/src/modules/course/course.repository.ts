@@ -5,6 +5,7 @@ type CreateProductRepoPayload = {
   title: string;
   slug: string;
   shortDescription: string;
+  teacher?: Types.ObjectId | null;
   teacherName: string;
   image: string;
   imagePublicId: string;
@@ -22,6 +23,15 @@ type CreateProductRepoPayload = {
 
 type UpdateProductRepoPayload = Partial<CreateProductRepoPayload>;
 
+const teacherPopulate = {
+  path: "teacher",
+  select: "user specialty avatar degree experience rating",
+  populate: {
+    path: "user",
+    select: "name email",
+  },
+};
+
 export const productRepository = {
   findAll(query: { categoryId?: string; limit?: string | number }) {
     const filter: Record<string, unknown> = {
@@ -38,6 +48,7 @@ export const productRepository = {
 
     let mongoQuery = ProductModel.find(filter)
       .populate("category")
+      .populate(teacherPopulate)
       .sort({ createdAt: -1 });
 
     if (query.limit) {
@@ -52,6 +63,7 @@ export const productRepository = {
       isDeleted: true,
     })
       .populate("category")
+      .populate(teacherPopulate)
       .sort({ deletedAt: -1 });
   },
 
@@ -59,25 +71,27 @@ export const productRepository = {
     return ProductModel.findOne({
       _id: id,
       isDeleted: false,
-    });
+    }).populate(teacherPopulate);
   },
 
   findDeletedById(id: string) {
     return ProductModel.findOne({
       _id: id,
       isDeleted: true,
-    });
+    }).populate(teacherPopulate);
   },
 
   findAnyById(id: string) {
-    return ProductModel.findById(id);
+    return ProductModel.findById(id).populate(teacherPopulate);
   },
 
   findByIdWithCategory(id: string) {
     return ProductModel.findOne({
       _id: id,
       isDeleted: false,
-    }).populate("category");
+    })
+      .populate("category")
+      .populate(teacherPopulate);
   },
 
   findBySlug(slug: string) {
@@ -111,7 +125,9 @@ export const productRepository = {
       {
         new: true,
       }
-    ).populate("category");
+    )
+      .populate("category")
+      .populate(teacherPopulate);
   },
 
   softDeleteById(id: string) {
@@ -129,7 +145,7 @@ export const productRepository = {
       {
         new: true,
       }
-    );
+    ).populate(teacherPopulate);
   },
 
   restoreById(id: string) {
@@ -147,10 +163,12 @@ export const productRepository = {
       {
         new: true,
       }
-    ).populate("category");
+    )
+      .populate("category")
+      .populate(teacherPopulate);
   },
 
   forceDeleteById(id: string) {
-    return ProductModel.findByIdAndDelete(id);
+    return ProductModel.findByIdAndDelete(id).populate(teacherPopulate);
   },
 };

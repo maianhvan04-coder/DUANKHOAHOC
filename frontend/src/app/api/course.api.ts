@@ -5,11 +5,28 @@ export type ProductMode = "ONLINE" | "OFFLINE";
 export type ProductLevel = "Cơ bản" | "Trung cấp" | "Nâng cao";
 export type ProductStatus = "OPEN" | "COMING" | "FULL";
 
+export type ProductTeacherUser = {
+  _id?: string;
+  name?: string;
+  email?: string;
+};
+
+export type ProductTeacherItem = {
+  _id: string;
+  specialty?: string;
+  avatar?: string;
+  degree?: string;
+  experience?: string;
+  rating?: number;
+  user?: ProductTeacherUser | null;
+};
+
 export type ProductItem = {
   _id: string;
   title: string;
   slug: string;
   shortDescription?: string;
+  teacher?: string | ProductTeacherItem | null;
   teacherName?: string;
   image?: string;
   imagePublicId?: string;
@@ -37,7 +54,7 @@ export type GetProductsQuery = {
 export type CreateProductBody = {
   title: string;
   shortDescription?: string;
-  teacherName?: string;
+  teacher?: string;
   category: string;
   level?: ProductLevel;
   status?: ProductStatus;
@@ -54,7 +71,7 @@ export type CreateProductBody = {
 export type UpdateProductBody = {
   title?: string;
   shortDescription?: string;
-  teacherName?: string;
+  teacher?: string;
   category?: string;
   level?: ProductLevel;
   status?: ProductStatus;
@@ -72,7 +89,7 @@ function buildProductFormData(body: CreateProductBody | UpdateProductBody) {
   const formData = new FormData();
 
   Object.entries(body).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") return;
+    if (value === undefined || value === null) return;
 
     if (key === "image") {
       if (value instanceof File) {
@@ -117,13 +134,11 @@ export const productApi = {
 
   create: async (body: CreateProductBody) => {
     const formData = buildProductFormData(body);
-
     return (await http.post<{ item: ProductItem }>("/api/products", formData)).data;
   },
 
   update: async (id: string, body: UpdateProductBody) => {
     const formData = buildProductFormData(body);
-
     return (await http.put<{ item: ProductItem }>(`/api/products/${id}`, formData)).data;
   },
 

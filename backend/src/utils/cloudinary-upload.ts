@@ -1,4 +1,3 @@
-import { Readable } from "stream";
 import cloudinary from "../config/cloudinary";
 
 export type CloudinaryUploadResult = {
@@ -19,6 +18,7 @@ export function uploadBufferToCloudinary(
       (error, result) => {
         if (error) return reject(error);
         if (!result) return reject(new Error("Upload ảnh thất bại"));
+
         resolve({
           secure_url: result.secure_url,
           public_id: result.public_id,
@@ -26,15 +26,21 @@ export function uploadBufferToCloudinary(
       }
     );
 
-    Readable.from(fileBuffer).pipe(uploadStream);
+    uploadStream.end(fileBuffer);
   });
 }
 
-export function deleteFromCloudinary(publicId: string): Promise<void> {
+export function deleteFromCloudinary(publicId?: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    cloudinary.uploader.destroy(publicId, { resource_type: "image" }, (error) => {
-      if (error) return reject(error);
-      resolve();
-    });
+    if (!publicId) return resolve();
+
+    cloudinary.uploader.destroy(
+      publicId,
+      { resource_type: "image" },
+      (error) => {
+        if (error) return reject(error);
+        resolve();
+      }
+    );
   });
 }

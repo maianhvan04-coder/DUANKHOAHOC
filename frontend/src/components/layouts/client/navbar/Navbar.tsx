@@ -21,7 +21,7 @@ function cn(...classes: Array<string | false | null | undefined>) {
 const MENU = [
   { label: "Giới thiệu", href: "/gioi-thieu" },
   { label: "Chương trình học", href: "/chuong-trinh-hoc" },
-  { label: "Giáo viên", href: "/giao-vien" },
+  { label: "Giáo viên", href: "/giang-vien" },
   { label: "Học viên", href: "/hoc-vien" },
   { label: "Góc kiến thức", href: "/goc-kien-thuc" },
 ];
@@ -302,7 +302,7 @@ export default function Navbar() {
                           categories.map((category) => (
                             <Link
                               key={category._id}
-                              href={`/products#category-${category._id}`}
+                              href={`/course#category-${category._id}`}
                               onClick={() => setOpenCourseMenu(false)}
                               className="block rounded-xl px-4 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
                             >

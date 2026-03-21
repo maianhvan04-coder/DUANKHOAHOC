@@ -2,11 +2,12 @@ import { isValidObjectId, Types } from "mongoose";
 import { productRepository } from "./course.repository";
 import type { ProductLevel, ProductMode, ProductStatus } from "./course.model";
 import { CategoryModel } from "../category/category.model";
+import { TeacherModel } from "../teacher/teacher.model";
 import { slugify } from "../../utils/slug";
 
-function toObjectId(id: string) {
+function toObjectId(id: string, message = "ID không hợp lệ") {
   if (!isValidObjectId(id)) {
-    throw new Error("Danh mục không hợp lệ");
+    throw new Error(message);
   }
 
   return new Types.ObjectId(id);
@@ -40,6 +41,10 @@ function normalizeModes(
 }
 
 async function ensureCategoryExists(categoryId: string) {
+  if (!isValidObjectId(categoryId)) {
+    throw new Error("Danh mục không hợp lệ");
+  }
+
   const category = await CategoryModel.findOne({
     _id: categoryId,
     isDeleted: false,
@@ -52,10 +57,45 @@ async function ensureCategoryExists(categoryId: string) {
   return category;
 }
 
+async function resolveTeacherFields(teacherId?: string) {
+  if (teacherId === undefined) {
+    return undefined;
+  }
+
+  const rawTeacherId = teacherId.trim();
+
+  if (!rawTeacherId) {
+    return {
+      teacher: null,
+      teacherName: "",
+    };
+  }
+
+  if (!isValidObjectId(rawTeacherId)) {
+    throw new Error("Giảng viên không hợp lệ");
+  }
+
+  const teacherDoc = await TeacherModel.findById(rawTeacherId).populate({
+    path: "user",
+    select: "name",
+  });
+
+  if (!teacherDoc) {
+    throw new Error("Giảng viên không tồn tại");
+  }
+
+  const teacherUser = teacherDoc.user as { name?: string } | null | undefined;
+
+  return {
+    teacher: new Types.ObjectId(String(teacherDoc._id)),
+    teacherName: String(teacherUser?.name || ""),
+  };
+}
+
 type CreateProductPayload = {
   title: string;
   shortDescription?: string;
-  teacherName?: string;
+  teacher?: string;
   category: string;
   level?: ProductLevel;
   status?: ProductStatus;
@@ -71,7 +111,7 @@ type CreateProductPayload = {
 type UpdateProductPayload = {
   title?: string;
   shortDescription?: string;
-  teacherName?: string;
+  teacher?: string;
   category?: string;
   level?: ProductLevel;
   status?: ProductStatus;
@@ -118,12 +158,21 @@ export const productService = {
       throw new Error("Khóa học đã tồn tại");
     }
 
+    const teacherFields =
+      (await resolveTeacherFields(payload.teacher)) ?? {
+        teacher: null,
+        teacherName: "",
+      };
+
     const created = await productRepository.create({
       title: payload.title.trim(),
       slug,
       shortDescription: payload.shortDescription?.trim() || "",
-      teacherName: payload.teacherName?.trim() || "",
-      category: toObjectId(payload.category),
+
+      teacher: teacherFields.teacher,
+      teacherName: teacherFields.teacherName,
+
+      category: toObjectId(payload.category, "Danh mục không hợp lệ"),
       level: payload.level || "Cơ bản",
       status: payload.status || "OPEN",
       rating: toNumber(payload.rating, 0),
@@ -137,10 +186,20 @@ export const productService = {
       imagePublicId: imageData?.imagePublicId || "",
     });
 
-    return productRepository.findByIdWithCategory(String(created._id));
+    const item = await productRepository.findByIdWithCategory(String(created._id));
+
+    if (!item) {
+      throw new Error("Tạo khóa học thất bại");
+    }
+
+    return item;
   },
 
-  async update(id: string, payload: UpdateProductPayload, imageData?: ProductImagePayload) {
+  async update(
+    id: string,
+    payload: UpdateProductPayload,
+    imageData?: ProductImagePayload
+  ) {
     const current = await productRepository.findById(id);
 
     if (!current) {
@@ -151,6 +210,7 @@ export const productService = {
       title?: string;
       slug?: string;
       shortDescription?: string;
+      teacher?: Types.ObjectId | null;
       teacherName?: string;
       category?: Types.ObjectId;
       level?: ProductLevel;
@@ -184,15 +244,17 @@ export const productService = {
 
     if (payload.category) {
       await ensureCategoryExists(payload.category);
-      updateData.category = toObjectId(payload.category);
+      updateData.category = toObjectId(payload.category, "Danh mục không hợp lệ");
     }
 
     if (payload.shortDescription !== undefined) {
-      updateData.shortDescription = payload.shortDescription;
+      updateData.shortDescription = payload.shortDescription.trim();
     }
 
-    if (payload.teacherName !== undefined) {
-      updateData.teacherName = payload.teacherName;
+    if (payload.teacher !== undefined) {
+      const teacherFields = await resolveTeacherFields(payload.teacher);
+      updateData.teacher = teacherFields?.teacher ?? null;
+      updateData.teacherName = teacherFields?.teacherName ?? "";
     }
 
     if (payload.level !== undefined) {
@@ -212,7 +274,7 @@ export const productService = {
     }
 
     if (payload.durationText !== undefined) {
-      updateData.durationText = payload.durationText;
+      updateData.durationText = payload.durationText.trim();
     }
 
     if (payload.price !== undefined) {
@@ -272,6 +334,7 @@ export const productService = {
     }
 
     const exists = await productRepository.findBySlug(item.slug);
+
     if (exists) {
       throw new Error("Slug khóa học đã bị dùng bởi dữ liệu khác, không thể khôi phục");
     }
