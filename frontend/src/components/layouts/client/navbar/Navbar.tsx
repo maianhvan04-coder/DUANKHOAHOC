@@ -1,18 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
+  BrickWallShield,
+  CalendarCheck,
   ChevronDown,
   Globe,
+  LayoutDashboard,
+  LogOut,
   Search,
   ShoppingCart,
   User,
 } from "lucide-react";
-import { authApi } from "@/app/api/auth.api";
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
+import { clearToken, clearUser } from "@/lib/utils/storage";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { hasAnyRole } from "@/lib/helpers/auth/access";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -26,23 +33,23 @@ const MENU = [
   { label: "Góc kiến thức", href: "/goc-kien-thuc" },
 ];
 
-type AuthUser = {
-  id?: string;
-  name?: string;
-  email?: string;
-  role?: string;
-};
-
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const router = useRouter();
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
+  const { user, access, hydrated, isLoading } = useAuth();
+
+  const [scrolled, setScrolled] = useState(false);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [openCourseMenu, setOpenCourseMenu] = useState(false);
+  const [openProfileMenu, setOpenProfileMenu] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const checkingAuth = !hydrated || isLoading;
+  const isLoggedIn = !!user;
+
+  const canAccessAdmin = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,28 +63,6 @@ export default function Navbar() {
     const onScroll = () => {
       cancelAnimationFrame(rafId);
       rafId = window.requestAnimationFrame(updateScroll);
-    };
-
-    const checkAuth = async () => {
-      try {
-        setCheckingAuth(true);
-        const res = await authApi.me();
-
-        if (cancelled) return;
-
-        setIsLoggedIn(true);
-        setUser(res.user ?? null);
-      } catch {
-        if (cancelled) return;
-
-        setIsLoggedIn(false);
-        setUser(null);
-      } finally {
-        if (!cancelled) {
-          setCheckingAuth(false);
-          setMounted(true);
-        }
-      }
     };
 
     const fetchCategories = async () => {
@@ -98,7 +83,6 @@ export default function Navbar() {
     };
 
     updateScroll();
-    checkAuth();
     fetchCategories();
 
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -110,10 +94,48 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setOpenProfileMenu(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenProfileMenu(false);
+        setOpenCourseMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+      clearToken();
+      clearUser();
+      setOpenProfileMenu(false);
+      router.push("/login");
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   const userInitial =
     user?.name?.trim()?.charAt(0)?.toUpperCase() ||
     user?.email?.trim()?.charAt(0)?.toUpperCase() ||
-    "A";
+    "Q";
 
   return (
     <>
@@ -123,7 +145,7 @@ export default function Navbar() {
         <div className="relative h-[160px] w-full">
           <div
             className={cn(
-              "pointer-events-auto absolute inset-x-0 top-0 z-20 border-b border-slate-200 bg-white",
+              "pointer-events-auto absolute inset-x-0 top-0 z-40 border-b border-slate-200 bg-white",
               "transition-[opacity,transform] duration-300 will-change-transform",
               scrolled
                 ? "pointer-events-none -translate-y-full opacity-0"
@@ -152,7 +174,7 @@ export default function Navbar() {
               </div>
 
               <div className="flex shrink-0 items-center justify-end gap-3 text-[#0B2C5F] lg:min-w-[260px]">
-                {!mounted || checkingAuth ? (
+                {checkingAuth ? (
                   <div className="h-12 w-[180px]" />
                 ) : !isLoggedIn ? (
                   <>
@@ -188,27 +210,92 @@ export default function Navbar() {
                       <Bell className="h-6 w-6" strokeWidth={2} />
                     </button>
 
-                    <button
-                      type="button"
+                    <Link
+                      href="/gio-hang"
                       className="transition hover:opacity-75"
                       aria-label="Giỏ hàng"
                     >
                       <ShoppingCart className="h-6 w-6" strokeWidth={2} />
-                    </button>
-
-                    <Link
-                      href="/tai-khoan"
-                      title={user?.name || user?.email || "Tài khoản"}
-                      className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[#0B2C5F] transition hover:bg-slate-200"
-                    >
-                      {user?.name || user?.email ? (
-                        <span className="text-[14px] font-bold">
-                          {userInitial}
-                        </span>
-                      ) : (
-                        <User className="h-5 w-5" strokeWidth={2} />
-                      )}
                     </Link>
+
+                    <div ref={profileMenuRef} className="relative">
+                      <button
+                        type="button"
+                        title={user?.name || user?.email || "Tài khoản"}
+                        onClick={() => setOpenProfileMenu((prev) => !prev)}
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[#0B2C5F] transition hover:bg-slate-200"
+                        aria-label="Mở menu tài khoản"
+                      >
+                        {user?.name || user?.email ? (
+                          <span className="text-[14px] font-bold">
+                            {userInitial}
+                          </span>
+                        ) : (
+                          <User className="h-5 w-5" strokeWidth={2} />
+                        )}
+                      </button>
+
+                      <div
+                        className={cn(
+                          "absolute right-0 top-[calc(100%+12px)] z-[90] w-[240px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.12)] transition-all duration-200",
+                          openProfileMenu
+                            ? "visible translate-y-0 opacity-100"
+                            : "invisible -translate-y-1 opacity-0"
+                        )}
+                      >
+                        <div className="border-b border-slate-100 px-4 py-3">
+                          <p className="line-clamp-1 text-[14px] font-semibold text-[#0B2C5F]">
+                            {user?.name || "Người dùng"}
+                          </p>
+                          <p className="line-clamp-1 mt-1 text-[12px] text-slate-500">
+                            {user?.email || ""}
+                          </p>
+                        </div>
+
+                        <div className="p-2">
+                          <Link
+                            href="/tai-khoan"
+                            onClick={() => setOpenProfileMenu(false)}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
+                          >
+                            <User className="h-4 w-4" />
+                            <span>Tài khoản</span>
+                          </Link>
+
+                          <Link
+                            href="/lich-hoc"
+                            onClick={() => setOpenProfileMenu(false)}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
+                          >
+                            <CalendarCheck className="h-4 w-4" />
+                            <span>Lịch học</span>
+                          </Link>
+
+                          {canAccessAdmin && (
+                            <Link
+                              href="/admin"
+                              onClick={() => setOpenProfileMenu(false)}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
+                            >
+                              <BrickWallShield className="h-4 w-4" />
+                              <span>Vào trang Admin</span>
+                            </Link>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={loggingOut}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[14px] font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <LogOut className="h-4 w-4" />
+                            <span>
+                              {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
 
                     <button
                       type="button"
@@ -268,7 +355,7 @@ export default function Navbar() {
                   >
                     <button
                       type="button"
-                      onClick={() => setOpenCourseMenu((v) => !v)}
+                      onClick={() => setOpenCourseMenu((prev) => !prev)}
                       className="inline-flex items-center gap-1 whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
                     >
                       Khóa học
@@ -289,7 +376,6 @@ export default function Navbar() {
                       )}
                     >
                       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition-all duration-200">
-
                         {loadingCategories ? (
                           <div className="px-4 py-3 text-[14px] text-slate-500">
                             Đang tải danh mục...
@@ -327,7 +413,7 @@ export default function Navbar() {
               </div>
 
               <div className="flex shrink-0 justify-end lg:w-[180px]">
-                {mounted && !checkingAuth && isLoggedIn ? (
+                {!checkingAuth && isLoggedIn ? (
                   <Link
                     href="/khoa-hoc-cua-toi"
                     className="inline-flex h-11 items-center justify-center rounded-[10px] bg-[#0D56A6] px-6 text-[14px] font-semibold text-white transition hover:bg-[#0B4A8E]"

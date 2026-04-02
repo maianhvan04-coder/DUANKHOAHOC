@@ -1,6 +1,5 @@
 import { Schema, model, Types } from "mongoose";
 
-export type StudyMode = "ONLINE" | "OFFLINE";
 export type StudyStatus =
   | "ENROLLED"
   | "STUDYING"
@@ -9,16 +8,39 @@ export type StudyStatus =
   | "DROPPED";
 
 export type CompletionStatus = "NOT_COMPLETED" | "COMPLETED";
+
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT";
+
+export type HomeworkStatus = "DONE" | "MISSING";
+
 export type PerformanceStatus = "NORMAL" | "GOOD" | "EXCELLENT";
+
+export type AcademicLevel =
+  | "EXCELLENT"
+  | "GOOD"
+  | "AVERAGE"
+  | "WEAK"
+  | "POOR";
+
+export type ClassMode = "ONLINE" | "OFFLINE";
+
+export interface StudySession {
+  sessionNo: number;
+  date: Date | null;
+  attendanceStatus: AttendanceStatus;
+  homeworkStatus: HomeworkStatus;
+  teacherNote: string;
+  progressScore: number;
+}
 
 export interface StudentStudy {
   student: Types.ObjectId;
-  course: Types.ObjectId;
   classRoom: Types.ObjectId;
-  teacher: Types.ObjectId | null;
+  course: Types.ObjectId;
+  teacher: Types.ObjectId;
 
   className: string;
-  mode: StudyMode;
+  mode: ClassMode;
   scheduleText: string;
   room: string;
 
@@ -30,6 +52,14 @@ export interface StudentStudy {
   progressPercent: number;
   attendancePercent: number;
 
+  test1: number;
+  test2: number;
+  test3: number;
+  finalAverage: number;
+  academicLevel: AcademicLevel;
+
+  sessions: StudySession[];
+
   rank: number | null;
   performanceStatus: PerformanceStatus;
   isHonored: boolean;
@@ -38,6 +68,7 @@ export interface StudentStudy {
 
   startedAt: Date | null;
   endedAt: Date | null;
+
   note: string;
   isActive: boolean;
 
@@ -45,18 +76,51 @@ export interface StudentStudy {
   updatedAt: Date;
 }
 
+const studySessionSchema = new Schema<StudySession>(
+  {
+    sessionNo: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 30,
+    },
+    date: {
+      type: Date,
+      default: null,
+    },
+    attendanceStatus: {
+      type: String,
+      enum: ["PRESENT", "LATE", "ABSENT"],
+      default: "ABSENT",
+    },
+    homeworkStatus: {
+      type: String,
+      enum: ["DONE", "MISSING"],
+      default: "MISSING",
+    },
+    teacherNote: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    progressScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+  },
+  {
+    _id: true,
+    versionKey: false,
+  }
+);
+
 const studentStudySchema = new Schema<StudentStudy>(
   {
     student: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
-      index: true,
-    },
-
-    course: {
-      type: Schema.Types.ObjectId,
-      ref: "Product",
       required: true,
       index: true,
     },
@@ -68,25 +132,30 @@ const studentStudySchema = new Schema<StudentStudy>(
       index: true,
     },
 
+    course: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+      index: true,
+    },
+
     teacher: {
       type: Schema.Types.ObjectId,
       ref: "Teacher",
-      default: null,
+      required: true,
       index: true,
     },
 
     className: {
       type: String,
-      default: "",
+      required: true,
       trim: true,
-      index: true,
     },
 
     mode: {
       type: String,
       enum: ["ONLINE", "OFFLINE"],
       default: "ONLINE",
-      index: true,
     },
 
     scheduleText: {
@@ -125,7 +194,6 @@ const studentStudySchema = new Schema<StudentStudy>(
       default: 0,
       min: 0,
       max: 100,
-      index: true,
     },
 
     progressPercent: {
@@ -133,7 +201,6 @@ const studentStudySchema = new Schema<StudentStudy>(
       default: 0,
       min: 0,
       max: 100,
-      index: true,
     },
 
     attendancePercent: {
@@ -141,27 +208,61 @@ const studentStudySchema = new Schema<StudentStudy>(
       default: 0,
       min: 0,
       max: 100,
-      index: true,
+    },
+
+    test1: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 10,
+    },
+
+    test2: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 10,
+    },
+
+    test3: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 10,
+    },
+
+    finalAverage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 10,
+    },
+
+    academicLevel: {
+      type: String,
+      enum: ["EXCELLENT", "GOOD", "AVERAGE", "WEAK", "POOR"],
+      default: "AVERAGE",
+    },
+
+    sessions: {
+      type: [studySessionSchema],
+      default: [],
     },
 
     rank: {
       type: Number,
       default: null,
-      min: 1,
-      index: true,
     },
 
     performanceStatus: {
       type: String,
       enum: ["NORMAL", "GOOD", "EXCELLENT"],
       default: "NORMAL",
-      index: true,
     },
 
     isHonored: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     honorTitle: {
@@ -173,7 +274,6 @@ const studentStudySchema = new Schema<StudentStudy>(
     showHonorOnUserPage: {
       type: Boolean,
       default: false,
-      index: true,
     },
 
     startedAt: {
@@ -200,13 +300,19 @@ const studentStudySchema = new Schema<StudentStudy>(
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
-studentStudySchema.index({
-  student: 1,
-  classRoom: 1,
-});
+studentStudySchema.index(
+  { student: 1, classRoom: 1 },
+  {
+    unique: true,
+  }
+);
+
+studentStudySchema.index({ classRoom: 1, score: -1, updatedAt: 1 });
+studentStudySchema.index({ isHonored: 1, showHonorOnUserPage: 1, isActive: 1 });
 
 export const StudentStudyModel = model<StudentStudy>(
   "StudentStudy",

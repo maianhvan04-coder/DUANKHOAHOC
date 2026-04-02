@@ -20,6 +20,12 @@ const coursePopulate = {
   },
 };
 
+type FindAllQuery = {
+  courseId?: string;
+  teacherId?: string;
+  isActive?: string;
+};
+
 type CreateClassRoomRepoPayload = {
   course: Types.ObjectId;
   teacher: Types.ObjectId;
@@ -27,72 +33,70 @@ type CreateClassRoomRepoPayload = {
   mode: "ONLINE" | "OFFLINE";
   scheduleText: string;
   room: string;
-  startedAt?: Date | null;
-  endedAt?: Date | null;
-  maxStudents?: number;
-  isActive?: boolean;
+  startedAt: Date | null;
+  endedAt: Date | null;
+  maxStudents: number;
+  isActive: boolean;
 };
 
 type UpdateClassRoomRepoPayload = Partial<CreateClassRoomRepoPayload>;
 
+function buildFindFilter(query: FindAllQuery) {
+  const filter: Record<string, unknown> = {
+    isDeleted: false,
+  };
+
+  if (query.courseId && isValidObjectId(query.courseId)) {
+    filter.course = new Types.ObjectId(query.courseId);
+  }
+
+  if (query.teacherId && isValidObjectId(query.teacherId)) {
+    filter.teacher = new Types.ObjectId(query.teacherId);
+  }
+
+  if (query.isActive === "true") filter.isActive = true;
+  if (query.isActive === "false") filter.isActive = false;
+
+  return filter;
+}
+
+function applyPopulate<T>(query: T & { populate: (arg: any) => any }) {
+  return query.populate(coursePopulate).populate(teacherPopulate);
+}
+
 export const classRoomRepository = {
-  findAll(query: {
-    courseId?: string;
-    teacherId?: string;
-    isActive?: string;
-  }) {
-    const filter: Record<string, unknown> = {
-      isDeleted: false,
-    };
-
-    if (query.courseId && isValidObjectId(query.courseId)) {
-      filter.course = new Types.ObjectId(query.courseId);
-    }
-
-    if (query.teacherId && isValidObjectId(query.teacherId)) {
-      filter.teacher = new Types.ObjectId(query.teacherId);
-    }
-
-    if (query.isActive === "true") filter.isActive = true;
-    if (query.isActive === "false") filter.isActive = false;
-
-    return ClassRoomModel.find(filter)
-      .populate(coursePopulate)
-      .populate(teacherPopulate)
-      .sort({ createdAt: -1 });
+  findAll(query: FindAllQuery) {
+    return applyPopulate(
+      ClassRoomModel.find(buildFindFilter(query)).sort({ createdAt: -1 })
+    );
   },
 
   findDeleted() {
-    return ClassRoomModel.find({
-      isDeleted: true,
-    })
-      .populate(coursePopulate)
-      .populate(teacherPopulate)
-      .sort({ deletedAt: -1 });
+    return applyPopulate(
+      ClassRoomModel.find({ isDeleted: true }).sort({ deletedAt: -1 })
+    );
   },
 
   findById(id: string) {
-    return ClassRoomModel.findOne({
-      _id: id,
-      isDeleted: false,
-    })
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+    return applyPopulate(
+      ClassRoomModel.findOne({
+        _id: id,
+        isDeleted: false,
+      })
+    );
   },
 
   findDeletedById(id: string) {
-    return ClassRoomModel.findOne({
-      _id: id,
-      isDeleted: true,
-    })
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+    return applyPopulate(
+      ClassRoomModel.findOne({
+        _id: id,
+        isDeleted: true,
+      })
+    );
   },
 
   findAnyById(id: string) {
-    return ClassRoomModel.findById(id)
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+    return applyPopulate(ClassRoomModel.findById(id));
   },
 
   findDuplicate(courseId: string, className: string) {
@@ -117,65 +121,64 @@ export const classRoomRepository = {
   },
 
   updateById(id: string, payload: UpdateClassRoomRepoPayload) {
-    return ClassRoomModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-      },
-      {
-        $set: payload,
-      },
-      {
-        new: true,
-      }
-    )
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+    return applyPopulate(
+      ClassRoomModel.findOneAndUpdate(
+        {
+          _id: id,
+          isDeleted: false,
+        },
+        {
+          $set: payload,
+        },
+        {
+          new: true,
+        }
+      )
+    );
   },
 
   softDeleteById(id: string) {
-    return ClassRoomModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-      },
-      {
-        $set: {
-          isDeleted: true,
-          deletedAt: new Date(),
+    return applyPopulate(
+      ClassRoomModel.findOneAndUpdate(
+        {
+          _id: id,
+          isDeleted: false,
         },
-      },
-      {
-        new: true,
-      }
-    )
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+        {
+          $set: {
+            isDeleted: true,
+            isActive: false,
+            deletedAt: new Date(),
+          },
+        },
+        {
+          new: true,
+        }
+      )
+    );
   },
 
   restoreById(id: string) {
-    return ClassRoomModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: true,
-      },
-      {
-        $set: {
-          isDeleted: false,
-          deletedAt: null,
+    return applyPopulate(
+      ClassRoomModel.findOneAndUpdate(
+        {
+          _id: id,
+          isDeleted: true,
         },
-      },
-      {
-        new: true,
-      }
-    )
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+        {
+          $set: {
+            isDeleted: false,
+            deletedAt: null,
+          },
+        },
+        {
+          new: true,
+        }
+      )
+    );
   },
 
   forceDeleteById(id: string) {
-    return ClassRoomModel.findByIdAndDelete(id)
-      .populate(coursePopulate)
-      .populate(teacherPopulate);
+    return applyPopulate(ClassRoomModel.findByIdAndDelete(id));
   },
 };

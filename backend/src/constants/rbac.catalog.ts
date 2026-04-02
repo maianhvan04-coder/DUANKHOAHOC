@@ -464,6 +464,64 @@ const BASE_PERMISSION_META = Object.freeze({
     840
   ),
 
+  // PAYMENT AUDIT
+  [PERMISSIONS.PAYMENT_AUDIT_READ_OWN]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_READ_OWN,
+    "payment_audit",
+    "read_own",
+    "Xem audit thanh toán của chính mình",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    850
+  ),
+  [PERMISSIONS.PAYMENT_AUDIT_READ_ALL]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+    "payment_audit",
+    "read_all",
+    "Xem toàn bộ audit thanh toán",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    860
+  ),
+  [PERMISSIONS.PAYMENT_AUDIT_MANAGE]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_MANAGE,
+    "payment_audit",
+    "manage",
+    "Quản lý audit thanh toán",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    870
+  ),
+
+  // SECURITY AUDIT
+  [PERMISSIONS.SECURITY_AUDIT_READ_OWN]: meta(
+    PERMISSIONS.SECURITY_AUDIT_READ_OWN,
+    "security_audit",
+    "read_own",
+    "Xem audit bảo mật của chính mình",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    880
+  ),
+  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: meta(
+    PERMISSIONS.SECURITY_AUDIT_READ_ALL,
+    "security_audit",
+    "read_all",
+    "Xem toàn bộ audit bảo mật",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    890
+  ),
+  [PERMISSIONS.SECURITY_AUDIT_MANAGE]: meta(
+    PERMISSIONS.SECURITY_AUDIT_MANAGE,
+    "security_audit",
+    "manage",
+    "Quản lý audit bảo mật",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    900
+  ),
+
   // RBAC
   [PERMISSIONS.RBAC_READ]: meta(
     PERMISSIONS.RBAC_READ,
@@ -853,6 +911,40 @@ const BASE_ADMIN_SCREENS = Object.freeze({
       create: [PERMISSIONS.SCHEDULE_CREATE],
       update: [PERMISSIONS.SCHEDULE_UPDATE],
       delete: [PERMISSIONS.SCHEDULE_DELETE],
+    },
+  },
+
+  PAYMENT_AUDITS: {
+    key: "payment-audits",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Audit thanh toán",
+    icon: "receipt-text",
+    order: 80,
+    routes: ["/admin/payment-audits", "/admin/payment-audits/:paymentCode"],
+    accessAny: [
+      PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+      PERMISSIONS.PAYMENT_AUDIT_MANAGE,
+    ],
+    actions: {
+      view: [PERMISSIONS.PAYMENT_AUDIT_READ_ALL],
+      manage: [PERMISSIONS.PAYMENT_AUDIT_MANAGE],
+    },
+  },
+
+  SECURITY_AUDITS: {
+    key: "security-audits",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Audit bảo mật",
+    icon: "shield-alert",
+    order: 85,
+    routes: ["/admin/security-audits"],
+    accessAny: [
+      PERMISSIONS.SECURITY_AUDIT_READ_ALL,
+      PERMISSIONS.SECURITY_AUDIT_MANAGE,
+    ],
+    actions: {
+      view: [PERMISSIONS.SECURITY_AUDIT_READ_ALL],
+      manage: [PERMISSIONS.SECURITY_AUDIT_MANAGE],
     },
   },
 

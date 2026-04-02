@@ -1,42 +1,14 @@
-import { isValidObjectId, Types } from "mongoose";
+import { Types } from "mongoose";
 import { StudentStudyModel } from "../student-study.model";
 
-type CreateStudentStudyRepoPayload = {
-  student: Types.ObjectId;
-  course: Types.ObjectId;
-  classRoom: Types.ObjectId;
-  teacher?: Types.ObjectId | null;
-
-  className: string;
-  mode: "ONLINE" | "OFFLINE";
-  scheduleText: string;
-  room: string;
-
-  status?: "ENROLLED" | "STUDYING" | "PAUSED" | "COMPLETED" | "DROPPED";
-  completionStatus?: "NOT_COMPLETED" | "COMPLETED";
-  completedAt?: Date | null;
-
-  score?: number;
-  progressPercent?: number;
-  attendancePercent?: number;
-
-  rank?: number | null;
-  performanceStatus?: "NORMAL" | "GOOD" | "EXCELLENT";
-  isHonored?: boolean;
-  honorTitle?: string;
-  showHonorOnUserPage?: boolean;
-
-  startedAt?: Date | null;
-  endedAt?: Date | null;
-  note?: string;
-  isActive?: boolean;
+const studentPopulate = {
+  path: "student",
+  select: "name email role active deletedAt",
 };
-
-type UpdateStudentStudyRepoPayload = Partial<CreateStudentStudyRepoPayload>;
 
 const teacherPopulate = {
   path: "teacher",
-  select: "specialty avatar degree experience achievement rating user",
+  select: "user specialty avatar degree experience achievement rating",
   populate: {
     path: "user",
     select: "name email",
@@ -55,191 +27,181 @@ const coursePopulate = {
 
 const classRoomPopulate = {
   path: "classRoom",
-  populate: [
-    {
-      path: "course",
-      select: "title slug teacher teacherName",
-    },
-    {
-      path: "teacher",
-      select: "user specialty avatar degree experience achievement rating",
-      populate: {
-        path: "user",
-        select: "name email",
-      },
-    },
-  ],
+  select:
+    "course teacher className mode scheduleText room startedAt endedAt maxStudents isActive isDeleted deletedAt createdAt updatedAt",
 };
 
+type FindAllQuery = {
+  studentId?: string;
+  courseId?: string;
+  classRoomId?: string;
+  teacherId?: string;
+  mode?: string;
+  status?: string;
+  completionStatus?: string;
+  isActive?: string;
+};
+
+type CreateStudentStudyRepoPayload = {
+  student: Types.ObjectId;
+  classRoom: Types.ObjectId;
+  course: Types.ObjectId;
+  teacher: Types.ObjectId;
+
+  className: string;
+  mode: "ONLINE" | "OFFLINE";
+  scheduleText: string;
+  room: string;
+
+  status: string;
+  completionStatus: string;
+  completedAt: Date | null;
+
+  score: number;
+  progressPercent: number;
+  attendancePercent: number;
+
+  test1: number;
+  test2: number;
+  test3: number;
+  finalAverage: number;
+  academicLevel: string;
+
+  sessions: Array<{
+    sessionNo: number;
+    date: Date | null;
+    attendanceStatus: "PRESENT" | "LATE" | "ABSENT";
+    homeworkStatus: "DONE" | "MISSING";
+    teacherNote: string;
+    progressScore: number;
+  }>;
+
+  rank: number | null;
+  performanceStatus: string;
+  isHonored: boolean;
+  honorTitle: string;
+  showHonorOnUserPage: boolean;
+
+  startedAt: Date | null;
+  endedAt: Date | null;
+
+  note: string;
+  isActive: boolean;
+};
+
+type UpdateStudentStudyRepoPayload = Partial<CreateStudentStudyRepoPayload>;
+
+function buildFilter(query: FindAllQuery) {
+  const filter: Record<string, unknown> = {};
+
+  if (query.studentId) filter.student = query.studentId;
+  if (query.courseId) filter.course = query.courseId;
+  if (query.classRoomId) filter.classRoom = query.classRoomId;
+  if (query.teacherId) filter.teacher = query.teacherId;
+
+  if (query.mode === "ONLINE" || query.mode === "OFFLINE") {
+    filter.mode = query.mode;
+  }
+
+  if (
+    query.status === "ENROLLED" ||
+    query.status === "STUDYING" ||
+    query.status === "PAUSED" ||
+    query.status === "COMPLETED" ||
+    query.status === "DROPPED"
+  ) {
+    filter.status = query.status;
+  }
+
+  if (
+    query.completionStatus === "NOT_COMPLETED" ||
+    query.completionStatus === "COMPLETED"
+  ) {
+    filter.completionStatus = query.completionStatus;
+  }
+
+  if (query.isActive === "true") filter.isActive = true;
+  if (query.isActive === "false") filter.isActive = false;
+
+  return filter;
+}
+
 export const studentStudyRepository = {
-  findAll(query: {
-    studentId?: string;
-    courseId?: string;
-    classRoomId?: string;
-    teacherId?: string;
-    mode?: string;
-    status?: string;
-    completionStatus?: string;
-    isActive?: string;
-  }) {
-    const filter: Record<string, unknown> = {};
-
-    if (query.studentId && isValidObjectId(query.studentId)) {
-      filter.student = new Types.ObjectId(query.studentId);
-    }
-
-    if (query.courseId && isValidObjectId(query.courseId)) {
-      filter.course = new Types.ObjectId(query.courseId);
-    }
-
-    if (query.classRoomId && isValidObjectId(query.classRoomId)) {
-      filter.classRoom = new Types.ObjectId(query.classRoomId);
-    }
-
-    if (query.teacherId && isValidObjectId(query.teacherId)) {
-      filter.teacher = new Types.ObjectId(query.teacherId);
-    }
-
-    if (query.mode) filter.mode = query.mode;
-    if (query.status) filter.status = query.status;
-    if (query.completionStatus) filter.completionStatus = query.completionStatus;
-    if (query.isActive === "true") filter.isActive = true;
-    if (query.isActive === "false") filter.isActive = false;
-
-    return StudentStudyModel.find(filter)
-      .populate({
-        path: "student",
-        select: "name email role active deletedAt",
-      })
-      .populate(coursePopulate)
-      .populate(teacherPopulate)
-      .populate(classRoomPopulate)
-      .sort({ createdAt: -1 });
-  },
-
-  findById(id: string) {
-    return StudentStudyModel.findById(id)
-      .populate({
-        path: "student",
-        select: "name email role active deletedAt",
-      })
+  findAll(query: FindAllQuery) {
+    return StudentStudyModel.find(buildFilter(query))
+      .sort({ createdAt: -1 })
+      .populate(studentPopulate)
       .populate(coursePopulate)
       .populate(teacherPopulate)
       .populate(classRoomPopulate);
   },
 
-  findByStudent(studentId: string) {
-    return StudentStudyModel.find({
-      student: studentId,
-    })
-      .populate({
-        path: "student",
-        select: "name email role active deletedAt",
-      })
+  findById(id: string) {
+    return StudentStudyModel.findById(id)
+      .populate(studentPopulate)
       .populate(coursePopulate)
       .populate(teacherPopulate)
-      .populate(classRoomPopulate)
-      .sort({ createdAt: -1 });
+      .populate(classRoomPopulate);
+  },
+
+  findDocById(id: string) {
+    return StudentStudyModel.findById(id);
+  },
+
+  findByStudent(studentId: string) {
+    return StudentStudyModel.find({ student: studentId })
+      .sort({ createdAt: -1 })
+      .populate(studentPopulate)
+      .populate(coursePopulate)
+      .populate(teacherPopulate)
+      .populate(classRoomPopulate);
   },
 
   findByClassRoom(classRoomId: string) {
-    return StudentStudyModel.find({
-      classRoom: classRoomId,
-    })
-      .populate({
-        path: "student",
-        select: "name email role active deletedAt",
-      })
+    return StudentStudyModel.find({ classRoom: classRoomId })
+      .sort({ createdAt: -1 })
+      .populate(studentPopulate)
       .populate(coursePopulate)
       .populate(teacherPopulate)
-      .populate(classRoomPopulate)
-      .sort({ createdAt: -1 });
+      .populate(classRoomPopulate);
   },
 
-  findDuplicateActive(payload: {
-    student: string;
-    classRoom: string;
-  }) {
-    return StudentStudyModel.findOne({
-      student: payload.student,
-      classRoom: payload.classRoom,
+  findPublicHonors(limit: number) {
+    return StudentStudyModel.find({
+      isHonored: true,
+      showHonorOnUserPage: true,
       isActive: true,
+    })
+      .sort({
+        score: -1,
+        finalAverage: -1,
+        attendancePercent: -1,
+        updatedAt: -1,
+      })
+      .limit(limit)
+      .populate(studentPopulate)
+      .populate(coursePopulate)
+      .populate(teacherPopulate)
+      .populate(classRoomPopulate);
+  },
+
+  findDuplicateActive(input: { student: string; classRoom: string }) {
+    return StudentStudyModel.findOne({
+      student: input.student,
+      classRoom: input.classRoom,
     });
   },
 
-  findDuplicateActiveExceptId(payload: {
+  findDuplicateActiveExceptId(input: {
     id: string;
     student: string;
     classRoom: string;
   }) {
     return StudentStudyModel.findOne({
-      _id: { $ne: payload.id },
-      student: payload.student,
-      classRoom: payload.classRoom,
-      isActive: true,
+      _id: { $ne: input.id },
+      student: input.student,
+      classRoom: input.classRoom,
     });
-  },
-
-  findByClassRoomForRanking(classRoomId: string) {
-    return StudentStudyModel.find({
-      classRoom: classRoomId,
-      isActive: true,
-    }).sort({ score: -1, updatedAt: 1 });
-  },
-
-  syncSnapshotByClassRoom(
-    classRoomId: string,
-    payload: {
-      course: Types.ObjectId;
-      teacher: Types.ObjectId | null;
-      className: string;
-      mode: "ONLINE" | "OFFLINE";
-      scheduleText: string;
-      room: string;
-      startedAt: Date | null;
-      endedAt: Date | null;
-    }
-  ) {
-    return StudentStudyModel.updateMany(
-      { classRoom: classRoomId },
-      {
-        $set: payload,
-      }
-    );
-  },
-
-  updateHonorFields(
-    id: string,
-    payload: {
-      rank?: number | null;
-      performanceStatus?: "NORMAL" | "GOOD" | "EXCELLENT";
-      isHonored?: boolean;
-      honorTitle?: string;
-      showHonorOnUserPage?: boolean;
-    }
-  ) {
-    return StudentStudyModel.findByIdAndUpdate(
-      id,
-      { $set: payload },
-      { new: true }
-    );
-  },
-
-  findPublicHonors(limit = 10) {
-    return StudentStudyModel.find({
-      isActive: true,
-      showHonorOnUserPage: true,
-      isHonored: true,
-    })
-      .populate({
-        path: "student",
-        select: "name",
-      })
-      .populate(coursePopulate)
-      .populate(teacherPopulate)
-      .populate(classRoomPopulate)
-      .sort({ score: -1, updatedAt: -1 })
-      .limit(limit);
   },
 
   create(payload: CreateStudentStudyRepoPayload) {
@@ -252,10 +214,7 @@ export const studentStudyRepository = {
       { $set: payload },
       { new: true }
     )
-      .populate({
-        path: "student",
-        select: "name email role active deletedAt",
-      })
+      .populate(studentPopulate)
       .populate(coursePopulate)
       .populate(teacherPopulate)
       .populate(classRoomPopulate);
@@ -263,5 +222,61 @@ export const studentStudyRepository = {
 
   deleteById(id: string) {
     return StudentStudyModel.findByIdAndDelete(id);
+  },
+
+  findByClassRoomForRanking(classRoomId: string) {
+    return StudentStudyModel.find(
+      { classRoom: classRoomId, isActive: true },
+      { _id: 1, score: 1, updatedAt: 1 }
+    );
+  },
+
+  updateRankFields(
+    id: string,
+    payload: {
+      rank: number | null;
+      performanceStatus: "NORMAL" | "GOOD" | "EXCELLENT";
+    }
+  ) {
+    return StudentStudyModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          rank: payload.rank,
+          performanceStatus: payload.performanceStatus,
+        },
+      },
+      { new: true }
+    );
+  },
+
+  syncSnapshotByClassRoom(
+    classRoomId: string,
+    payload: {
+      course: Types.ObjectId;
+      teacher: Types.ObjectId;
+      className: string;
+      mode: "ONLINE" | "OFFLINE";
+      scheduleText: string;
+      room: string;
+      startedAt: Date | null;
+      endedAt: Date | null;
+    }
+  ) {
+    return StudentStudyModel.updateMany(
+      { classRoom: classRoomId },
+      {
+        $set: {
+          course: payload.course,
+          teacher: payload.teacher,
+          className: payload.className,
+          mode: payload.mode,
+          scheduleText: payload.scheduleText,
+          room: payload.room,
+          startedAt: payload.startedAt,
+          endedAt: payload.endedAt,
+        },
+      }
+    );
   },
 };

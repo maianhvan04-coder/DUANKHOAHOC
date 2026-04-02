@@ -1,25 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Heart,
+  Loader2,
+  ShoppingCart,
   Star,
   Users,
 } from "lucide-react";
 
-import {
-  categoryApi,
-  type CategoryItem,
-} from "@/app/api/category.api";
-import {
-  productApi,
-  type ProductItem,
-  type ProductStatus,
-} from "@/app/api/course.api";
+import { categoryApi, type CategoryItem } from "@/app/api/category.api";
+import { productApi, type ProductItem, type ProductStatus } from "@/app/api/course.api";
+import { cartApi } from "@/app/api/cart.api";
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+};
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -72,8 +78,49 @@ function getDiscountPercent(originalPrice?: number, price?: number) {
   return Math.round(((original - sale) / original) * 100);
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error === "object" && error !== null) {
+    const apiError = error as ApiError;
+    return apiError.response?.data?.message || apiError.message || fallback;
+  }
+
+  return fallback;
+}
+
 function ProductCard({ item }: { item: ProductItem }) {
+  const router = useRouter();
   const discount = getDiscountPercent(item.originalPrice, item.price);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const canBuy = item.status === "OPEN" && item.isActive !== false;
+
+  const handleAddToCart = async (goToCart: boolean) => {
+    if (!canBuy || submitting) return;
+
+    try {
+      setSubmitting(true);
+      setFeedback("");
+
+      await cartApi.addItem({
+        courseId: item._id,
+        quantity: 1,
+      });
+
+      if (goToCart) {
+        router.push("/cart");
+        return;
+      }
+
+      setFeedback("Đã thêm vào giỏ hàng");
+    } catch (error: unknown) {
+      setFeedback(getErrorMessage(error, "Không thể thêm vào giỏ hàng"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <article className="group w-[280px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
@@ -134,24 +181,69 @@ function ProductCard({ item }: { item: ProductItem }) {
           </span>
         </div>
 
-        <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-4">
-          <div>
-            <p className="min-h-[16px] text-[12px] text-slate-400 line-through">
-              {Number(item.originalPrice || 0) > Number(item.price || 0)
-                ? formatPrice(item.originalPrice)
-                : ""}
-            </p>
-            <p className="text-[22px] font-bold leading-none text-[#DC2626]">
-              {formatPrice(item.price)}
-            </p>
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="min-h-[16px] text-[12px] text-slate-400 line-through">
+                {Number(item.originalPrice || 0) > Number(item.price || 0)
+                  ? formatPrice(item.originalPrice)
+                  : ""}
+              </p>
+              <p className="text-[22px] font-bold leading-none text-rose-600">
+                {formatPrice(item.price)}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFavorite((prev) => !prev)}
+                aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center rounded-xl transition",
+                  isFavorite
+                    ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200"
+                    : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-rose-500"
+                )}
+              >
+                <Heart
+                  className={cn("h-4.5 w-4.5", isFavorite ? "fill-current" : "")}
+                  strokeWidth={2}
+                />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleAddToCart(false)}
+                disabled={!canBuy || submitting}
+                aria-label="Thêm vào giỏ hàng"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShoppingCart className="h-4.5 w-4.5" strokeWidth={2} />
+                )}
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            className="rounded-xl border border-slate-200 px-3.5 py-2 text-[13px] font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            Xem khóa học
-          </button>
+          {feedback ? (
+            <p
+              className={cn(
+                "mt-3 text-[12px] font-medium",
+                feedback.includes("Đã thêm") ? "text-emerald-600" : "text-rose-600"
+              )}
+            >
+              {feedback}
+            </p>
+          ) : null}
+
+          {!canBuy ? (
+            <p className="mt-3 text-[12px] font-medium text-amber-600">
+              Khóa học này hiện chưa thể mua.
+            </p>
+          ) : null}
         </div>
       </div>
     </article>
@@ -316,7 +408,7 @@ export default function ProductsPage() {
 
         setCategories(categoryRes.items || []);
         setProducts(productRes.items || []);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(error);
         setCategories([]);
         setProducts([]);

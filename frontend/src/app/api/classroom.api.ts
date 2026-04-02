@@ -1,6 +1,7 @@
 import { http } from "@/lib/utils/http";
 
 export type ClassMode = "ONLINE" | "OFFLINE";
+
 export type StudyStatus =
   | "ENROLLED"
   | "STUDYING"
@@ -9,19 +10,31 @@ export type StudyStatus =
   | "DROPPED";
 
 export type CompletionStatus = "NOT_COMPLETED" | "COMPLETED";
+
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT";
+
+export type HomeworkStatus = "DONE" | "MISSING";
+
+export type AcademicLevel =
+  | "EXCELLENT"
+  | "GOOD"
+  | "AVERAGE"
+  | "WEAK"
+  | "POOR";
+
 export type PerformanceStatus = "NORMAL" | "GOOD" | "EXCELLENT";
 
 type AnyObj = Record<string, unknown>;
 
 export type ClassroomTeacherUser = {
-  _id?: string;
+  _id: string;
   id?: string;
   name?: string;
   email?: string;
 };
 
 export type ClassroomTeacher = {
-  _id?: string;
+  _id: string;
   id?: string;
   specialty?: string;
   avatar?: string;
@@ -33,16 +46,18 @@ export type ClassroomTeacher = {
 };
 
 export type ClassroomCategory = {
-  _id?: string;
+  _id: string;
   id?: string;
   name?: string;
+  slug?: string;
 };
 
 export type ClassroomCourse = {
-  _id?: string;
+  _id: string;
   id?: string;
   title?: string;
   slug?: string;
+  shortDescription?: string;
   teacher?: string | ClassroomTeacher | null;
   teacherName?: string;
   image?: string;
@@ -52,7 +67,7 @@ export type ClassroomCourse = {
 };
 
 export type ClassroomStudent = {
-  _id?: string;
+  _id: string;
   id?: string;
   name?: string;
   email?: string;
@@ -61,8 +76,19 @@ export type ClassroomStudent = {
   deletedAt?: string | null;
 };
 
+export type ClassroomSessionItem = {
+  _id?: string;
+  sessionNo: number;
+  date?: string | null;
+  attendanceStatus?: AttendanceStatus;
+  homeworkStatus?: HomeworkStatus;
+  progressScore?: number;
+  teacherNote?: string;
+};
+
 export type ClassroomItem = {
   _id: string;
+  id?: string;
   course?: ClassroomCourse | string | null;
   teacher?: ClassroomTeacher | string | null;
   className: string;
@@ -81,10 +107,11 @@ export type ClassroomItem = {
 
 export type ClassroomStudentStudyItem = {
   _id: string;
+  id?: string;
   student?: ClassroomStudent | string | null;
   course?: ClassroomCourse | string | null;
-  classRoom?: ClassroomItem | string | null;
   teacher?: ClassroomTeacher | string | null;
+  classRoom?: ClassroomItem | string | null;
 
   className: string;
   mode: ClassMode;
@@ -93,25 +120,59 @@ export type ClassroomStudentStudyItem = {
 
   status: StudyStatus;
   completionStatus: CompletionStatus;
-  completedAt?: string | null;
+
+  attendancePercent: number;
+  progressPercent: number;
+
+  test1: number;
+  test2: number;
+  test3: number;
 
   score: number;
-  progressPercent: number;
-  attendancePercent: number;
+  finalAverage: number;
+  academicLevel: AcademicLevel;
 
-  rank?: number | null;
+  rank: number | null;
   performanceStatus: PerformanceStatus;
+
   isHonored: boolean;
   honorTitle: string;
   showHonorOnUserPage: boolean;
 
-  startedAt?: string | null;
-  endedAt?: string | null;
   note: string;
   isActive: boolean;
 
+  sessions: ClassroomSessionItem[];
+
+  startedAt?: string | null;
+  endedAt?: string | null;
+  completedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type CourseOption = {
+  _id: string;
+  id?: string;
+  title: string;
+};
+
+export type TeacherOptionUser = {
+  _id: string;
+  id?: string;
+  name?: string;
+  email?: string;
+};
+
+export type TeacherOption = {
+  _id: string;
+  id?: string;
+  specialty?: string;
+  avatar?: string;
+  degree?: string;
+  experience?: string;
+  rating?: number;
+  user?: TeacherOptionUser | null;
 };
 
 export type CreateClassroomPayload = {
@@ -123,17 +184,25 @@ export type CreateClassroomPayload = {
   room?: string;
   startedAt?: string;
   endedAt?: string;
-  maxStudents?: number | string;
+  maxStudents?: string | number;
   isActive?: boolean | "true" | "false";
 };
 
 export type UpdateClassroomPayload = Partial<CreateClassroomPayload>;
 
 export type UpdateStudentLearningPayload = {
-  score?: number | string;
-  progressPercent?: number | string;
-  attendancePercent?: number | string;
   status?: StudyStatus;
+  completionStatus?: CompletionStatus;
+  attendancePercent?: number | string;
+  progressPercent?: number | string;
+  score?: number | string;
+  note?: string;
+};
+
+export type UpdateStudentTestsPayload = {
+  test1?: number;
+  test2?: number;
+  test3?: number;
 };
 
 export type UpdateStudentHonorPayload = {
@@ -142,60 +211,75 @@ export type UpdateStudentHonorPayload = {
   showHonorOnUserPage?: boolean;
 };
 
-export type CourseOption = {
-  _id: string;
-  title: string;
+export type UpdateStudentSessionPayload = {
+  sessionNo: number;
+  date?: string | null;
+  attendanceStatus?: AttendanceStatus;
+  homeworkStatus?: HomeworkStatus;
+  progressScore?: number;
+  teacherNote?: string;
 };
 
-export type TeacherOptionUser = {
-  _id?: string;
-  id?: string;
-  name?: string;
-  email?: string;
-};
-
-export type TeacherOption = {
-  _id: string;
-  specialty?: string;
-  avatar?: string;
-  degree?: string;
-  experience?: string;
-  rating?: number;
-  user?: TeacherOptionUser | null;
-};
+function isObject(value: unknown): value is AnyObj {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 function pickArray(raw: unknown): unknown[] {
   if (Array.isArray(raw)) return raw;
+  if (!isObject(raw)) return [];
 
-  if (raw && typeof raw === "object") {
-    const obj = raw as AnyObj;
-    if (Array.isArray(obj.items)) return obj.items as unknown[];
-    if (Array.isArray(obj.data)) return obj.data as unknown[];
-    if (Array.isArray(obj.products)) return obj.products as unknown[];
-    if (Array.isArray(obj.courses)) return obj.courses as unknown[];
-    if (Array.isArray(obj.teachers)) return obj.teachers as unknown[];
-    if (Array.isArray(obj.students)) return obj.students as unknown[];
+  const keys = [
+    "items",
+    "data",
+    "classes",
+    "classrooms",
+    "classRooms",
+    "students",
+    "teachers",
+    "products",
+    "courses",
+    "lessonRecords",
+    "sessions",
+  ] as const;
+
+  for (const key of keys) {
+    const value = raw[key];
+    if (Array.isArray(value)) return value;
   }
 
   return [];
 }
 
 function pickItem(raw: unknown): AnyObj | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
-  if (obj.item && typeof obj.item === "object") return obj.item as AnyObj;
-  if (obj.data && typeof obj.data === "object") return obj.data as AnyObj;
-  return obj;
+  const keys = ["item", "data", "classRoom", "student", "study"] as const;
+
+  for (const key of keys) {
+    const value = raw[key];
+    if (isObject(value)) return value;
+  }
+
+  return raw;
 }
 
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
 function asNumber(value: unknown, fallback = 0): number {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
+}
+
+function asNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
 }
 
 function asBoolean(value: unknown, fallback = false): boolean {
@@ -205,175 +289,304 @@ function asBoolean(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
+function parseClassMode(value: unknown): ClassMode {
+  const raw = asString(value, "ONLINE");
+  return raw === "ONLINE" || raw === "OFFLINE" ? raw : "ONLINE";
+}
+
+function parseStudyStatus(value: unknown): StudyStatus {
+  const raw = asString(value, "ENROLLED");
+  if (
+    raw === "ENROLLED" ||
+    raw === "STUDYING" ||
+    raw === "PAUSED" ||
+    raw === "COMPLETED" ||
+    raw === "DROPPED"
+  ) {
+    return raw;
+  }
+  return "ENROLLED";
+}
+
+function parseCompletionStatus(value: unknown): CompletionStatus {
+  const raw = asString(value, "NOT_COMPLETED");
+  return raw === "COMPLETED" ? "COMPLETED" : "NOT_COMPLETED";
+}
+
+function parseAttendanceStatus(value: unknown): AttendanceStatus {
+  const raw = asString(value, "ABSENT");
+  if (raw === "PRESENT" || raw === "LATE" || raw === "ABSENT") return raw;
+  return "ABSENT";
+}
+
+function parseHomeworkStatus(value: unknown): HomeworkStatus {
+  const raw = asString(value, "MISSING");
+  return raw === "DONE" ? "DONE" : "MISSING";
+}
+
+function parseAcademicLevel(value: unknown): AcademicLevel {
+  const raw = asString(value, "AVERAGE");
+  if (
+    raw === "EXCELLENT" ||
+    raw === "GOOD" ||
+    raw === "AVERAGE" ||
+    raw === "WEAK" ||
+    raw === "POOR"
+  ) {
+    return raw;
+  }
+  return "AVERAGE";
+}
+
+function parsePerformanceStatus(value: unknown): PerformanceStatus {
+  const raw = asString(value, "NORMAL");
+  if (raw === "NORMAL" || raw === "GOOD" || raw === "EXCELLENT") return raw;
+  return "NORMAL";
+}
+
+function getId(value: unknown): string {
+  if (!isObject(value)) return "";
+  return asString(value._id) || asString(value.id);
+}
+
 function normalizeTeacherUser(raw: unknown): ClassroomTeacherUser | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
+
+  const _id = getId(raw);
+  if (!_id) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    name: asString(obj.name),
-    email: asString(obj.email),
+    _id,
+    id: asString(raw.id),
+    name: asString(raw.name),
+    email: asString(raw.email),
   };
 }
 
 function normalizeTeacher(raw: unknown): ClassroomTeacher | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
+
+  const _id = getId(raw);
+  if (!_id) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    specialty: asString(obj.specialty),
-    avatar: asString(obj.avatar),
-    degree: asString(obj.degree),
-    experience: asString(obj.experience),
-    achievement: asString(obj.achievement),
-    rating: asNumber(obj.rating, 0),
-    user: normalizeTeacherUser(obj.user),
+    _id,
+    id: asString(raw.id),
+    specialty: asString(raw.specialty),
+    avatar: asString(raw.avatar),
+    degree: asString(raw.degree),
+    experience: asString(raw.experience),
+    achievement: asString(raw.achievement),
+    rating: asNumber(raw.rating, 0),
+    user: normalizeTeacherUser(raw.user),
+  };
+}
+
+function normalizeCategory(raw: unknown): ClassroomCategory | null {
+  if (!isObject(raw)) return null;
+
+  const _id = getId(raw);
+  if (!_id) return null;
+
+  return {
+    _id,
+    id: asString(raw.id),
+    name: asString(raw.name),
+    slug: asString(raw.slug),
   };
 }
 
 function normalizeCourse(raw: unknown): ClassroomCourse | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
+
+  const _id = getId(raw);
+  if (!_id) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    title: asString(obj.title),
-    slug: asString(obj.slug),
+    _id,
+    id: asString(raw.id),
+    title: asString(raw.title),
+    slug: asString(raw.slug),
+    shortDescription: asString(raw.shortDescription),
     teacher:
-      typeof obj.teacher === "string"
-        ? obj.teacher
-        : normalizeTeacher(obj.teacher),
-    teacherName: asString(obj.teacherName),
-    image: asString(obj.image),
-    level: asString(obj.level),
-    status: asString(obj.status),
+      typeof raw.teacher === "string"
+        ? raw.teacher
+        : normalizeTeacher(raw.teacher),
+    teacherName: asString(raw.teacherName),
+    image: asString(raw.image),
+    level: asString(raw.level),
+    status: asString(raw.status),
     category:
-      obj.category && typeof obj.category === "object"
-        ? {
-            _id: asString((obj.category as AnyObj)._id),
-            id: asString((obj.category as AnyObj).id),
-            name: asString((obj.category as AnyObj).name),
-          }
-        : typeof obj.category === "string"
-          ? obj.category
-          : null,
+      typeof raw.category === "string"
+        ? raw.category
+        : normalizeCategory(raw.category),
   };
 }
 
 function normalizeStudent(raw: unknown): ClassroomStudent | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
+
+  const _id = getId(raw);
+  if (!_id) return null;
+
+  return {
+    _id,
+    id: asString(raw.id),
+    name: asString(raw.name),
+    email: asString(raw.email),
+    role: asString(raw.role),
+    active: asBoolean(raw.active, true),
+    deletedAt: asNullableString(raw.deletedAt),
+  };
+}
+
+function normalizeSession(raw: unknown, index = 0): ClassroomSessionItem {
+  const obj = isObject(raw) ? raw : {};
 
   return {
     _id: asString(obj._id),
-    id: asString(obj.id),
-    name: asString(obj.name),
-    email: asString(obj.email),
-    role: asString(obj.role),
-    active: asBoolean(obj.active, true),
-    deletedAt: typeof obj.deletedAt === "string" ? obj.deletedAt : null,
+    sessionNo: asNumber(obj.sessionNo, index + 1),
+    date:
+      typeof obj.date === "string"
+        ? obj.date
+        : typeof obj.lessonDate === "string"
+          ? obj.lessonDate
+          : null,
+    attendanceStatus: parseAttendanceStatus(obj.attendanceStatus),
+    homeworkStatus: parseHomeworkStatus(obj.homeworkStatus),
+    progressScore: asNumber(obj.progressScore ?? obj.progressPercent, 0),
+    teacherNote: asString(obj.teacherNote),
   };
 }
 
 function normalizeClassroom(raw: unknown): ClassroomItem {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
+  const _id = getId(obj);
 
   return {
-    _id: asString(obj._id) || asString(obj.id),
+    _id,
+    id: asString(obj.id),
     course:
-      typeof obj.course === "string" ? obj.course : normalizeCourse(obj.course),
+      typeof obj.course === "string"
+        ? obj.course
+        : normalizeCourse(obj.course),
     teacher:
       typeof obj.teacher === "string"
         ? obj.teacher
         : normalizeTeacher(obj.teacher),
     className: asString(obj.className),
-    mode: (asString(obj.mode, "ONLINE") as ClassMode) || "ONLINE",
+    mode: parseClassMode(obj.mode),
     scheduleText: asString(obj.scheduleText),
     room: asString(obj.room),
-    startedAt: typeof obj.startedAt === "string" ? obj.startedAt : null,
-    endedAt: typeof obj.endedAt === "string" ? obj.endedAt : null,
+    startedAt: asNullableString(obj.startedAt),
+    endedAt: asNullableString(obj.endedAt),
     maxStudents: asNumber(obj.maxStudents, 0),
     isActive: asBoolean(obj.isActive, true),
     isDeleted: asBoolean(obj.isDeleted, false),
-    deletedAt: typeof obj.deletedAt === "string" ? obj.deletedAt : null,
+    deletedAt: asNullableString(obj.deletedAt),
     createdAt: asString(obj.createdAt),
     updatedAt: asString(obj.updatedAt),
   };
 }
 
 function normalizeStudentStudy(raw: unknown): ClassroomStudentStudyItem {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
+  const _id = getId(obj);
+
+  const rawSessions = Array.isArray(obj.sessions)
+    ? obj.sessions
+    : Array.isArray(obj.lessonRecords)
+      ? obj.lessonRecords
+      : [];
+
+  const test1 = asNumber(obj.test1, 0);
+  const test2 = asNumber(obj.test2, 0);
+  const test3 = asNumber(obj.test3, 0);
+
+  const score = asNumber(obj.score ?? obj.totalScore ?? obj.finalScore, 0);
+
+  const finalAverage =
+    obj.finalAverage !== undefined
+      ? asNumber(obj.finalAverage, 0)
+      : Number(((test1 + test2 + test3) / 3).toFixed(1));
 
   return {
-    _id: asString(obj._id) || asString(obj.id),
+    _id,
+    id: asString(obj.id),
     student:
       typeof obj.student === "string"
         ? obj.student
         : normalizeStudent(obj.student),
     course:
-      typeof obj.course === "string" ? obj.course : normalizeCourse(obj.course),
-    classRoom:
-      typeof obj.classRoom === "string"
-        ? obj.classRoom
-        : normalizeClassroom(obj.classRoom),
+      typeof obj.course === "string"
+        ? obj.course
+        : normalizeCourse(obj.course),
     teacher:
       typeof obj.teacher === "string"
         ? obj.teacher
         : normalizeTeacher(obj.teacher),
+    classRoom:
+      typeof obj.classRoom === "string"
+        ? obj.classRoom
+        : normalizeClassroom(obj.classRoom),
 
     className: asString(obj.className),
-    mode: (asString(obj.mode, "ONLINE") as ClassMode) || "ONLINE",
+    mode: parseClassMode(obj.mode),
     scheduleText: asString(obj.scheduleText),
     room: asString(obj.room),
 
-    status: (asString(obj.status, "ENROLLED") as StudyStatus) || "ENROLLED",
-    completionStatus:
-      (asString(
-        obj.completionStatus,
-        "NOT_COMPLETED"
-      ) as CompletionStatus) || "NOT_COMPLETED",
-    completedAt: typeof obj.completedAt === "string" ? obj.completedAt : null,
+    status: parseStudyStatus(obj.status),
+    completionStatus: parseCompletionStatus(obj.completionStatus),
 
-    score: asNumber(obj.score, 0),
-    progressPercent: asNumber(obj.progressPercent, 0),
     attendancePercent: asNumber(obj.attendancePercent, 0),
+    progressPercent: asNumber(obj.progressPercent, 0),
 
-    rank: obj.rank == null ? null : asNumber(obj.rank, 0),
-    performanceStatus:
-      (asString(
-        obj.performanceStatus,
-        "NORMAL"
-      ) as PerformanceStatus) || "NORMAL",
+    test1,
+    test2,
+    test3,
+
+    score,
+    finalAverage,
+    academicLevel: parseAcademicLevel(obj.academicLevel),
+
+    rank: asNullableNumber(obj.rank),
+    performanceStatus: parsePerformanceStatus(obj.performanceStatus),
+
     isHonored: asBoolean(obj.isHonored, false),
     honorTitle: asString(obj.honorTitle),
     showHonorOnUserPage: asBoolean(obj.showHonorOnUserPage, false),
 
-    startedAt: typeof obj.startedAt === "string" ? obj.startedAt : null,
-    endedAt: typeof obj.endedAt === "string" ? obj.endedAt : null,
     note: asString(obj.note),
     isActive: asBoolean(obj.isActive, true),
 
+    sessions: rawSessions.map((session, index) =>
+      normalizeSession(session, index)
+    ),
+
+    startedAt: asNullableString(obj.startedAt),
+    endedAt: asNullableString(obj.endedAt),
+    completedAt: asNullableString(obj.completedAt),
     createdAt: asString(obj.createdAt),
     updatedAt: asString(obj.updatedAt),
   };
 }
 
 function normalizeCourseOption(raw: unknown): CourseOption {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
+
   return {
-    _id: asString(obj._id) || asString(obj.id),
+    _id: getId(obj),
+    id: asString(obj.id),
     title: asString(obj.title),
   };
 }
 
 function normalizeTeacherOption(raw: unknown): TeacherOption {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
+
   return {
-    _id: asString(obj._id) || asString(obj.id),
+    _id: getId(obj),
+    id: asString(obj.id),
     specialty: asString(obj.specialty),
     avatar: asString(obj.avatar),
     degree: asString(obj.degree),
@@ -381,6 +594,12 @@ function normalizeTeacherOption(raw: unknown): TeacherOption {
     rating: asNumber(obj.rating, 0),
     user: normalizeTeacherUser(obj.user),
   };
+}
+
+function requireItem(raw: unknown, message: string): AnyObj {
+  const item = pickItem(raw);
+  if (!item) throw new Error(message);
+  return item;
 }
 
 export const classroomApi = {
@@ -396,23 +615,23 @@ export const classroomApi = {
 
   async getById(id: string) {
     const res = await http.get(`/api/classes/${id}`);
-    const item = pickItem(res.data);
-    if (!item) throw new Error("Không đọc được dữ liệu lớp");
-    return normalizeClassroom(item);
+    return normalizeClassroom(
+      requireItem(res.data, "Không đọc được dữ liệu lớp học")
+    );
   },
 
   async create(payload: CreateClassroomPayload) {
     const res = await http.post("/api/classes", payload);
-    const item = pickItem(res.data);
-    if (!item) throw new Error("Không đọc được dữ liệu lớp");
-    return normalizeClassroom(item);
+    return normalizeClassroom(
+      requireItem(res.data, "Không đọc được dữ liệu lớp học")
+    );
   },
 
   async update(id: string, payload: UpdateClassroomPayload) {
     const res = await http.put(`/api/classes/${id}`, payload);
-    const item = pickItem(res.data);
-    if (!item) throw new Error("Không đọc được dữ liệu lớp");
-    return normalizeClassroom(item);
+    return normalizeClassroom(
+      requireItem(res.data, "Không đọc được dữ liệu lớp học")
+    );
   },
 
   async softDelete(id: string) {
@@ -439,20 +658,57 @@ export const classroomApi = {
     studyId: string,
     payload: UpdateStudentLearningPayload
   ) {
-    const res = await http.patch(`/api/classes/studies/${studyId}/learning`, payload);
-    const item = pickItem(res.data);
-    if (!item) throw new Error("Không đọc được dữ liệu học viên trong lớp");
-    return normalizeStudentStudy(item);
+    const res = await http.patch(
+      `/api/classes/studies/${studyId}/learning`,
+      payload
+    );
+    return normalizeStudentStudy(
+      requireItem(res.data, "Không đọc được dữ liệu học viên")
+    );
+  },
+
+  async updateStudentTests(
+    studyId: string,
+    payload: UpdateStudentTestsPayload
+  ) {
+    const res = await http.patch(
+      `/api/classes/studies/${studyId}/tests`,
+      payload
+    );
+    return normalizeStudentStudy(
+      requireItem(res.data, "Không đọc được dữ liệu học viên")
+    );
   },
 
   async updateStudentHonor(
     studyId: string,
     payload: UpdateStudentHonorPayload
   ) {
-    const res = await http.patch(`/api/classes/studies/${studyId}/honor`, payload);
-    const item = pickItem(res.data);
-    if (!item) throw new Error("Không đọc được dữ liệu học viên trong lớp");
-    return normalizeStudentStudy(item);
+    const res = await http.patch(
+      `/api/classes/studies/${studyId}/honor`,
+      payload
+    );
+    return normalizeStudentStudy(
+      requireItem(res.data, "Không đọc được dữ liệu học viên")
+    );
+  },
+
+  async updateStudentSession(
+    studyId: string,
+    payload: UpdateStudentSessionPayload
+  ) {
+    const res = await http.patch(
+      `/api/classes/studies/${studyId}/session`,
+      payload
+    );
+    return normalizeStudentStudy(
+      requireItem(res.data, "Không đọc được dữ liệu buổi học")
+    );
+  },
+
+  async removeStudentStudy(studyId: string) {
+    const res = await http.delete(`/api/students/studies/${studyId}`);
+    return res.data;
   },
 
   async listCourseOptions() {

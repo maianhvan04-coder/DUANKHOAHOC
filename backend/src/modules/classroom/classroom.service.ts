@@ -3,12 +3,19 @@ import { classRoomRepository } from "./classroom.repository";
 import { ProductModel } from "../course/course.model";
 import { TeacherModel } from "../teacher/teacher.model";
 import { studentStudyService } from "../student/service/student-study.service";
+import type {
+  CreateClassRoomInput,
+  UpdateClassRoomInput,
+} from "./classroom.schema";
 
-function toObjectId(id: string, message = "ID không hợp lệ") {
+function assertObjectId(id: string, message = "ID không hợp lệ") {
   if (!isValidObjectId(id)) {
     throw new Error(message);
   }
+}
 
+function toObjectId(id: string, message = "ID không hợp lệ") {
+  assertObjectId(id, message);
   return new Types.ObjectId(id);
 }
 
@@ -19,15 +26,71 @@ function toBoolean(value: unknown, fallback = true) {
   return fallback;
 }
 
-function toNumber(value: unknown, fallback = 0) {
+function toNonNegativeInt(value: unknown, fallback = 0) {
+  if (value === undefined || value === null || value === "") return fallback;
+
   const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+  if (!Number.isFinite(num)) return fallback;
+
+  return Math.max(0, Math.trunc(num));
+}
+
+function getRefId(value: unknown) {
+  if (!value) return "";
+
+  if (typeof value === "string") return value;
+
+  if (value instanceof Types.ObjectId) return value.toString();
+
+  if (typeof value === "object" && "_id" in value) {
+    return String((value as { _id?: unknown })._id || "");
+  }
+
+  return "";
+}
+
+// overload để TypeScript hiểu đúng kiểu trả về
+function parseOptionalDate(value: unknown, label: string): Date | null;
+function parseOptionalDate(
+  value: unknown,
+  label: string,
+  mode: "null-on-empty"
+): Date | null;
+function parseOptionalDate(
+  value: unknown,
+  label: string,
+  mode: "keep-undefined"
+): Date | null | undefined;
+function parseOptionalDate(
+  value: unknown,
+  label: string,
+  mode: "keep-undefined" | "null-on-empty" = "null-on-empty"
+) {
+  if (value === undefined) {
+    return mode === "keep-undefined" ? undefined : null;
+  }
+
+  if (value === null || value === "") {
+    return null;
+  }
+
+  const date = new Date(String(value));
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`${label} không hợp lệ`);
+  }
+
+  return date;
+}
+
+function validateDateRange(startedAt?: Date | null, endedAt?: Date | null) {
+  if (startedAt && endedAt && endedAt < startedAt) {
+    throw new Error("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+  }
 }
 
 async function ensureCourse(courseId: string) {
-  if (!isValidObjectId(courseId)) {
-    throw new Error("Khóa học không hợp lệ");
-  }
+  assertObjectId(courseId, "Khóa học không hợp lệ");
 
   const course = await ProductModel.findOne({
     _id: courseId,
@@ -42,9 +105,7 @@ async function ensureCourse(courseId: string) {
 }
 
 async function ensureTeacher(teacherId: string) {
-  if (!isValidObjectId(teacherId)) {
-    throw new Error("Giảng viên không hợp lệ");
-  }
+  assertObjectId(teacherId, "Giảng viên không hợp lệ");
 
   const teacher = await TeacherModel.findById(teacherId);
 
@@ -54,21 +115,6 @@ async function ensureTeacher(teacherId: string) {
 
   return teacher;
 }
-
-type CreateClassRoomPayload = {
-  course: string;
-  teacher: string;
-  className: string;
-  mode?: "ONLINE" | "OFFLINE";
-  scheduleText?: string;
-  room?: string;
-  startedAt?: string;
-  endedAt?: string;
-  maxStudents?: string | number;
-  isActive?: boolean | "true" | "false";
-};
-
-type UpdateClassRoomPayload = Partial<CreateClassRoomPayload>;
 
 export const classRoomService = {
   async getAll(query: {
@@ -84,6 +130,8 @@ export const classRoomService = {
   },
 
   async getById(id: string) {
+    assertObjectId(id, "ID lớp học không hợp lệ");
+
     const item = await classRoomRepository.findById(id);
 
     if (!item) {
@@ -93,13 +141,23 @@ export const classRoomService = {
     return item;
   },
 
-  async create(payload: CreateClassRoomPayload) {
+  async create(payload: CreateClassRoomInput) {
     await ensureCourse(payload.course);
     await ensureTeacher(payload.teacher);
 
     const className = payload.className.trim();
+    const scheduleText = payload.scheduleText?.trim() || "";
+    const room = payload.room?.trim() || "";
 
-    const exists = await classRoomRepository.findDuplicate(payload.course, className);
+    const startedAt = parseOptionalDate(payload.startedAt, "Ngày bắt đầu");
+    const endedAt = parseOptionalDate(payload.endedAt, "Ngày kết thúc");
+
+    validateDateRange(startedAt, endedAt);
+
+    const exists = await classRoomRepository.findDuplicate(
+      payload.course,
+      className
+    );
 
     if (exists) {
       throw new Error("Lớp học đã tồn tại trong khóa học này");
@@ -110,11 +168,11 @@ export const classRoomService = {
       teacher: toObjectId(payload.teacher, "Giảng viên không hợp lệ"),
       className,
       mode: payload.mode || "ONLINE",
-      scheduleText: payload.scheduleText?.trim() || "",
-      room: payload.room?.trim() || "",
-      startedAt: payload.startedAt ? new Date(payload.startedAt) : null,
-      endedAt: payload.endedAt ? new Date(payload.endedAt) : null,
-      maxStudents: Math.max(0, toNumber(payload.maxStudents, 0)),
+      scheduleText,
+      room,
+      startedAt,
+      endedAt,
+      maxStudents: toNonNegativeInt(payload.maxStudents, 0),
       isActive: toBoolean(payload.isActive, true),
     });
 
@@ -127,12 +185,62 @@ export const classRoomService = {
     return item;
   },
 
-  async update(id: string, payload: UpdateClassRoomPayload) {
+  async update(id: string, payload: UpdateClassRoomInput) {
+    assertObjectId(id, "ID lớp học không hợp lệ");
+
     const current = await classRoomRepository.findById(id);
 
     if (!current) {
       throw new Error("Không tìm thấy lớp học");
     }
+
+    const currentCourseId = getRefId(current.course);
+    const nextCourseId = payload.course ?? currentCourseId;
+    const nextClassName = payload.className?.trim() ?? current.className;
+
+    if (payload.course !== undefined) {
+      await ensureCourse(payload.course);
+    }
+
+    if (payload.teacher !== undefined) {
+      await ensureTeacher(payload.teacher);
+    }
+
+    const duplicate = await classRoomRepository.findDuplicateExcludeId(
+      nextCourseId,
+      nextClassName,
+      id
+    );
+
+    if (duplicate) {
+      throw new Error("Lớp học đã tồn tại trong khóa học này");
+    }
+
+    const startedAt =
+      payload.startedAt !== undefined
+        ? parseOptionalDate(
+            payload.startedAt,
+            "Ngày bắt đầu",
+            "keep-undefined"
+          )
+        : undefined;
+
+    const endedAt =
+      payload.endedAt !== undefined
+        ? parseOptionalDate(
+            payload.endedAt,
+            "Ngày kết thúc",
+            "keep-undefined"
+          )
+        : undefined;
+
+    const effectiveStartedAt =
+      startedAt !== undefined ? startedAt : current.startedAt ?? null;
+
+    const effectiveEndedAt =
+      endedAt !== undefined ? endedAt : current.endedAt ?? null;
+
+    validateDateRange(effectiveStartedAt, effectiveEndedAt);
 
     const updateData: {
       course?: Types.ObjectId;
@@ -147,40 +255,19 @@ export const classRoomService = {
       isActive?: boolean;
     } = {};
 
-    const nextCourseId =
-      payload.course !== undefined
-        ? payload.course
-        : typeof current.course === "object" && current.course?._id
-          ? String(current.course._id)
-          : String(current.course);
-
-    const nextClassName =
-      payload.className !== undefined
-        ? payload.className.trim()
-        : current.className;
-
     if (payload.course !== undefined) {
-      await ensureCourse(payload.course);
       updateData.course = toObjectId(payload.course, "Khóa học không hợp lệ");
     }
 
     if (payload.teacher !== undefined) {
-      await ensureTeacher(payload.teacher);
-      updateData.teacher = toObjectId(payload.teacher, "Giảng viên không hợp lệ");
+      updateData.teacher = toObjectId(
+        payload.teacher,
+        "Giảng viên không hợp lệ"
+      );
     }
 
     if (payload.className !== undefined) {
       updateData.className = payload.className.trim();
-    }
-
-    const duplicate = await classRoomRepository.findDuplicateExcludeId(
-      nextCourseId,
-      nextClassName,
-      id
-    );
-
-    if (duplicate) {
-      throw new Error("Lớp học đã tồn tại trong khóa học này");
     }
 
     if (payload.mode !== undefined) {
@@ -196,15 +283,15 @@ export const classRoomService = {
     }
 
     if (payload.startedAt !== undefined) {
-      updateData.startedAt = payload.startedAt ? new Date(payload.startedAt) : null;
+      updateData.startedAt = startedAt ?? null;
     }
 
     if (payload.endedAt !== undefined) {
-      updateData.endedAt = payload.endedAt ? new Date(payload.endedAt) : null;
+      updateData.endedAt = endedAt ?? null;
     }
 
     if (payload.maxStudents !== undefined) {
-      updateData.maxStudents = Math.max(0, toNumber(payload.maxStudents, 0));
+      updateData.maxStudents = toNonNegativeInt(payload.maxStudents, 0);
     }
 
     if (payload.isActive !== undefined) {
@@ -223,6 +310,8 @@ export const classRoomService = {
   },
 
   async softDelete(id: string) {
+    assertObjectId(id, "ID lớp học không hợp lệ");
+
     const item = await classRoomRepository.findById(id);
 
     if (!item) {
@@ -232,25 +321,27 @@ export const classRoomService = {
     const deleted = await classRoomRepository.softDeleteById(id);
 
     if (!deleted) {
-      throw new Error("Không tìm thấy lớp học");
+      throw new Error("Xóa mềm lớp học thất bại");
     }
 
     return deleted;
   },
 
   async restore(id: string) {
+    assertObjectId(id, "ID lớp học không hợp lệ");
+
     const item = await classRoomRepository.findDeletedById(id);
 
     if (!item) {
       throw new Error("Không tìm thấy lớp học đã xóa");
     }
 
-    const courseId =
-      typeof item.course === "object" && item.course?._id
-        ? String(item.course._id)
-        : String(item.course);
+    const courseId = getRefId(item.course);
 
-    const exists = await classRoomRepository.findDuplicate(courseId, item.className);
+    const exists = await classRoomRepository.findDuplicate(
+      courseId,
+      item.className
+    );
 
     if (exists) {
       throw new Error("Lớp học đã bị dùng bởi dữ liệu khác, không thể khôi phục");
@@ -262,10 +353,14 @@ export const classRoomService = {
       throw new Error("Khôi phục lớp học thất bại");
     }
 
+    await studentStudyService.syncSnapshotByClassRoom(id);
+
     return restored;
   },
 
   async forceDelete(id: string) {
+    assertObjectId(id, "ID lớp học không hợp lệ");
+
     const item = await classRoomRepository.findAnyById(id);
 
     if (!item) {
@@ -275,7 +370,7 @@ export const classRoomService = {
     const deleted = await classRoomRepository.forceDeleteById(id);
 
     if (!deleted) {
-      throw new Error("Không tìm thấy lớp học");
+      throw new Error("Xóa cứng lớp học thất bại");
     }
 
     return deleted;

@@ -17,6 +17,11 @@ type ClassRoomQuery = {
   isActive?: string;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message || fallback;
+  return fallback;
+}
+
 export const classRoomController = {
   async getAll(
     req: Request<Record<string, never>, unknown, unknown, ClassRoomQuery>,
@@ -25,9 +30,9 @@ export const classRoomController = {
     try {
       const items = await classRoomService.getAll(req.query);
       return res.json({ items });
-    } catch (error: any) {
+    } catch (error) {
       return res.status(500).json({
-        message: error.message || "Server error",
+        message: getErrorMessage(error, "Server error"),
       });
     }
   },
@@ -36,9 +41,9 @@ export const classRoomController = {
     try {
       const items = await classRoomService.getDeleted();
       return res.json({ items });
-    } catch (error: any) {
+    } catch (error) {
       return res.status(500).json({
-        message: error.message || "Server error",
+        message: getErrorMessage(error, "Server error"),
       });
     }
   },
@@ -47,11 +52,12 @@ export const classRoomController = {
     try {
       const item = await classRoomService.getById(req.params.id);
       return res.json({ item });
-    } catch (error: any) {
-      const status = error.message === "Không tìm thấy lớp học" ? 404 : 400;
-      return res.status(status).json({
-        message: error.message || "Get failed",
-      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Get failed");
+      const status =
+        message === "Không tìm thấy lớp học" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 
@@ -59,20 +65,21 @@ export const classRoomController = {
     try {
       const items = await studentStudyService.getByClassRoom(req.params.id);
       return res.json({ items });
-    } catch (error: any) {
-      const status = error.message === "Lớp học không tồn tại" ? 404 : 400;
-      return res.status(status).json({
-        message: error.message || "Get students failed",
-      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Get students failed");
+      const status =
+        message === "Lớp học không tồn tại" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 
-  async create(req: Request<Record<string, never>>, res: Response) {
+  async create(req: Request, res: Response) {
     try {
       const payload = createClassRoomSchema.parse(req.body);
       const item = await classRoomService.create(payload);
       return res.status(201).json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
@@ -80,7 +87,7 @@ export const classRoomController = {
       }
 
       return res.status(400).json({
-        message: error.message || "Create failed",
+        message: getErrorMessage(error, "Create failed"),
       });
     }
   },
@@ -90,17 +97,18 @@ export const classRoomController = {
       const payload = updateClassRoomSchema.parse(req.body);
       const item = await classRoomService.update(req.params.id, payload);
       return res.json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
         });
       }
 
-      const status = error.message === "Không tìm thấy lớp học" ? 404 : 400;
-      return res.status(status).json({
-        message: error.message || "Update failed",
-      });
+      const message = getErrorMessage(error, "Update failed");
+      const status =
+        message === "Không tìm thấy lớp học" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 
@@ -108,11 +116,12 @@ export const classRoomController = {
     try {
       await classRoomService.softDelete(req.params.id);
       return res.json({ message: "Xóa mềm lớp học thành công" });
-    } catch (error: any) {
-      const status = error.message === "Không tìm thấy lớp học" ? 404 : 400;
-      return res.status(status).json({
-        message: error.message || "Soft delete failed",
-      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Soft delete failed");
+      const status =
+        message === "Không tìm thấy lớp học" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 
@@ -123,13 +132,12 @@ export const classRoomController = {
         message: "Khôi phục lớp học thành công",
         item,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const message = getErrorMessage(error, "Restore failed");
       const status =
-        error.message === "Không tìm thấy lớp học đã xóa" ? 404 : 400;
+        message === "Không tìm thấy lớp học đã xóa" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Restore failed",
-      });
+      return res.status(status).json({ message });
     }
   },
 
@@ -137,11 +145,12 @@ export const classRoomController = {
     try {
       await classRoomService.forceDelete(req.params.id);
       return res.json({ message: "Xóa cứng lớp học thành công" });
-    } catch (error: any) {
-      const status = error.message === "Không tìm thấy lớp học" ? 404 : 400;
-      return res.status(status).json({
-        message: error.message || "Force delete failed",
-      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Force delete failed");
+      const status =
+        message === "Không tìm thấy lớp học" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 };

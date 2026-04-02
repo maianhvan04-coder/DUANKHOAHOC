@@ -10,6 +10,15 @@ export type StudyStatus =
 
 export type CompletionStatus = "NOT_COMPLETED" | "COMPLETED";
 export type PerformanceStatus = "NORMAL" | "GOOD" | "EXCELLENT";
+export type AcademicLevel =
+  | "EXCELLENT"
+  | "GOOD"
+  | "AVERAGE"
+  | "WEAK"
+  | "POOR";
+
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT";
+export type HomeworkStatus = "DONE" | "MISSING";
 
 type AnyObj = Record<string, unknown>;
 
@@ -18,6 +27,7 @@ export type StudyStudent = {
   id?: string;
   name?: string;
   email?: string;
+  avatar?: string;
   role?: string;
   active?: boolean;
   deletedAt?: string | null;
@@ -86,6 +96,15 @@ export type StudyClassRoom = {
   teacher?: StudyTeacher | string | null;
 };
 
+export type StudySessionItem = {
+  sessionNo: number;
+  date?: string | null;
+  attendanceStatus: AttendanceStatus;
+  homeworkStatus: HomeworkStatus;
+  teacherNote: string;
+  progressScore: number;
+};
+
 export type StudentStudyItem = {
   _id: string;
   student?: StudyStudent | string | null;
@@ -104,7 +123,15 @@ export type StudentStudyItem = {
 
   score: number;
   progressPercent: number;
-  attendancePercent?: number;
+  attendancePercent: number;
+
+  test1: number;
+  test2: number;
+  test3: number;
+  finalAverage: number;
+  academicLevel: AcademicLevel;
+
+  sessions: StudySessionItem[];
 
   rank?: number | null;
   performanceStatus: PerformanceStatus;
@@ -121,6 +148,22 @@ export type StudentStudyItem = {
   updatedAt?: string;
 };
 
+export type PublicHonorStudyItem = {
+  _id: string;
+  studentId?: string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  honorTitle: string;
+  score: number;
+  finalAverage: number;
+  attendancePercent: number;
+  progressPercent: number;
+  className: string;
+  courseTitle: string;
+  teacherName: string;
+};
+
 export type CreateStudentStudyPayload = {
   classRoom: string;
   status?: StudyStatus;
@@ -135,6 +178,21 @@ export type UpdateStudentStudyLearningPayload = {
   progressPercent?: number | string;
   attendancePercent?: number | string;
   status?: StudyStatus;
+};
+
+export type UpdateStudentStudySessionPayload = {
+  sessionNo: number;
+  date?: string;
+  attendanceStatus?: AttendanceStatus;
+  homeworkStatus?: HomeworkStatus;
+  teacherNote?: string;
+  progressScore?: number | string;
+};
+
+export type UpdateStudentStudyTestsPayload = {
+  test1?: number | string;
+  test2?: number | string;
+  test3?: number | string;
 };
 
 export type UpdateStudentStudyHonorPayload = {
@@ -157,157 +215,181 @@ export type ClassRoomOption = {
   teacher?: StudyTeacher | string | null;
 };
 
+function isObject(value: unknown): value is AnyObj {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function pickArray(raw: unknown): unknown[] {
   if (Array.isArray(raw)) return raw;
 
-  if (raw && typeof raw === "object") {
-    const obj = raw as AnyObj;
-    if (Array.isArray(obj.items)) return obj.items as unknown[];
-    if (Array.isArray(obj.data)) return obj.data as unknown[];
-    if (Array.isArray(obj.products)) return obj.products as unknown[];
-    if (Array.isArray(obj.courses)) return obj.courses as unknown[];
-    if (Array.isArray(obj.classes)) return obj.classes as unknown[];
-    if (Array.isArray(obj.classRooms)) return obj.classRooms as unknown[];
+  if (isObject(raw)) {
+    if (Array.isArray(raw.items)) return raw.items;
+    if (Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw.products)) return raw.products;
+    if (Array.isArray(raw.courses)) return raw.courses;
+    if (Array.isArray(raw.classes)) return raw.classes;
+    if (Array.isArray(raw.classRooms)) return raw.classRooms;
+    if (Array.isArray(raw.sessions)) return raw.sessions;
+    if (Array.isArray(raw.students)) return raw.students;
+    if (Array.isArray(raw.honors)) return raw.honors;
   }
 
   return [];
 }
 
 function pickItem(raw: unknown): AnyObj | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
-  if (obj.item && typeof obj.item === "object") return obj.item as AnyObj;
-  if (obj.data && typeof obj.data === "object") return obj.data as AnyObj;
-  return obj;
+  if (isObject(raw.item)) return raw.item;
+  if (isObject(raw.data)) return raw.data;
+
+  return raw;
 }
 
-function asString(value: unknown, fallback = "") {
+function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
 }
 
-function asNumber(value: unknown, fallback = 0) {
+function asNumber(value: unknown, fallback = 0): number {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
 }
 
-function asBoolean(value: unknown, fallback = false) {
+function asBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === "boolean") return value;
   if (value === "true") return true;
   if (value === "false") return false;
   return fallback;
 }
 
+function getId(value: unknown): string {
+  if (!isObject(value)) return "";
+  return asString(value._id) || asString(value.id);
+}
+
 function normalizeTeacherUser(raw: unknown): StudyTeacherUser | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    name: asString(obj.name),
-    email: asString(obj.email),
+    _id: asString(raw._id),
+    id: asString(raw.id),
+    name: asString(raw.name),
+    email: asString(raw.email),
   };
 }
 
 function normalizeTeacher(raw: unknown): StudyTeacher | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    specialty: asString(obj.specialty),
-    avatar: asString(obj.avatar),
-    degree: asString(obj.degree),
-    experience: asString(obj.experience),
-    achievement: asString(obj.achievement),
-    rating: asNumber(obj.rating, 0),
-    user: normalizeTeacherUser(obj.user),
+    _id: asString(raw._id),
+    id: asString(raw.id),
+    specialty: asString(raw.specialty),
+    avatar: asString(raw.avatar),
+    degree: asString(raw.degree),
+    experience: asString(raw.experience),
+    achievement: asString(raw.achievement),
+    rating: asNumber(raw.rating, 0),
+    user: normalizeTeacherUser(raw.user),
   };
 }
 
 function normalizeStudent(raw: unknown): StudyStudent | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    name: asString(obj.name),
-    email: asString(obj.email),
-    role: asString(obj.role),
-    active: asBoolean(obj.active, true),
-    deletedAt: typeof obj.deletedAt === "string" ? obj.deletedAt : null,
+    _id: asString(raw._id),
+    id: asString(raw.id),
+    name: asString(raw.name),
+    email: asString(raw.email),
+    avatar: asString(raw.avatar),
+    role: asString(raw.role),
+    active: asBoolean(raw.active, true),
+    deletedAt: typeof raw.deletedAt === "string" ? raw.deletedAt : null,
   };
 }
 
 function normalizeCourse(raw: unknown): StudyCourse | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    title: asString(obj.title),
-    slug: asString(obj.slug),
-    shortDescription: asString(obj.shortDescription),
+    _id: asString(raw._id),
+    id: asString(raw.id),
+    title: asString(raw.title),
+    slug: asString(raw.slug),
+    shortDescription: asString(raw.shortDescription),
     teacher:
-      typeof obj.teacher === "string"
-        ? obj.teacher
-        : normalizeTeacher(obj.teacher),
-    teacherName: asString(obj.teacherName),
-    image: asString(obj.image),
-    level: asString(obj.level),
-    modes: Array.isArray(obj.modes) ? (obj.modes as string[]) : [],
-    status: asString(obj.status),
-    rating: asNumber(obj.rating, 0),
-    studentCount: asNumber(obj.studentCount, 0),
-    durationText: asString(obj.durationText),
-    price: asNumber(obj.price, 0),
-    originalPrice: asNumber(obj.originalPrice, 0),
+      typeof raw.teacher === "string"
+        ? raw.teacher
+        : normalizeTeacher(raw.teacher),
+    teacherName: asString(raw.teacherName),
+    image: asString(raw.image),
+    level: asString(raw.level),
+    modes: Array.isArray(raw.modes)
+      ? raw.modes.filter((item): item is string => typeof item === "string")
+      : [],
+    status: asString(raw.status),
+    rating: asNumber(raw.rating, 0),
+    studentCount: asNumber(raw.studentCount, 0),
+    durationText: asString(raw.durationText),
+    price: asNumber(raw.price, 0),
+    originalPrice: asNumber(raw.originalPrice, 0),
     category:
-      obj.category && typeof obj.category === "object"
+      isObject(raw.category)
         ? {
-            _id: asString((obj.category as AnyObj)._id),
-            id: asString((obj.category as AnyObj).id),
-            name: asString((obj.category as AnyObj).name),
+            _id: asString(raw.category._id),
+            id: asString(raw.category.id),
+            name: asString(raw.category.name),
           }
-        : typeof obj.category === "string"
-          ? obj.category
+        : typeof raw.category === "string"
+          ? raw.category
           : null,
-    isActive: asBoolean(obj.isActive, true),
-    isDeleted: asBoolean(obj.isDeleted, false),
+    isActive: asBoolean(raw.isActive, true),
+    isDeleted: asBoolean(raw.isDeleted, false),
   };
 }
 
 function normalizeClassRoom(raw: unknown): StudyClassRoom | null {
-  if (!raw || typeof raw !== "object") return null;
-  const obj = raw as AnyObj;
+  if (!isObject(raw)) return null;
 
   return {
-    _id: asString(obj._id),
-    id: asString(obj.id),
-    className: asString(obj.className),
-    mode: (asString(obj.mode, "ONLINE") as StudyMode) || "ONLINE",
-    scheduleText: asString(obj.scheduleText),
-    room: asString(obj.room),
-    startedAt: typeof obj.startedAt === "string" ? obj.startedAt : null,
-    endedAt: typeof obj.endedAt === "string" ? obj.endedAt : null,
-    maxStudents: asNumber(obj.maxStudents, 0),
-    isActive: asBoolean(obj.isActive, true),
-    isDeleted: asBoolean(obj.isDeleted, false),
+    _id: asString(raw._id),
+    id: asString(raw.id),
+    className: asString(raw.className),
+    mode: (asString(raw.mode, "ONLINE") as StudyMode) || "ONLINE",
+    scheduleText: asString(raw.scheduleText),
+    room: asString(raw.room),
+    startedAt: typeof raw.startedAt === "string" ? raw.startedAt : null,
+    endedAt: typeof raw.endedAt === "string" ? raw.endedAt : null,
+    maxStudents: asNumber(raw.maxStudents, 0),
+    isActive: asBoolean(raw.isActive, true),
+    isDeleted: asBoolean(raw.isDeleted, false),
     course:
-      typeof obj.course === "string" ? obj.course : normalizeCourse(obj.course),
+      typeof raw.course === "string" ? raw.course : normalizeCourse(raw.course),
     teacher:
-      typeof obj.teacher === "string"
-        ? obj.teacher
-        : normalizeTeacher(obj.teacher),
+      typeof raw.teacher === "string"
+        ? raw.teacher
+        : normalizeTeacher(raw.teacher),
+  };
+}
+
+function normalizeSession(raw: unknown): StudySessionItem {
+  const obj = isObject(raw) ? raw : {};
+
+  return {
+    sessionNo: asNumber(obj.sessionNo, 0),
+    date: typeof obj.date === "string" ? obj.date : null,
+    attendanceStatus:
+      (asString(obj.attendanceStatus, "ABSENT") as AttendanceStatus) || "ABSENT",
+    homeworkStatus:
+      (asString(obj.homeworkStatus, "MISSING") as HomeworkStatus) || "MISSING",
+    teacherNote: asString(obj.teacherNote),
+    progressScore: asNumber(obj.progressScore, 0),
   };
 }
 
 function normalizeStudy(raw: unknown): StudentStudyItem {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
 
   return {
     _id: asString(obj._id) || asString(obj.id),
@@ -333,22 +415,27 @@ function normalizeStudy(raw: unknown): StudentStudyItem {
 
     status: (asString(obj.status, "ENROLLED") as StudyStatus) || "ENROLLED",
     completionStatus:
-      (asString(
-        obj.completionStatus,
-        "NOT_COMPLETED"
-      ) as CompletionStatus) || "NOT_COMPLETED",
+      (asString(obj.completionStatus, "NOT_COMPLETED") as CompletionStatus) ||
+      "NOT_COMPLETED",
     completedAt: typeof obj.completedAt === "string" ? obj.completedAt : null,
 
     score: asNumber(obj.score, 0),
     progressPercent: asNumber(obj.progressPercent, 0),
     attendancePercent: asNumber(obj.attendancePercent, 0),
 
+    test1: asNumber(obj.test1, 0),
+    test2: asNumber(obj.test2, 0),
+    test3: asNumber(obj.test3, 0),
+    finalAverage: asNumber(obj.finalAverage, 0),
+    academicLevel:
+      (asString(obj.academicLevel, "AVERAGE") as AcademicLevel) || "AVERAGE",
+
+    sessions: pickArray(obj.sessions).map(normalizeSession),
+
     rank: obj.rank == null ? null : asNumber(obj.rank, 0),
     performanceStatus:
-      (asString(
-        obj.performanceStatus,
-        "NORMAL"
-      ) as PerformanceStatus) || "NORMAL",
+      (asString(obj.performanceStatus, "NORMAL") as PerformanceStatus) ||
+      "NORMAL",
     isHonored: asBoolean(obj.isHonored, false),
     honorTitle: asString(obj.honorTitle),
     showHonorOnUserPage: asBoolean(obj.showHonorOnUserPage, false),
@@ -363,8 +450,34 @@ function normalizeStudy(raw: unknown): StudentStudyItem {
   };
 }
 
+function normalizePublicHonor(raw: unknown): PublicHonorStudyItem {
+  const obj = isObject(raw) ? raw : {};
+
+  const student = isObject(obj.student) ? obj.student : null;
+  const course = isObject(obj.course) ? obj.course : null;
+  const teacher = isObject(obj.teacher) ? obj.teacher : null;
+  const teacherUser = teacher && isObject(teacher.user) ? teacher.user : null;
+
+  return {
+    _id: asString(obj._id) || asString(obj.id) || getId(student),
+    studentId: getId(student),
+    name: asString(student?.name) || asString(obj.studentName) || "Học viên",
+    email: asString(student?.email),
+    avatar: asString(student?.avatar) || asString(obj.avatar),
+    honorTitle: asString(obj.honorTitle, "Học viên xuất sắc"),
+    score: asNumber(obj.score, 0),
+    finalAverage: asNumber(obj.finalAverage, 0),
+    attendancePercent: asNumber(obj.attendancePercent, 0),
+    progressPercent: asNumber(obj.progressPercent, 0),
+    className: asString(obj.className),
+    courseTitle: asString(course?.title) || asString(obj.courseTitle),
+    teacherName:
+      asString(teacherUser?.name) || asString(obj.teacherName) || "Giảng viên",
+  };
+}
+
 function normalizeClassRoomOption(raw: unknown): ClassRoomOption {
-  const obj = (raw || {}) as AnyObj;
+  const obj = isObject(raw) ? raw : {};
 
   return {
     _id: asString(obj._id) || asString(obj.id),
@@ -401,6 +514,11 @@ export const studentStudyApi = {
     return pickArray(res.data).map(normalizeStudy);
   },
 
+  async getPublicHonors() {
+    const res = await http.get("/api/students/public/honors");
+    return pickArray(res.data).map(normalizePublicHonor);
+  },
+
   async create(studentId: string, payload: CreateStudentStudyPayload) {
     const res = await http.post(`/api/students/${studentId}/studies`, payload);
     const item = pickItem(res.data);
@@ -419,7 +537,36 @@ export const studentStudyApi = {
     studyId: string,
     payload: UpdateStudentStudyLearningPayload
   ) {
-    const res = await http.patch(`/api/classes/studies/${studyId}/learning`, payload);
+    const res = await http.patch(
+      `/api/students/studies/${studyId}/learning`,
+      payload
+    );
+    const item = pickItem(res.data);
+    if (!item) throw new Error("Không đọc được dữ liệu study");
+    return normalizeStudy(item);
+  },
+
+  async updateSession(
+    studyId: string,
+    payload: UpdateStudentStudySessionPayload
+  ) {
+    const res = await http.patch(
+      `/api/students/studies/${studyId}/session`,
+      payload
+    );
+    const item = pickItem(res.data);
+    if (!item) throw new Error("Không đọc được dữ liệu study");
+    return normalizeStudy(item);
+  },
+
+  async updateTests(
+    studyId: string,
+    payload: UpdateStudentStudyTestsPayload
+  ) {
+    const res = await http.patch(
+      `/api/students/studies/${studyId}/tests`,
+      payload
+    );
     const item = pickItem(res.data);
     if (!item) throw new Error("Không đọc được dữ liệu study");
     return normalizeStudy(item);
@@ -429,7 +576,10 @@ export const studentStudyApi = {
     studyId: string,
     payload: UpdateStudentStudyHonorPayload
   ) {
-    const res = await http.patch(`/api/classes/studies/${studyId}/honor`, payload);
+    const res = await http.patch(
+      `/api/students/studies/${studyId}/honor`,
+      payload
+    );
     const item = pickItem(res.data);
     if (!item) throw new Error("Không đọc được dữ liệu study");
     return normalizeStudy(item);

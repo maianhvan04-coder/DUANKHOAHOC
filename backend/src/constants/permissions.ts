@@ -54,6 +54,14 @@ export const PERMISSIONS = Object.freeze({
   SCHEDULE_UPDATE: "schedule:update",
   SCHEDULE_DELETE: "schedule:delete",
 
+  PAYMENT_AUDIT_READ_OWN: "payment_audit:read_own",
+  PAYMENT_AUDIT_READ_ALL: "payment_audit:read_all",
+  PAYMENT_AUDIT_MANAGE: "payment_audit:manage",
+
+  SECURITY_AUDIT_READ_OWN: "security_audit:read_own",
+  SECURITY_AUDIT_READ_ALL: "security_audit:read_all",
+  SECURITY_AUDIT_MANAGE: "security_audit:manage",
+
   RBAC_READ: "rbac:read",
   RBAC_MANAGE: "rbac:manage",
   RBAC_CREATE_ROLE: "rbac:role_create",

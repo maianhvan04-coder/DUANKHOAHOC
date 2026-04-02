@@ -13,6 +13,30 @@ studentRouter.get("/studies", authGuard, studentStudyController.getAll);
 studentRouter.put("/studies/:studyId", authGuard, studentStudyController.update);
 studentRouter.delete("/studies/:studyId", authGuard, studentStudyController.remove);
 
+studentRouter.patch(
+  "/studies/:studyId/learning",
+  authGuard,
+  studentStudyController.updateLearning
+);
+
+studentRouter.patch(
+  "/studies/:studyId/tests",
+  authGuard,
+  studentStudyController.updateTests
+);
+
+studentRouter.patch(
+  "/studies/:studyId/honor",
+  authGuard,
+  studentStudyController.updateHonor
+);
+
+studentRouter.patch(
+  "/studies/:studyId/session",
+  authGuard,
+  studentStudyController.updateSession
+);
+
 // student basic
 studentRouter.get("/", authGuard, studentController.getAll);
 studentRouter.get("/deleted", authGuard, studentController.getDeleted);

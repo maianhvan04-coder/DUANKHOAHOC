@@ -19,6 +19,8 @@ import {
   FolderKanban,
   Package2,
   NotebookPen,
+  CreditCard,
+  FolderLock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
@@ -134,6 +136,24 @@ const menuGroups: SidebarGroup[] = [
       },
     ],
   },
+
+  {
+    label: "AUDIT",
+    items: [
+      {
+        href: "/admin/payment-audits",
+        text: "Lịch sử thanh toán",
+        icon: CreditCard,
+        requiredGroupKeys: ["AUDIT"],
+      },
+      {
+        href: "/admin/security-audits",
+        text: "Lịch sử bảo mật",
+        icon: FolderLock,
+        requiredGroupKeys: ["AUDIT"],
+      },
+    ],
+  },
   
   {
     label: "SETTING",
@@ -167,7 +187,7 @@ export default function AdminSidebar({
   const dark = theme === "dark";
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    "Khóa học": true,
+    "Khóa học": false,
   });
 
   const grantedGroupKeys = useMemo(() => {

@@ -945,7 +945,7 @@ export default function AdminTeachersPage() {
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 ">
                       <div className="truncate text-sm text-slate-700">
                         {item.specialty || "--"}
                       </div>

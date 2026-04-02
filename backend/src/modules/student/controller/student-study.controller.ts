@@ -6,6 +6,8 @@ import {
   updateStudentStudySchema,
   updateStudentStudyHonorSchema,
   updateStudentStudyLearningSchema,
+  updateStudentStudySessionSchema,
+  updateStudentStudyTestsSchema,
 } from "../schema/student-study.schema";
 
 type StudentIdParams = {
@@ -14,10 +16,6 @@ type StudentIdParams = {
 
 type StudyIdParams = {
   studyId: string;
-};
-
-type ClassRoomIdParams = {
-  classRoomId: string;
 };
 
 type StudentStudyQuery = {
@@ -32,6 +30,11 @@ type StudentStudyQuery = {
   limit?: string;
 };
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message || fallback;
+  return fallback;
+}
+
 export const studentStudyController = {
   async getAll(
     req: Request<Record<string, never>, unknown, unknown, StudentStudyQuery>,
@@ -40,9 +43,9 @@ export const studentStudyController = {
     try {
       const items = await studentStudyService.getAll(req.query);
       return res.json({ items });
-    } catch (error: any) {
+    } catch (error) {
       return res.status(500).json({
-        message: error.message || "Server error",
+        message: getErrorMessage(error, "Server error"),
       });
     }
   },
@@ -51,27 +54,11 @@ export const studentStudyController = {
     try {
       const items = await studentStudyService.getByStudent(req.params.id);
       return res.json({ items });
-    } catch (error: any) {
-      const status =
-        error.message === "Học viên không tồn tại" ? 404 : 400;
+    } catch (error) {
+      const message = getErrorMessage(error, "Get failed");
+      const status = message === "Học viên không tồn tại" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Get failed",
-      });
-    }
-  },
-
-  async getByClassRoom(req: Request<ClassRoomIdParams>, res: Response) {
-    try {
-      const items = await studentStudyService.getByClassRoom(req.params.classRoomId);
-      return res.json({ items });
-    } catch (error: any) {
-      const status =
-        error.message === "Lớp học không tồn tại" ? 404 : 400;
-
-      return res.status(status).json({
-        message: error.message || "Get failed",
-      });
+      return res.status(status).json({ message });
     }
   },
 
@@ -85,7 +72,7 @@ export const studentStudyController = {
       });
 
       return res.status(201).json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
@@ -93,7 +80,7 @@ export const studentStudyController = {
       }
 
       return res.status(400).json({
-        message: error.message || "Create failed",
+        message: getErrorMessage(error, "Create failed"),
       });
     }
   },
@@ -103,19 +90,17 @@ export const studentStudyController = {
       const payload = updateStudentStudySchema.parse(req.body);
       const item = await studentStudyService.update(req.params.studyId, payload);
       return res.json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
         });
       }
 
-      const status =
-        error.message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
+      const message = getErrorMessage(error, "Update failed");
+      const status = message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Update failed",
-      });
+      return res.status(status).json({ message });
     }
   },
 
@@ -127,19 +112,67 @@ export const studentStudyController = {
         payload
       );
       return res.json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
         });
       }
 
-      const status =
-        error.message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
+      const message = getErrorMessage(error, "Update learning failed");
+      const status = message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Update learning failed",
-      });
+      return res.status(status).json({ message });
+    }
+  },
+
+  async updateSession(req: Request<StudyIdParams>, res: Response) {
+    try {
+      const payload = updateStudentStudySessionSchema.parse(req.body);
+      const item = await studentStudyService.updateSession(
+        req.params.studyId,
+        payload
+      );
+
+      return res.json({ item });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
+        });
+      }
+
+      const message = getErrorMessage(error, "Update session failed");
+      const status =
+        message === "Không tìm thấy dữ liệu học tập" ||
+        message === "Buổi học không hợp lệ"
+          ? 404
+          : 400;
+
+      return res.status(status).json({ message });
+    }
+  },
+
+  async updateTests(req: Request<StudyIdParams>, res: Response) {
+    try {
+      const payload = updateStudentStudyTestsSchema.parse(req.body);
+      const item = await studentStudyService.updateTests(
+        req.params.studyId,
+        payload
+      );
+
+      return res.json({ item });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
+        });
+      }
+
+      const message = getErrorMessage(error, "Update tests failed");
+      const status = message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
+
+      return res.status(status).json({ message });
     }
   },
 
@@ -151,19 +184,17 @@ export const studentStudyController = {
         payload
       );
       return res.json({ item });
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({
           message: error.issues[0]?.message || "Dữ liệu không hợp lệ",
         });
       }
 
-      const status =
-        error.message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
+      const message = getErrorMessage(error, "Update honor failed");
+      const status = message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Update honor failed",
-      });
+      return res.status(status).json({ message });
     }
   },
 
@@ -171,13 +202,11 @@ export const studentStudyController = {
     try {
       await studentStudyService.remove(req.params.studyId);
       return res.json({ message: "Xóa dữ liệu học tập thành công" });
-    } catch (error: any) {
-      const status =
-        error.message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
+    } catch (error) {
+      const message = getErrorMessage(error, "Delete failed");
+      const status = message === "Không tìm thấy dữ liệu học tập" ? 404 : 400;
 
-      return res.status(status).json({
-        message: error.message || "Delete failed",
-      });
+      return res.status(status).json({ message });
     }
   },
 
@@ -188,9 +217,9 @@ export const studentStudyController = {
     try {
       const items = await studentStudyService.getPublicHonors(req.query.limit);
       return res.json({ items });
-    } catch (error: any) {
+    } catch (error) {
       return res.status(500).json({
-        message: error.message || "Server error",
+        message: getErrorMessage(error, "Server error"),
       });
     }
   },
