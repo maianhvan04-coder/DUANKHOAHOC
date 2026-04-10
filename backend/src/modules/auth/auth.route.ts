@@ -26,7 +26,7 @@ authRouter.get(
     }
 
     const user = await UserModel.findById(authUser.id)
-      .select("name email")
+      .select("name email avatar")
       .lean();
 
     if (!user) {
@@ -40,6 +40,7 @@ authRouter.get(
         id: authUser.id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar ?? null,
       },
       access: {
         primaryRole: authUser.role,

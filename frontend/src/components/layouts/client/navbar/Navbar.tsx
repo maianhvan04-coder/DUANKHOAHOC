@@ -10,7 +10,6 @@ import {
   CalendarCheck,
   ChevronDown,
   Globe,
-  LayoutDashboard,
   LogOut,
   Search,
   ShoppingCart,
@@ -23,6 +22,12 @@ import { hasAnyRole } from "@/lib/helpers/auth/access";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function resolveAvatarUrl(avatar?: string | null): string | null {
+  if (!avatar) return null;
+  if (/^https?:\/\//i.test(avatar)) return avatar;
+  return avatar;
 }
 
 const MENU = [
@@ -83,7 +88,7 @@ export default function Navbar() {
     };
 
     updateScroll();
-    fetchCategories();
+    void fetchCategories();
 
     window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -136,6 +141,8 @@ export default function Navbar() {
     user?.name?.trim()?.charAt(0)?.toUpperCase() ||
     user?.email?.trim()?.charAt(0)?.toUpperCase() ||
     "Q";
+
+  const userAvatar = resolveAvatarUrl(user?.avatar);
 
   return (
     <>
@@ -223,10 +230,16 @@ export default function Navbar() {
                         type="button"
                         title={user?.name || user?.email || "Tài khoản"}
                         onClick={() => setOpenProfileMenu((prev) => !prev)}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-[#0B2C5F] transition hover:bg-slate-200"
+                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[#0B2C5F] transition hover:bg-slate-200"
                         aria-label="Mở menu tài khoản"
                       >
-                        {user?.name || user?.email ? (
+                        {userAvatar ? (
+                          <img
+                            src={userAvatar}
+                            alt={user?.name || "Avatar"}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : user?.name || user?.email ? (
                           <span className="text-[14px] font-bold">
                             {userInitial}
                           </span>
@@ -244,12 +257,30 @@ export default function Navbar() {
                         )}
                       >
                         <div className="border-b border-slate-100 px-4 py-3">
-                          <p className="line-clamp-1 text-[14px] font-semibold text-[#0B2C5F]">
-                            {user?.name || "Người dùng"}
-                          </p>
-                          <p className="line-clamp-1 mt-1 text-[12px] text-slate-500">
-                            {user?.email || ""}
-                          </p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[#0B2C5F]">
+                              {userAvatar ? (
+                                <img
+                                  src={userAvatar}
+                                  alt={user?.name || "Avatar"}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-bold">
+                                  {userInitial}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="line-clamp-1 text-[14px] font-semibold text-[#0B2C5F]">
+                                {user?.name || "Người dùng"}
+                              </p>
+                              <p className="line-clamp-1 mt-1 text-[12px] text-slate-500">
+                                {user?.email || ""}
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="p-2">

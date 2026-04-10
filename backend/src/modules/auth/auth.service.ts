@@ -16,11 +16,17 @@ function accessExpiresAt() {
   return new Date(Date.now() + ms);
 }
 
-function publicUser(user: { _id: unknown; name: string; email: string }) {
+function publicUser(user: {
+  _id: unknown;
+  name: string;
+  email: string;
+  avatar?: string | null;
+}) {
   return {
     id: String(user._id),
     name: user.name,
     email: user.email,
+    avatar: user.avatar ?? null,
   };
 }
 

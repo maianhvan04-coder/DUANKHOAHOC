@@ -15,10 +15,14 @@ import paymentRoutes from "../modules/payment/payment.routes";
 import paymentAuditRouter from "../modules/audit/payment/payment-audit.route";
 import securityAuditRouter from "../modules/audit/security/security-audit.route";
 import dashboardRouter from "../modules/dashboard/dashboard.route";
+import accountRouter  from "../modules/account/account.route";
 
 export const router = Router();
 
 router.use("/auth", authRouter);
+
+// account
+router.use("/account", authGuard, accountRouter);
 
 // admin-only
 router.use("/users", authGuard, requireRole(ROLES.ADMIN), userRouter);

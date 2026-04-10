@@ -22,6 +22,16 @@ const userSchema = new Schema(
       default: null,
     },
 
+    avatar: {
+      type: String,
+      default: null,
+    },
+
+    avatarPublicId: {
+      type: String,
+      default: null,
+    },
+
     role: {
       type: String,
       enum: Object.values(ROLES),
@@ -45,7 +55,6 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
-// chỉ unique với user chưa bị soft-delete
 userSchema.index(
   { email: 1 },
   {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Moon, Sun } from "lucide-react";
 import AvatarMenu from "@/components/layouts/admin/topbar/AvatarMenu";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
@@ -37,8 +38,8 @@ export default function AdminTopbar() {
             {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
 
-          <button
-            type="button"
+          <Link
+            href="/admin/notification"
             className={cn(
               "relative flex h-11 w-11 items-center justify-center rounded-full border transition",
               dark
@@ -49,7 +50,7 @@ export default function AdminTopbar() {
           >
             <Bell className="h-5 w-5" />
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#1677ff]" />
-          </button>
+          </Link>
         </div>
 
         <AvatarMenu />

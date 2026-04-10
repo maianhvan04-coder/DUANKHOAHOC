@@ -21,7 +21,7 @@ export default function StudyProgramCard({
   return (
     <article>
       <Link href={item.href} className="group block">
-        <div className="relative h-50 overflow-hidden rounded-[22px]">
+        <div className="relative h-[200px] overflow-hidden rounded-[22px]">
           <Image
             src={item.image}
             alt={item.imageAlt}
@@ -30,16 +30,16 @@ export default function StudyProgramCard({
           />
         </div>
 
-        <div className="mt-7">
-          <h3 className="text-[20px] font-extrabold uppercase leading-[1.15] tracking-[-0.02em] text-[#032654]">
+        <div className="mt-6">
+          <h3 className="text-[22px] font-extrabold leading-[1.2] tracking-[-0.02em] text-[#032654]">
             {item.title}
           </h3>
 
-          <p className="mt-3 text-[16px] font-semibold leading-8 text-[#032654]">
+          <p className="mt-3 text-[16px] font-medium leading-7 text-[#032654]">
             {item.description}
           </p>
 
-          <p className="mt-4 text-[14px] leading-8 text-[#4E5F79] md:text-[15px]">
+          <p className="mt-4 text-[14px] leading-7 text-[#4E5F79] md:text-[15px]">
             {item.meta}
           </p>
 
