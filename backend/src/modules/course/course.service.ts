@@ -3,6 +3,7 @@ import { productRepository } from "./course.repository";
 import type { ProductLevel, ProductMode, ProductStatus } from "./course.model";
 import { CategoryModel } from "../category/category.model";
 import { TeacherModel } from "../teacher/teacher.model";
+import { studentStudyRepository } from "../student/repository/student-study.repository";
 import { slugify } from "../../utils/slug";
 
 function toObjectId(id: string, message = "ID không hợp lệ") {
@@ -92,6 +93,13 @@ async function resolveTeacherFields(teacherId?: string) {
   };
 }
 
+async function getStudentCountByCourseId(courseId: string) {
+  return studentStudyRepository.countDocuments({
+    course: courseId,
+    isActive: true,
+  });
+}
+
 type CreateProductPayload = {
   title: string;
   shortDescription?: string;
@@ -100,10 +108,8 @@ type CreateProductPayload = {
   level?: ProductLevel;
   status?: ProductStatus;
   rating?: string;
-  studentCount?: string;
   durationText?: string;
   price: string;
-  originalPrice?: string;
   isActive?: boolean | "true" | "false";
   modes?: ProductMode[] | ProductMode;
 };
@@ -116,10 +122,8 @@ type UpdateProductPayload = {
   level?: ProductLevel;
   status?: ProductStatus;
   rating?: string;
-  studentCount?: string;
   durationText?: string;
   price?: string;
-  originalPrice?: string;
   isActive?: boolean | "true" | "false";
   modes?: ProductMode[] | ProductMode;
 };
@@ -131,7 +135,20 @@ type ProductImagePayload = {
 
 export const productService = {
   async getAll(query: { categoryId?: string; limit?: string }) {
-    return productRepository.findAll(query);
+    const items = await productRepository.findAll(query);
+
+    const mapped = await Promise.all(
+      items.map(async (item) => {
+        const studentCount = await getStudentCountByCourseId(String(item._id));
+
+        return {
+          ...item.toObject(),
+          studentCount,
+        };
+      })
+    );
+
+    return mapped;
   },
 
   async getDeleted() {
@@ -145,7 +162,12 @@ export const productService = {
       throw new Error("Không tìm thấy khóa học");
     }
 
-    return item;
+    const studentCount = await getStudentCountByCourseId(String(item._id));
+
+    return {
+      ...item.toObject(),
+      studentCount,
+    };
   },
 
   async create(payload: CreateProductPayload, imageData?: ProductImagePayload) {
@@ -168,18 +190,14 @@ export const productService = {
       title: payload.title.trim(),
       slug,
       shortDescription: payload.shortDescription?.trim() || "",
-
       teacher: teacherFields.teacher,
       teacherName: teacherFields.teacherName,
-
       category: toObjectId(payload.category, "Danh mục không hợp lệ"),
       level: payload.level || "Cơ bản",
       status: payload.status || "OPEN",
       rating: toNumber(payload.rating, 0),
-      studentCount: toNumber(payload.studentCount, 0),
       durationText: payload.durationText?.trim() || "",
       price: toNumber(payload.price, 0),
-      originalPrice: toNumber(payload.originalPrice, 0),
       isActive: toBoolean(payload.isActive, true),
       modes: normalizeModes(payload.modes, ["ONLINE"]),
       image: imageData?.image || "",
@@ -192,7 +210,12 @@ export const productService = {
       throw new Error("Tạo khóa học thất bại");
     }
 
-    return item;
+    const studentCount = await getStudentCountByCourseId(String(item._id));
+
+    return {
+      ...item.toObject(),
+      studentCount,
+    };
   },
 
   async update(
@@ -216,10 +239,8 @@ export const productService = {
       level?: ProductLevel;
       status?: ProductStatus;
       rating?: number;
-      studentCount?: number;
       durationText?: string;
       price?: number;
-      originalPrice?: number;
       isActive?: boolean;
       modes?: ProductMode[];
       image?: string;
@@ -269,23 +290,12 @@ export const productService = {
       updateData.rating = toNumber(payload.rating, current.rating);
     }
 
-    if (payload.studentCount !== undefined) {
-      updateData.studentCount = toNumber(payload.studentCount, current.studentCount);
-    }
-
     if (payload.durationText !== undefined) {
       updateData.durationText = payload.durationText.trim();
     }
 
     if (payload.price !== undefined) {
       updateData.price = toNumber(payload.price, current.price);
-    }
-
-    if (payload.originalPrice !== undefined) {
-      updateData.originalPrice = toNumber(
-        payload.originalPrice,
-        current.originalPrice
-      );
     }
 
     if (payload.isActive !== undefined) {
@@ -307,7 +317,12 @@ export const productService = {
       throw new Error("Không tìm thấy khóa học");
     }
 
-    return updated;
+    const studentCount = await getStudentCountByCourseId(String(updated._id));
+
+    return {
+      ...updated.toObject(),
+      studentCount,
+    };
   },
 
   async softDelete(id: string) {

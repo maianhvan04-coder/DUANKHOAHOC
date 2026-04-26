@@ -44,7 +44,6 @@ type ProductFormState = {
   durationText: string;
   status: ProductStatus;
   price: string;
-  originalPrice: string;
   rating: string;
   studentCount: string;
 };
@@ -58,7 +57,6 @@ const INITIAL_FORM: ProductFormState = {
   durationText: "",
   status: "OPEN",
   price: "",
-  originalPrice: "",
   rating: "0",
   studentCount: "0",
 };
@@ -274,7 +272,6 @@ export default function AdminProductsPage() {
       durationText: item.durationText || "",
       status: item.status || "OPEN",
       price: String(item.price ?? ""),
-      originalPrice: String(item.originalPrice ?? ""),
       rating: String(item.rating ?? 0),
       studentCount: String(item.studentCount ?? 0),
     });
@@ -313,12 +310,7 @@ export default function AdminProductsPage() {
     }
 
     if (Number(form.price || 0) < 0) {
-      alert("Giá không được âm");
-      return;
-    }
-
-    if (Number(form.originalPrice || 0) < 0) {
-      alert("Giá gốc không được âm");
+      alert("Học phí không được âm");
       return;
     }
 
@@ -344,7 +336,6 @@ export default function AdminProductsPage() {
         durationText,
         status: form.status,
         price: form.price || "0",
-        originalPrice: form.originalPrice || "0",
         rating: form.rating || "0",
         studentCount: form.studentCount || "0",
       };
@@ -560,7 +551,7 @@ export default function AdminProductsPage() {
                       Status
                     </th>
                     <th className="min-w-[150px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Price
+                      Tuition
                     </th>
                     <th className="min-w-[160px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {viewMode === "active" ? "Created" : "Deleted"}
@@ -893,7 +884,7 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Giá bán <span className="text-rose-600">*</span>
+                    Học phí <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="number"
@@ -901,22 +892,6 @@ export default function AdminProductsPage() {
                     value={form.price}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, price: e.target.value }))
-                    }
-                    placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
-                    Giá gốc
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.originalPrice}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, originalPrice: e.target.value }))
                     }
                     placeholder="0"
                     className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"

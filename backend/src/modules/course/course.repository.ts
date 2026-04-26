@@ -14,10 +14,8 @@ type CreateProductRepoPayload = {
   modes: ProductMode[];
   status: Product["status"];
   rating: number;
-  studentCount: number;
   durationText: string;
   price: number;
-  originalPrice: number;
   isActive?: boolean;
 };
 

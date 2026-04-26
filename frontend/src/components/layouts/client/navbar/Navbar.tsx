@@ -1,24 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   BrickWallShield,
   CalendarCheck,
-  ChevronDown,
   Globe,
   LogOut,
   Search,
   ShoppingCart,
   User,
 } from "lucide-react";
-import { categoryApi, type CategoryItem } from "@/app/api/category.api";
 import { clearToken, clearUser } from "@/lib/utils/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { hasAnyRole } from "@/lib/helpers/auth/access";
+import { notificationApi } from "@/app/api/notification.api";
+import { NOTIFICATION_CHANGED_EVENT } from "@/lib/utils/notification-events";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -40,24 +40,41 @@ const MENU = [
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   const { user, access, hydrated, isLoading } = useAuth();
 
   const [scrolled, setScrolled] = useState(false);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [openCourseMenu, setOpenCourseMenu] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const checkingAuth = !hydrated || isLoading;
   const isLoggedIn = !!user;
 
   const canAccessAdmin = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
 
+  const loadUnreadCount = useCallback(async () => {
+    if (checkingAuth || !isLoggedIn) {
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const result = await notificationApi.getMine({
+        page: 1,
+        limit: 1,
+        isRead: "false",
+      });
+
+      setUnreadCount(result.data.unreadCount || 0);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, [checkingAuth, isLoggedIn]);
+
   useEffect(() => {
-    let cancelled = false;
     let rafId = 0;
 
     const updateScroll = () => {
@@ -70,30 +87,11 @@ export default function Navbar() {
       rafId = window.requestAnimationFrame(updateScroll);
     };
 
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true);
-        const res = await categoryApi.getAll();
-
-        if (cancelled) return;
-        setCategories(Array.isArray(res?.items) ? res.items : []);
-      } catch {
-        if (cancelled) return;
-        setCategories([]);
-      } finally {
-        if (!cancelled) {
-          setLoadingCategories(false);
-        }
-      }
-    };
-
     updateScroll();
-    void fetchCategories();
 
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      cancelled = true;
       cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
     };
@@ -111,7 +109,6 @@ export default function Navbar() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpenProfileMenu(false);
-        setOpenCourseMenu(false);
       }
     };
 
@@ -123,6 +120,28 @@ export default function Navbar() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    void loadUnreadCount();
+  }, [loadUnreadCount, pathname]);
+
+  useEffect(() => {
+    const handleNotificationChanged = () => {
+      void loadUnreadCount();
+    };
+
+    window.addEventListener(
+      NOTIFICATION_CHANGED_EVENT,
+      handleNotificationChanged
+    );
+
+    return () => {
+      window.removeEventListener(
+        NOTIFICATION_CHANGED_EVENT,
+        handleNotificationChanged
+      );
+    };
+  }, [loadUnreadCount]);
 
   const handleLogout = async () => {
     try {
@@ -209,13 +228,18 @@ export default function Navbar() {
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      className="transition hover:opacity-75"
+                    <Link
+                      href="/thong-bao"
+                      className="relative transition hover:opacity-75"
                       aria-label="Thông báo"
                     >
                       <Bell className="h-6 w-6" strokeWidth={2} />
-                    </button>
+                      {unreadCount > 0 ? (
+                        <span className="absolute -right-2 -top-2 flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      ) : null}
+                    </Link>
 
                     <Link
                       href="/gio-hang"
@@ -379,57 +403,12 @@ export default function Navbar() {
                     </Link>
                   ))}
 
-                  <div
-                    className="relative"
-                    onMouseEnter={() => setOpenCourseMenu(true)}
-                    onMouseLeave={() => setOpenCourseMenu(false)}
+                  <Link
+                    href="/khoa-hoc"
+                    className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
                   >
-                    <button
-                      type="button"
-                      onClick={() => setOpenCourseMenu((prev) => !prev)}
-                      className="inline-flex items-center gap-1 whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
-                    >
-                      Khóa học
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 transition-transform duration-200",
-                          openCourseMenu && "rotate-180"
-                        )}
-                      />
-                    </button>
-
-                    <div
-                      className={cn(
-                        "absolute left-1/2 top-full z-50 w-[320px] -translate-x-1/2 pt-3",
-                        openCourseMenu
-                          ? "visible opacity-100"
-                          : "invisible opacity-0"
-                      )}
-                    >
-                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_16px_40px_rgba(15,23,42,0.12)] transition-all duration-200">
-                        {loadingCategories ? (
-                          <div className="px-4 py-3 text-[14px] text-slate-500">
-                            Đang tải danh mục...
-                          </div>
-                        ) : categories.length === 0 ? (
-                          <div className="px-4 py-3 text-[14px] text-slate-500">
-                            Chưa có danh mục
-                          </div>
-                        ) : (
-                          categories.map((category) => (
-                            <Link
-                              key={category._id}
-                              href={`/course#category-${category._id}`}
-                              onClick={() => setOpenCourseMenu(false)}
-                              className="block rounded-xl px-4 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
-                            >
-                              {category.name}
-                            </Link>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    Khóa học
+                  </Link>
 
                   {MENU.slice(2).map((item) => (
                     <Link

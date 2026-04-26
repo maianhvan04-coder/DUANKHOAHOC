@@ -65,19 +65,21 @@ export default function Footer() {
     <footer className="bg-[#002654] text-white">
       <div className="mx-auto max-w-310 px-6 pb-10 pt-10 md:px-8 lg:px-10">
         <div className="grid gap-10 lg:grid-cols-[1.35fr_0.65fr_0.65fr]">
-          {/* Cột trái */}
           <div>
-            <Link href="/" className="inline-block">
-              <Image
-                src="/Logo.png"
-                alt="IIG Việt Nam"
-                width={150}
-                height={80}
-                className="h-auto w-35"
-              />
-            </Link>
+            <div className="mb-8 flex h-24 items-center justify-center lg:justify-start">
+              <Link href="/" className="-ml-12 inline-block lg:-ml-14">
+                <Image
+                  src="/Logo.png"
+                  alt="Everest"
+                  width={240}
+                  height={100}
+                  className="h-auto w-40 object-contain brightness-0 invert md:w-46.25 lg:w-52.5"
+                  priority
+                />
+              </Link>
+            </div>
 
-            <div className="mt-10">
+            <div className="mt-2">
               <SectionTitle>THÔNG TIN LIÊN HỆ</SectionTitle>
 
               <div className="space-y-3 text-[16px] leading-7 text-white">
@@ -91,7 +93,7 @@ export default function Footer() {
                     href="mailto:info@iigvietnam.edu.vn"
                     className="font-medium hover:underline"
                   >
-                    info@iigvietnam.edu.vn
+                    info@everestvietnam.edu.vn
                   </Link>
                 </p>
               </div>
@@ -126,7 +128,7 @@ export default function Footer() {
 
             <div className="mt-8">
               <p className="text-[16px] font-semibold text-white">
-                Theo dõi IIG Việt Nam tại
+                Theo dõi Everest Việt Nam tại
               </p>
 
               <div className="mt-4 flex items-center gap-4">
@@ -135,21 +137,9 @@ export default function Footer() {
                   alt="Facebook"
                   href="/"
                 />
-                <SocialIcon
-                  src="/footer/tiktok.svg"
-                  alt="TikTok"
-                  href="/"
-                />
-                <SocialIcon
-                  src="/footer/youtube.svg"
-                  alt="YouTube"
-                  href="/"
-                />
-                <SocialIcon 
-                src="/footer/zalo.svg" 
-                alt="Zalo" 
-                href="/" />
-                
+                <SocialIcon src="/footer/tiktok.svg" alt="TikTok" href="/" />
+                <SocialIcon src="/footer/youtube.svg" alt="YouTube" href="/" />
+                <SocialIcon src="/footer/zalo.svg" alt="Zalo" href="/" />
               </div>
             </div>
 
@@ -170,9 +160,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Cột giữa */}
-          <div className="lg:pt-27">
-            <SectionTitle>Tin tức</SectionTitle>
+          <div className="lg:pt-32">
+            <SectionTitle>TIN TỨC</SectionTitle>
 
             <ul className="space-y-3">
               {newsLinks.map((item) => (
@@ -188,9 +177,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Cột phải */}
-          <div className="lg:pt-27">
-            <SectionTitle>Chương trình học</SectionTitle>
+          <div className="lg:pt-32">
+            <SectionTitle>CHƯƠNG TRÌNH HỌC</SectionTitle>
 
             <ul className="space-y-3">
               {programLinks.map((item) => (
@@ -211,9 +199,9 @@ export default function Footer() {
 
         <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3 text-[15px] font-semibold leading-7 text-white">
-            <p>© 2024 IIG E-Learning. All rights reserved.</p>
-            <p>Công ty cổ phần Công nghệ giáo dục IIG Edtech</p>
-            <p>Mã số thuế: 0110619353</p>
+            <p>© 2024 Everest-Learning. All rights reserved.</p>
+            <p>Công ty cổ phần Công nghệ giáo dục Everest</p>
+            <p>Mã số thuế: 9856345677</p>
 
             <div className="pt-3">
               <Image

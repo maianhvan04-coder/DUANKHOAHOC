@@ -19,10 +19,8 @@ export interface Product {
   modes: ProductMode[];
   status: ProductStatus;
   rating: number;
-  studentCount: number;
   durationText: string;
   price: number;
-  originalPrice: number;
   isActive: boolean;
   isDeleted: boolean;
   deletedAt: Date | null;
@@ -101,11 +99,6 @@ const productSchema = new Schema<Product>(
       default: 0,
     },
 
-    studentCount: {
-      type: Number,
-      default: 0,
-    },
-
     durationText: {
       type: String,
       default: "",
@@ -114,11 +107,6 @@ const productSchema = new Schema<Product>(
     price: {
       type: Number,
       required: true,
-    },
-
-    originalPrice: {
-      type: Number,
-      default: 0,
     },
 
     isActive: {

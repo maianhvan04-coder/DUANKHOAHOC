@@ -38,7 +38,6 @@ export type ProductItem = {
   studentCount: number;
   durationText?: string;
   price: number;
-  originalPrice: number;
   isActive?: boolean;
   isDeleted?: boolean;
   deletedAt?: string | null;
@@ -62,7 +61,6 @@ export type CreateProductBody = {
   studentCount?: string;
   durationText?: string;
   price: string;
-  originalPrice?: string;
   isActive?: boolean | "true" | "false";
   modes?: ProductMode | ProductMode[];
   image?: File | null;
@@ -79,7 +77,6 @@ export type UpdateProductBody = {
   studentCount?: string;
   durationText?: string;
   price?: string;
-  originalPrice?: string;
   isActive?: boolean | "true" | "false";
   modes?: ProductMode | ProductMode[];
   image?: File | null;

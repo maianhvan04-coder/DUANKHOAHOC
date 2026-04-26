@@ -8,24 +8,17 @@ import {
   ChevronRight,
   Clock3,
   Heart,
-  Loader2,
-  ShoppingCart,
   Star,
   Users,
 } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
-import { productApi, type ProductItem, type ProductStatus } from "@/app/api/course.api";
-import { cartApi } from "@/app/api/cart.api";
-
-type ApiError = {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-  message?: string;
-};
+import {
+  productApi,
+  type ProductItem,
+  type ProductStatus,
+  type ProductMode,
+} from "@/app/api/course.api";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -69,57 +62,26 @@ function getStatusClass(status: ProductStatus) {
   return "bg-rose-50 text-rose-700 border-rose-200";
 }
 
-function getDiscountPercent(originalPrice?: number, price?: number) {
-  const original = Number(originalPrice || 0);
-  const sale = Number(price || 0);
+function getModeLabel(modes?: ProductMode[]) {
+  if (!modes || modes.length === 0) return "Đang cập nhật";
 
-  if (!original || !sale || sale >= original) return 0;
+  const modeMap: Record<ProductMode, string> = {
+    ONLINE: "Online",
+    OFFLINE: "Trực tiếp",
+  };
 
-  return Math.round(((original - sale) / original) * 100);
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  if (typeof error === "object" && error !== null) {
-    const apiError = error as ApiError;
-    return apiError.response?.data?.message || apiError.message || fallback;
-  }
-
-  return fallback;
+  return modes.map((mode) => modeMap[mode]).join(" / ");
 }
 
 function ProductCard({ item }: { item: ProductItem }) {
   const router = useRouter();
-  const discount = getDiscountPercent(item.originalPrice, item.price);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const canBuy = item.status === "OPEN" && item.isActive !== false;
+  const canRegister = item.status === "OPEN" && item.isActive !== false;
 
-  const handleAddToCart = async (goToCart: boolean) => {
-    if (!canBuy || submitting) return;
-
-    try {
-      setSubmitting(true);
-      setFeedback("");
-
-      await cartApi.addItem({
-        courseId: item._id,
-        quantity: 1,
-      });
-
-      if (goToCart) {
-        router.push("/cart");
-        return;
-      }
-
-      setFeedback("Đã thêm vào giỏ hàng");
-    } catch (error: unknown) {
-      setFeedback(getErrorMessage(error, "Không thể thêm vào giỏ hàng"));
-    } finally {
-      setSubmitting(false);
-    }
+  const handleRegister = () => {
+    if (!canRegister) return;
+    router.push(`/courses/${item.slug || item._id}`);
   };
 
   return (
@@ -146,12 +108,6 @@ function ProductCard({ item }: { item: ProductItem }) {
           >
             {getStatusLabel(item.status)}
           </span>
-
-          {discount > 0 ? (
-            <span className="rounded-full bg-[#111827] px-2.5 py-1 text-[11px] font-semibold text-white">
-              -{discount}%
-            </span>
-          ) : null}
         </div>
       </div>
 
@@ -181,69 +137,53 @@ function ProductCard({ item }: { item: ProductItem }) {
           </span>
         </div>
 
-        <div className="mt-4 border-t border-slate-100 pt-4">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="min-h-[16px] text-[12px] text-slate-400 line-through">
-                {Number(item.originalPrice || 0) > Number(item.price || 0)
-                  ? formatPrice(item.originalPrice)
-                  : ""}
-              </p>
-              <p className="text-[22px] font-bold leading-none text-rose-600">
-                {formatPrice(item.price)}
-              </p>
-            </div>
+        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-[13px] text-slate-600">
+          <p>
+            <span className="font-medium text-slate-900">Hình thức:</span>{" "}
+            {getModeLabel(item.modes)}
+          </p>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsFavorite((prev) => !prev)}
-                aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-                className={cn(
-                  "inline-flex h-10 w-10 items-center justify-center rounded-xl transition",
-                  isFavorite
-                    ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200"
-                    : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-rose-500"
-                )}
-              >
-                <Heart
-                  className={cn("h-4.5 w-4.5", isFavorite ? "fill-current" : "")}
-                  strokeWidth={2}
-                />
-              </button>
+          <p>
+            <span className="font-medium text-slate-900">Trình độ:</span>{" "}
+            {item.level || "Đang cập nhật"}
+          </p>
 
-              <button
-                type="button"
-                onClick={() => void handleAddToCart(false)}
-                disabled={!canBuy || submitting}
-                aria-label="Thêm vào giỏ hàng"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ShoppingCart className="h-4.5 w-4.5" strokeWidth={2} />
-                )}
-              </button>
-            </div>
-          </div>
+          <p>
+            <span className="font-medium text-slate-900">Học phí:</span>{" "}
+            {typeof item.price === "number" ? formatPrice(item.price) : "Liên hệ"}
+          </p>
+        </div>
 
-          {feedback ? (
-            <p
-              className={cn(
-                "mt-3 text-[12px] font-medium",
-                feedback.includes("Đã thêm") ? "text-emerald-600" : "text-rose-600"
-              )}
-            >
-              {feedback}
-            </p>
-          ) : null}
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsFavorite((prev) => !prev)}
+            aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+            className={cn(
+              "inline-flex h-11 w-11 items-center justify-center rounded-xl transition",
+              isFavorite
+                ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200"
+                : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-rose-500"
+            )}
+          >
+            <Heart
+              className={cn("h-4.5 w-4.5", isFavorite ? "fill-current" : "")}
+              strokeWidth={2}
+            />
+          </button>
 
-          {!canBuy ? (
-            <p className="mt-3 text-[12px] font-medium text-amber-600">
-              Khóa học này hiện chưa thể mua.
-            </p>
-          ) : null}
+          <button
+            type="button"
+            onClick={handleRegister}
+            disabled={!canRegister}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-slate-900 px-4 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            {item.status === "OPEN"
+              ? "Đăng ký khóa học"
+              : item.status === "COMING"
+              ? "Sắp mở"
+              : "Đã đầy"}
+          </button>
         </div>
       </div>
     </article>
@@ -488,7 +428,8 @@ export default function ProductsPage() {
 
               <p className="mt-3 text-[15px] leading-7 text-slate-600">
                 Tổng hợp các khóa học theo từng danh mục, hiển thị rõ giảng viên,
-                số lượng học viên, đánh giá và học phí để người dùng dễ lựa chọn.
+                hình thức học, thời lượng, số lượng học viên và học phí để học viên
+                dễ tra cứu và đăng ký.
               </p>
             </div>
 

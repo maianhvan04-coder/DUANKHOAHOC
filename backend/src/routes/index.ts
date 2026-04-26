@@ -2,6 +2,7 @@ import { Router } from "express";
 import { userRouter } from "../modules/user/user.route";
 import { authRouter } from "../modules/auth/auth.route";
 import { authGuard } from "../middlewares/auth/authGuard";
+import { authorize } from "../middlewares/auth/authorize";
 import { requireRole } from "../middlewares/requireRole";
 import { ROLES } from "../constants/roles";
 import categoryRouter from "../modules/category/category.route";
@@ -16,6 +17,10 @@ import paymentAuditRouter from "../modules/audit/payment/payment-audit.route";
 import securityAuditRouter from "../modules/audit/security/security-audit.route";
 import dashboardRouter from "../modules/dashboard/dashboard.route";
 import accountRouter  from "../modules/account/account.route";
+import {
+  adminNotificationRouter,
+  userNotificationRouter,
+} from "../modules/notification/notification.route";
 
 export const router = Router();
 
@@ -39,6 +44,15 @@ router.use("/cart", cartRouter);
 
 // dashboard
 router.use("/dashboard", dashboardRouter);
+
+// notifications
+router.use(
+  "/admin/notifications",
+  authGuard,
+  authorize({ rolesAny: [ROLES.ADMIN, ROLES.MANAGER, ROLES.TEACHER] }),
+  adminNotificationRouter
+);
+router.use("/web/notifications", authGuard, userNotificationRouter);
 
 // audit phải đứng trước /payments
 router.use("/payments/audits", paymentAuditRouter);

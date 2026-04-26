@@ -22,10 +22,8 @@ type ProductBody = {
   level?: "Cơ bản" | "Trung cấp" | "Nâng cao";
   status?: "OPEN" | "COMING" | "FULL";
   rating?: string;
-  studentCount?: string;
   durationText?: string;
   price?: string;
-  originalPrice?: string;
   isActive?: boolean | "true" | "false";
   modes?: "ONLINE" | "OFFLINE" | Array<"ONLINE" | "OFFLINE">;
 };

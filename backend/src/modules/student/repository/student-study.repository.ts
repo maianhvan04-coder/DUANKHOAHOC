@@ -279,4 +279,8 @@ export const studentStudyRepository = {
       }
     );
   },
+
+  countDocuments(filter: Record<string, unknown>) {
+    return StudentStudyModel.countDocuments(filter);
+  },
 };

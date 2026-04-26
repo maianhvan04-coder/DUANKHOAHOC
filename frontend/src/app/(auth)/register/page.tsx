@@ -144,17 +144,21 @@ function SocialButton({
   );
 }
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
 
   const [form, setForm] = useState({
+    name: "",
     email: "",
+    phone: "",
     password: "",
+    confirmPassword: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -165,15 +169,31 @@ export default function LoginPage() {
     e.preventDefault();
     setErr("");
 
-    if (!form.email.trim() || !form.password.trim()) {
-      setErr("Vui lòng nhập đầy đủ email và mật khẩu.");
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !form.password.trim() ||
+      !form.confirmPassword.trim()
+    ) {
+      setErr("Vui lòng nhập đầy đủ thông tin bắt buộc.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setErr("Mật khẩu nhập lại không khớp.");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setErr("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const res = await authApi.login({
+      const res = await authApi.register({
+        name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
       });
@@ -192,10 +212,10 @@ export default function LoginPage() {
         setErr(
           (error.response?.data as { message?: string } | undefined)?.message ||
             error.message ||
-            "Đăng nhập thất bại"
+            "Đăng ký thất bại"
         );
       } else {
-        setErr("Đăng nhập thất bại");
+        setErr("Đăng ký thất bại");
       }
     } finally {
       setLoading(false);
@@ -205,10 +225,18 @@ export default function LoginPage() {
   return (
     <div>
       <Logo />
-      <AuthTabs active="login" />
+      <AuthTabs active="register" />
 
       <form onSubmit={onSubmit} className="mt-5">
         <div className="space-y-4">
+          <Field
+            label="Họ và tên"
+            name="name"
+            value={form.name}
+            onChange={onChange}
+            placeholder="Họ và tên"
+          />
+
           <Field
             label="Email"
             name="email"
@@ -218,39 +246,61 @@ export default function LoginPage() {
             type="email"
           />
 
-          <div>
-            <Field
-              label="Mật khẩu"
-              name="password"
-              value={form.password}
-              onChange={onChange}
-              placeholder="Mật khẩu"
-              type={showPassword ? "text" : "password"}
-              rightSlot={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  className="inline-flex items-center justify-center"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              }
-            />
+          <Field
+            label="Số điện thoại"
+            name="phone"
+            value={form.phone}
+            onChange={onChange}
+            placeholder="Số điện thoại"
+          />
 
-            <div className="mt-2 text-right">
-              <Link
-                href="/quen-mat-khau"
-                className="text-[13px] text-slate-500 transition hover:text-[#0b2f6c]"
+          <Field
+            label="Mật khẩu"
+            name="password"
+            value={form.password}
+            onChange={onChange}
+            placeholder="Mật khẩu"
+            type={showPassword ? "text" : "password"}
+            rightSlot={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                className="inline-flex items-center justify-center"
               >
-                Quên mật khẩu?
-              </Link>
-            </div>
-          </div>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            }
+          />
+
+          <Field
+            label="Nhập lại mật khẩu"
+            name="confirmPassword"
+            value={form.confirmPassword}
+            onChange={onChange}
+            placeholder="Nhập lại mật khẩu"
+            type={showConfirmPassword ? "text" : "password"}
+            rightSlot={
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={
+                  showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                }
+                className="inline-flex items-center justify-center"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            }
+          />
         </div>
 
         {err ? (
@@ -264,7 +314,7 @@ export default function LoginPage() {
           disabled={loading}
           className="mt-4 h-[42px] w-full rounded-[6px] bg-[#0b2f6c] text-[14px] font-semibold text-white transition hover:bg-[#08275a] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+          {loading ? "Đang đăng ký..." : "Đăng ký"}
         </button>
       </form>
 
