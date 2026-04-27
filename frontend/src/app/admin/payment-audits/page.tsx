@@ -56,14 +56,14 @@ function formatMoney(value: number, currency = "VND") {
 function badgeClass(action: PaymentAuditAction) {
   switch (action) {
     case "MARK_PAID":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200";
     case "MARK_FAILED":
     case "MARK_CANCELLED":
-      return "bg-rose-50 text-rose-700 border-rose-200";
+      return "bg-rose-50 text-rose-700 border-rose-200 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200";
     case "ADMIN_NOTE":
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200";
     default:
-      return "bg-slate-50 text-slate-700 border-slate-200";
+      return "bg-slate-50 text-slate-700 border-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-200";
   }
 }
 
@@ -238,7 +238,7 @@ export default function AdminPaymentAuditsPage() {
   }, [query]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8">
+    <main className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-transparent">
       <div className="mx-auto max-w-7xl">
         <div className="hidden">
           <h1 className="text-3xl font-extrabold text-slate-900">Audit thanh toán</h1>
@@ -247,24 +247,24 @@ export default function AdminPaymentAuditsPage() {
           </p>
         </div>
 
-        <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="Tìm note, actor..."
-              className="h-11 rounded-xl border border-slate-200 px-4 outline-none"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
             <input
               value={paymentCodeInput}
               onChange={(e) => setPaymentCodeInput(e.target.value)}
               placeholder="Mã thanh toán"
-              className="h-11 rounded-xl border border-slate-200 px-4 outline-none"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
             <select
               value={provider}
               onChange={(e) => setProvider(e.target.value as "" | "vnpay" | "payos")}
-              className="h-11 rounded-xl border border-slate-200 px-4 outline-none"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">Tất cả provider</option>
               <option value="vnpay">vnpay</option>
@@ -273,7 +273,7 @@ export default function AdminPaymentAuditsPage() {
             <select
               value={action}
               onChange={(e) => setAction(e.target.value as "" | PaymentAuditAction)}
-              className="h-11 rounded-xl border border-slate-200 px-4 outline-none"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">Tất cả action</option>
               {PAYMENT_ACTIONS.map((item) => (
@@ -287,7 +287,7 @@ export default function AdminPaymentAuditsPage() {
               onChange={(e) =>
                 setActorType(e.target.value as "" | PaymentAuditActorType)
               }
-              className="h-11 rounded-xl border border-slate-200 px-4 outline-none"
+              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
               <option value="">Tất cả actor</option>
               {ACTOR_TYPES.map((item) => (
@@ -307,12 +307,12 @@ export default function AdminPaymentAuditsPage() {
             </button>
             <button
               onClick={resetFilters}
-              className="h-11 rounded-xl border border-slate-200 px-5 font-semibold text-slate-700"
+              className="h-11 rounded-xl border border-slate-200 px-5 font-semibold text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
             >
               Reset
             </button>
-            <div className="ml-auto flex items-center text-sm text-slate-500">
-              Tổng: <span className="ml-1 font-semibold text-slate-900">{total}</span>
+            <div className="ml-auto flex items-center text-sm text-slate-500 dark:text-slate-400">
+              Tổng: <span className="ml-1 font-semibold text-slate-900 dark:text-slate-100">{total}</span>
             </div>
           </div>
         </div>
@@ -324,18 +324,18 @@ export default function AdminPaymentAuditsPage() {
         ) : null}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Danh sách audit</h2>
-              <p className="text-sm text-slate-500">Bấm vào một paymentCode để xem timeline</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Danh sách audit</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Bấm vào một paymentCode để xem timeline</p>
             </div>
 
             {loadingList ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
                 Đang tải dữ liệu...
               </div>
             ) : items.length === 0 ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
                 Không có dữ liệu
               </div>
             ) : (
@@ -349,14 +349,14 @@ export default function AdminPaymentAuditsPage() {
                       onClick={() => openTimeline(item.paymentCode)}
                       className={`w-full rounded-2xl border p-4 text-left transition ${
                         active
-                          ? "border-slate-900 bg-slate-50"
-                          : "border-slate-200 bg-white hover:border-slate-300"
+                          ? "border-slate-900 bg-slate-50 dark:border-sky-400/40 dark:bg-white/10"
+                          : "border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950 dark:hover:border-white/20"
                       }`}
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-lg font-bold text-slate-900">
+                            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
                               #{item.paymentCode}
                             </div>
                             <span
@@ -368,16 +368,16 @@ export default function AdminPaymentAuditsPage() {
                             </span>
                           </div>
 
-                          <div className="mt-2 text-sm text-slate-500">
+                          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                             {item.user?.name || "-"} · {item.user?.email || "-"}
                           </div>
                         </div>
 
                         <div className="text-left md:text-right">
-                          <div className="text-xs uppercase tracking-wide text-slate-500">
+                          <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                             Số tiền
                           </div>
-                          <div className="mt-1 text-lg font-bold text-slate-900">
+                          <div className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">
                             {formatMoney(item.amount, item.currency)}
                           </div>
                         </div>
@@ -391,12 +391,12 @@ export default function AdminPaymentAuditsPage() {
                       </div>
 
                       {item.note ? (
-                        <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+                        <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">
                           {item.note}
                         </div>
                       ) : null}
 
-                      <div className="mt-3 text-xs text-slate-500">
+                      <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                         {formatDate(item.createdAt)}
                       </div>
                     </button>
@@ -409,48 +409,48 @@ export default function AdminPaymentAuditsPage() {
               <button
                 onClick={() => hasPrev && loadList(page - 1)}
                 disabled={!hasPrev || loadingList}
-                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
               >
                 Trang trước
               </button>
 
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-300">
                 Trang <span className="font-semibold">{page}</span> / {totalPages}
               </div>
 
               <button
                 onClick={() => hasNext && loadList(page + 1)}
                 disabled={!hasNext || loadingList}
-                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
               >
                 Trang sau
               </button>
             </div>
           </section>
 
-          <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+          <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Timeline</h2>
-              <p className="text-sm text-slate-500">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Timeline</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 Lịch sử chi tiết theo từng paymentCode
               </p>
             </div>
 
             {!selectedPaymentCode ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
                 Chưa chọn giao dịch
               </div>
             ) : (
               <>
-                <div className="mb-4 rounded-2xl bg-slate-50 p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-500">
+                <div className="mb-4 rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
+                  <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     Payment code
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-slate-900">
+                  <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-slate-100">
                     #{selectedPaymentCode}
                   </div>
                   {selectedSummary ? (
-                    <div className="mt-2 text-sm text-slate-600">
+                    <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                       {selectedSummary.user?.name || "-"} ·{" "}
                       {selectedSummary.user?.email || "-"}
                     </div>
@@ -458,21 +458,21 @@ export default function AdminPaymentAuditsPage() {
                 </div>
 
                 {loadingTimeline ? (
-                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
                     Đang tải timeline...
                   </div>
                 ) : timeline.length === 0 ? (
-                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500">
+                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
                     Chưa có timeline
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {timeline.map((item) => (
-                      <div key={item._id} className="rounded-2xl border border-slate-200 p-4">
+                      <div key={item._id} className="rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-950">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="font-semibold text-slate-900">{item.action}</div>
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100">{item.action}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                               {formatDate(item.createdAt)}
                             </div>
                           </div>
@@ -492,12 +492,12 @@ export default function AdminPaymentAuditsPage() {
                         </div>
 
                         {item.note ? (
-                          <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+                          <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">
                             {item.note}
                           </div>
                         ) : null}
 
-                        <div className="mt-3 text-xs text-slate-500">
+                        <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                           {item.ipAddr || "-"} · {item.actorName || item.actorType}
                         </div>
                       </div>
@@ -505,14 +505,14 @@ export default function AdminPaymentAuditsPage() {
                   </div>
                 )}
 
-                <div className="mt-5 rounded-2xl border border-slate-200 p-4">
-                  <div className="mb-2 font-semibold text-slate-900">Ghi chú admin</div>
+                <div className="mt-5 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-950">
+                  <div className="mb-2 font-semibold text-slate-900 dark:text-slate-100">Ghi chú admin</div>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     rows={4}
                     placeholder="Nhập ghi chú cho giao dịch này..."
-                    className="w-full rounded-xl border border-slate-200 p-3 outline-none"
+                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                   <button
                     onClick={submitNote}
@@ -533,9 +533,9 @@ export default function AdminPaymentAuditsPage() {
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 break-all text-sm font-semibold text-slate-900">{value}</div>
+    <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
+      <div className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</div>
+      <div className="mt-1 break-all text-sm font-semibold text-slate-900 dark:text-slate-100">{value}</div>
     </div>
   );
 }

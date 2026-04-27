@@ -1813,10 +1813,10 @@ export default function AdminClassesPage() {
   ];
 
   return (
-    <div className="space-y-4 p-4 md:p-5">
+    <div className="space-y-6">
       <Toaster richColors position="top-right" />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="hidden text-[28px] font-semibold leading-tight text-slate-900 md:text-[32px]">
@@ -1914,6 +1914,55 @@ export default function AdminClassesPage() {
           setPage(1);
         }}
         onReload={() => void fetchClassrooms()}
+        toolbarStart={
+          <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode("active");
+                setStatusFilter("all");
+                setPage(1);
+              }}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                viewMode === "active"
+                  ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
+                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+              )}
+            >
+              <School className="h-4 w-4" />
+              Lớp học
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode("deleted");
+                setStatusFilter("deleted");
+                setPage(1);
+              }}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                viewMode === "deleted"
+                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+              )}
+            >
+              <Trash2 className="h-4 w-4" />
+              Đã xóa
+            </button>
+          </div>
+        }
+        toolbarEnd={
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm lớp
+          </button>
+        }
         pagination={{
           currentPage,
           totalPages,

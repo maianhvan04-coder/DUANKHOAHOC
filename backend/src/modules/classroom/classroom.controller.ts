@@ -35,8 +35,8 @@ export const classRoomController = {
     res: Response
   ) {
     try {
-      const items = await classRoomService.getAll(req.query);
-      return res.json({ items });
+      const result = await classRoomService.getAll(req.query);
+      return res.json(result);
     } catch (error) {
       return res.status(500).json({
         message: getErrorMessage(error, "Server error"),

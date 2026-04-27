@@ -7,7 +7,6 @@ import {
   LockOpen,
   Pencil,
   Plus,
-  RefreshCw,
   RotateCcw,
   Trash2,
   Users,
@@ -706,79 +705,11 @@ export default function UsersPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("USERS");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                    tab === "USERS"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "text-slate-700 hover:bg-white"
-                  )}
-                >
-                  <Users className="h-4 w-4" />
-                  Users
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("DELETED");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                    tab === "DELETED"
-                      ? "bg-rose-100 text-rose-700"
-                      : "text-slate-700 hover:bg-white"
-                  )}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Deleted
-                </button>
-              </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={onCreate}
-                disabled={tab === "DELETED"}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                )}
-              >
-                <Plus className="h-4.5 w-4.5" />
-                New User
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void load(tab)}
-                disabled={loading}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                )}
-              >
-                <RefreshCw className={cn("h-4.5 w-4.5", loading && "animate-spin")} />
-                Refresh
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Bulk bar */}
         {selectedCount > 0 ? (
-          <section className="rounded-[30px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <section className="rounded-[30px] border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-white/10 dark:bg-slate-950/45">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm font-semibold text-slate-700">
+              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                 Selected: <span className="font-extrabold">{selectedCount}</span>
               </div>
 
@@ -787,7 +718,7 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={onBulkRestore}
-                    className="h-10 rounded-[16px] bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    className="h-10 rounded-[16px] bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700"
                   >
                     Restore selected
                   </button>
@@ -796,7 +727,7 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={clearSelected}
-                  className="h-10 rounded-[16px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="h-10 rounded-[16px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 >
                   Clear
                 </button>
@@ -841,6 +772,54 @@ export default function UsersPage() {
             setPage(1);
           }}
           onReload={() => void load(tab)}
+          toolbarStart={
+            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("USERS");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  tab === "USERS"
+                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
+                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                )}
+              >
+                <Users className="h-4 w-4" />
+                Users
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTab("DELETED");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  tab === "DELETED"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                )}
+              >
+                <Trash2 className="h-4 w-4" />
+                Deleted
+              </button>
+            </div>
+          }
+          toolbarEnd={
+            <button
+              type="button"
+              onClick={onCreate}
+              disabled={tab === "DELETED"}
+              className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              New User
+            </button>
+          }
           pagination={{
             currentPage,
             totalPages,

@@ -3,14 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Pencil,
   Plus,
   RefreshCw,
   RotateCcw,
-  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -119,34 +117,6 @@ function getStatusClass(status: ProductStatus) {
     return "border-amber-200 bg-amber-50 text-amber-700";
   }
   return "border-rose-200 bg-rose-50 text-rose-700";
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ label: string; value: string }>;
-}) {
-  return (
-    <div className="relative min-w-[160px]">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-emerald-600"
-      >
-        {options.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-    </div>
-  );
 }
 
 export default function AdminProductsPage() {
@@ -312,10 +282,6 @@ export default function AdminProductsPage() {
   };
 
   const handleRefresh = async () => {
-    setSearch("");
-    setCategoryFilter("ALL");
-    setStatusFilter("ALL");
-    setPage(1);
     await loadData(viewMode);
   };
 
@@ -524,7 +490,7 @@ export default function AdminProductsPage() {
             title={item.title || "--"}
             subtitle={item.durationText || getTeacherDisplayName(item)}
             image={item.image}
-            icon={<BookOpen className="h-4 w-4 text-slate-500" />}
+            icon={<BookOpen className="h-4 w-4 text-slate-500 dark:text-slate-300" />}
           />
         ),
       },
@@ -571,7 +537,9 @@ export default function AdminProductsPage() {
         sortKey: "price",
         widthClassName: "w-[140px]",
         render: (item) => (
-          <span className="font-semibold text-slate-900">{formatPrice(item.price)}</span>
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {formatPrice(item.price)}
+          </span>
         ),
       },
       {
@@ -628,9 +596,9 @@ export default function AdminProductsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 p-3 md:p-4">
+      <div className="min-h-screen bg-slate-50 p-3 md:p-4 dark:bg-transparent">
         <div className="space-y-4">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <section className="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                 <button
@@ -720,6 +688,55 @@ export default function AdminProductsPage() {
               setPage(1);
             }}
             onReload={() => void handleRefresh()}
+            toolbarStart={
+              <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("active");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                    viewMode === "active"
+                      ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
+                      : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                  )}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Courses
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("deleted");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                    viewMode === "deleted"
+                      ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+                      : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                  )}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Deleted
+                </button>
+              </div>
+            }
+            toolbarEnd={
+              viewMode === "active" ? (
+                <button
+                  type="button"
+                  onClick={openCreateForm}
+                  className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Course
+                </button>
+              ) : null
+            }
             pagination={{
               currentPage,
               totalPages,
@@ -807,89 +824,6 @@ export default function AdminProductsPage() {
                   <RefreshCw className="h-4 w-4" />
                   Refresh
                 </button>
-              </div>
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-1 flex-col gap-3 lg:flex-row">
-                <div className="relative w-full max-w-[420px]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="Search title, teacher, category..."
-                    className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
-                  />
-                </div>
-
-                <FilterSelect
-                  value={categoryFilter}
-                  onChange={(value) => {
-                    setCategoryFilter(value);
-                    setPage(1);
-                  }}
-                  options={[
-                    { label: "All Category", value: "ALL" },
-                    ...categories.map((item) => ({
-                      label: item.name,
-                      value: item._id,
-                    })),
-                  ]}
-                />
-
-                <FilterSelect
-                  value={statusFilter}
-                  onChange={(value) => {
-                    setStatusFilter(value);
-                    setPage(1);
-                  }}
-                  options={[
-                    { label: "All Status", value: "ALL" },
-                    { label: "Open", value: "OPEN" },
-                    { label: "Coming", value: "COMING" },
-                    { label: "Full", value: "FULL" },
-                  ]}
-                />
-
-                <FilterSelect
-                  value={sortKey}
-                  onChange={(value) => {
-                    setSortKey(value as ProductSortKey);
-                    setPage(1);
-                  }}
-                  options={[
-                    {
-                      label: viewMode === "active" ? "Sort: Created" : "Sort: Deleted",
-                      value: "createdAt",
-                    },
-                    { label: "Sort: Course", value: "title" },
-                    { label: "Sort: Category", value: "category" },
-                    { label: "Sort: Teacher", value: "teacher" },
-                    { label: "Sort: Status", value: "status" },
-                    { label: "Sort: Tuition", value: "price" },
-                  ]}
-                />
-
-                <FilterSelect
-                  value={sortDirection}
-                  onChange={(value) => {
-                    setSortDirection(value as SortDirection);
-                    setPage(1);
-                  }}
-                  options={[
-                    { label: "Desc", value: "desc" },
-                    { label: "Asc", value: "asc" },
-                  ]}
-                />
-              </div>
-
-              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 px-4 text-xs font-semibold text-slate-700">
-                {serverPagination.total} FOUND
               </div>
             </div>
           </section>
@@ -1112,14 +1046,14 @@ export default function AdminProductsPage() {
       </div>
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-3">
-          <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-3 dark:bg-slate-950/70">
+          <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
+            <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                   {formMode === "create" ? "New Course" : "Edit Course"}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                   {formMode === "create"
                     ? "Tạo khóa học mới."
                     : "Cập nhật thông tin khóa học."}
@@ -1130,7 +1064,7 @@ export default function AdminProductsPage() {
                 type="button"
                 disabled={submitting}
                 onClick={resetForm}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1139,7 +1073,7 @@ export default function AdminProductsPage() {
             <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Tên khóa học <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -1148,12 +1082,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, title: e.target.value }))
                     }
                     placeholder="Nhập tên khóa học"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Giảng viên mặc định <span className="text-rose-600">*</span>
                   </label>
                   <select
@@ -1161,7 +1095,7 @@ export default function AdminProductsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, teacher: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="">Chọn giảng viên</option>
                     {teachers.map((item) => (
@@ -1173,7 +1107,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Danh mục <span className="text-rose-600">*</span>
                   </label>
                   <select
@@ -1181,7 +1115,7 @@ export default function AdminProductsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, category: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="">Chọn danh mục</option>
                     {categories.map((item) => (
@@ -1193,7 +1127,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Trạng thái
                   </label>
                   <select
@@ -1204,7 +1138,7 @@ export default function AdminProductsPage() {
                         status: e.target.value as ProductStatus,
                       }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="OPEN">OPEN</option>
                     <option value="COMING">COMING</option>
@@ -1213,7 +1147,7 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Thời lượng
                   </label>
                   <input
@@ -1222,12 +1156,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, durationText: e.target.value }))
                     }
                     placeholder="Ví dụ: 3 tháng"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Ảnh
                   </label>
 
@@ -1239,12 +1173,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, image: file }));
                       setPreviewFromFile(file, editingItem?.image || "");
                     }}
-                    className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
+                    className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 dark:text-slate-200 dark:file:bg-emerald-500/15 dark:file:text-emerald-200"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Học phí <span className="text-rose-600">*</span>
                   </label>
                   <input
@@ -1255,12 +1189,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, price: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Rating
                   </label>
                   <input
@@ -1272,12 +1206,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, rating: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Số học viên
                   </label>
                   <input
@@ -1288,12 +1222,12 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, studentCount: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Mô tả ngắn
                   </label>
                   <textarea
@@ -1306,16 +1240,16 @@ export default function AdminProductsPage() {
                     }
                     rows={3}
                     placeholder="Nhập mô tả ngắn"
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
                 {imagePreview ? (
                   <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                       Preview
                     </label>
-                    <div className="h-[120px] w-full overflow-hidden rounded-md border border-slate-300 bg-slate-100">
+                    <div className="h-[120px] w-full overflow-hidden rounded-md border border-slate-300 bg-slate-100 dark:border-white/10 dark:bg-slate-900">
                       <img
                         src={imagePreview}
                         alt="Preview"
@@ -1327,12 +1261,12 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-slate-200 px-4 py-3">
+            <div className="flex gap-2 border-t border-slate-200 px-4 py-3 dark:border-white/10">
               <button
                 type="button"
                 onClick={resetForm}
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 Cancel
               </button>

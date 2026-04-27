@@ -66,9 +66,9 @@ export default function AdminSettingsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6 dark:bg-transparent">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="hidden">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur">
@@ -96,9 +96,9 @@ export default function AdminSettingsPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm">
+          <aside className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
             <div className="mb-3 px-3 pt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                 Thiết lập
               </p>
             </div>
@@ -116,14 +116,14 @@ export default function AdminSettingsPage() {
                     className={cn(
                       "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition",
                       active
-                        ? "bg-[linear-gradient(135deg,#081225_0%,#0f1f43_100%)] text-white shadow-[0_14px_34px_rgba(15,23,42,0.18)]"
-                        : "text-slate-700 hover:bg-slate-50"
+                        ? "bg-[linear-gradient(135deg,#081225_0%,#0f1f43_100%)] text-white shadow-[0_14px_34px_rgba(15,23,42,0.18)] dark:shadow-black/30"
+                        : "text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/10"
                     )}
                   >
                     <span
                       className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl",
-                        active ? "bg-white/10" : "bg-slate-100 text-slate-600"
+                        active ? "bg-white/10" : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
                       )}
                     >
                       <Icon className="h-5 w-5" />
@@ -134,7 +134,7 @@ export default function AdminSettingsPage() {
                       <p
                         className={cn(
                           "mt-0.5 text-xs",
-                          active ? "text-white/65" : "text-slate-400"
+                          active ? "text-white/65" : "text-slate-400 dark:text-slate-500"
                         )}
                       >
                         Cập nhật {tab.label.toLowerCase()}
@@ -364,15 +364,15 @@ function SettingCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
       <div className="mb-5 flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eff6ff] text-[#1677ff]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eff6ff] text-[#1677ff] dark:bg-[#1677ff]/15 dark:text-sky-200">
           {icon}
         </div>
 
         <div>
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{title}</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
         </div>
       </div>
 
@@ -394,14 +394,14 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-slate-700">
+      <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10"
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
       />
     </label>
   );
@@ -412,7 +412,7 @@ function PasswordField({ label }: { label: string }) {
 
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-slate-700">
+      <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </span>
       <input
@@ -420,7 +420,7 @@ function PasswordField({ label }: { label: string }) {
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="••••••••"
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10"
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
       />
     </label>
   );
@@ -439,13 +439,13 @@ function SelectField({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-slate-700">
+      <span className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
         {label}
       </span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10"
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#1677ff] focus:ring-4 focus:ring-[#1677ff]/10 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -469,10 +469,10 @@ function ToggleRow({
   onChange: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 px-4 py-4 dark:border-white/10">
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-900">{title}</p>
-        <p className="mt-1 text-sm text-slate-500">{description}</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
       </div>
 
       <button
@@ -480,7 +480,7 @@ function ToggleRow({
         onClick={onChange}
         className={cn(
           "relative h-7 w-12 rounded-full transition",
-          enabled ? "bg-[#1677ff]" : "bg-slate-300"
+          enabled ? "bg-[#1677ff]" : "bg-slate-300 dark:bg-slate-700"
         )}
       >
         <span
@@ -502,9 +502,9 @@ function StatBox({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-2 text-xl font-bold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 dark:border-white/10 dark:bg-white/5">
+      <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
   );
 }

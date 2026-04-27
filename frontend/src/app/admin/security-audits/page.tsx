@@ -82,19 +82,19 @@ function getSuccessClasses(success: boolean) {
   return success
     ? {
         badge:
-          "border-emerald-200 bg-emerald-50 text-emerald-700",
+          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
         card:
-          "border-slate-200 bg-white hover:border-emerald-200 hover:shadow-emerald-100/60",
-        line: "bg-emerald-500",
-        soft: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+          "border-slate-200 bg-white hover:border-emerald-200 hover:shadow-emerald-100/60 dark:border-white/10 dark:bg-slate-950/50 dark:hover:border-emerald-500/30 dark:hover:shadow-none",
+        line: "bg-emerald-500 dark:bg-emerald-400",
+        soft: "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
       }
     : {
         badge:
-          "border-rose-200 bg-rose-50 text-rose-700",
+          "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
         card:
-          "border-rose-200/70 bg-white hover:border-rose-300 hover:shadow-rose-100/60",
-        line: "bg-rose-500",
-        soft: "bg-rose-50 text-rose-700 border border-rose-100",
+          "border-rose-200/70 bg-white hover:border-rose-300 hover:shadow-rose-100/60 dark:border-rose-500/25 dark:bg-slate-950/50 dark:hover:border-rose-500/35 dark:hover:shadow-none",
+        line: "bg-rose-500 dark:bg-rose-400",
+        soft: "bg-rose-50 text-rose-700 border border-rose-100 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
       };
 }
 
@@ -123,10 +123,10 @@ function StatCard({
   subtext?: string;
 }) {
   const toneMap = {
-    slate: "bg-white border-slate-200 text-slate-900",
-    emerald: "bg-emerald-50 border-emerald-100 text-emerald-900",
-    rose: "bg-rose-50 border-rose-100 text-rose-900",
-    blue: "bg-blue-50 border-blue-100 text-blue-900",
+    slate: "bg-white border-slate-200 text-slate-900 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-100",
+    emerald: "bg-emerald-50 border-emerald-100 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100",
+    rose: "bg-rose-50 border-rose-100 text-rose-900 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100",
+    blue: "bg-blue-50 border-blue-100 text-blue-900 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-100",
   };
 
   const iconToneMap = {
@@ -142,10 +142,10 @@ function StatCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-medium text-slate-500">{label}</div>
+          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</div>
           <div className="mt-2 text-3xl font-black tracking-tight">{value}</div>
           {subtext ? (
-            <div className="mt-2 text-sm text-slate-500">{subtext}</div>
+            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">{subtext}</div>
           ) : null}
         </div>
 
@@ -168,7 +168,7 @@ function FilterField({
 }) {
   return (
     <div>
-      <div className="mb-2 text-sm font-semibold text-slate-700">{label}</div>
+      <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</div>
       {children}
     </div>
   );
@@ -190,7 +190,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+        className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
       />
     </div>
   );
@@ -209,7 +209,7 @@ function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[15px] text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+      className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[15px] text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
     >
       {children}
     </select>
@@ -226,12 +226,12 @@ function MetaBox({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
+      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
         {label}
       </div>
       <div
-        className={`mt-1 break-all text-sm font-semibold text-slate-900 ${
+        className={`mt-1 break-all text-sm font-semibold text-slate-900 dark:text-slate-100 ${
           mono ? "font-mono" : ""
         }`}
       >
@@ -263,30 +263,30 @@ function SecurityAuditCard({ item }: { item: SecurityAuditItem }) {
                 {item.success ? "SUCCESS" : "FAILED"}
               </span>
 
-              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
                 {item.action}
               </span>
 
-              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 HTTP {item.statusCode || 0}
               </span>
             </div>
 
             <div className="mt-4 flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-sm dark:bg-slate-800">
                 {initials}
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="text-lg font-bold leading-tight text-slate-950">
+                <div className="text-lg font-bold leading-tight text-slate-950 dark:text-slate-100">
                   {userName}
                 </div>
-                <div className="mt-1 break-all text-sm text-slate-500">
+                <div className="mt-1 break-all text-sm text-slate-500 dark:text-slate-400">
                   {userEmail}
                 </div>
 
                 {item.message ? (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
                     {item.message}
                   </div>
                 ) : null}
@@ -318,24 +318,24 @@ function SecurityAuditCard({ item }: { item: SecurityAuditItem }) {
 
 function LoadingCard() {
   return (
-    <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
       <div className="animate-pulse">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <div className="h-6 w-48 rounded-xl bg-slate-200" />
-            <div className="mt-4 h-5 w-72 rounded-xl bg-slate-100" />
-            <div className="mt-3 h-16 w-full rounded-2xl bg-slate-100" />
+            <div className="h-6 w-48 rounded-xl bg-slate-200 dark:bg-white/10" />
+            <div className="mt-4 h-5 w-72 rounded-xl bg-slate-100 dark:bg-white/10" />
+            <div className="mt-3 h-16 w-full rounded-2xl bg-slate-100 dark:bg-white/10" />
           </div>
           <div className="grid w-[360px] grid-cols-2 gap-3">
-            <div className="h-20 rounded-2xl bg-slate-100" />
-            <div className="h-20 rounded-2xl bg-slate-100" />
-            <div className="h-20 rounded-2xl bg-slate-100" />
-            <div className="h-20 rounded-2xl bg-slate-100" />
+            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
+            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
+            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
+            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="h-20 rounded-2xl bg-slate-100" />
-          <div className="h-20 rounded-2xl bg-slate-100" />
+          <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
+          <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
         </div>
       </div>
     </div>
@@ -468,9 +468,9 @@ export default function AdminSecurityAuditsPage() {
   }, [query]);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_32%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_100%)] px-4 py-6 md:px-6 xl:px-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_32%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_100%)] px-4 py-6 md:px-6 xl:px-8 dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_28%),linear-gradient(180deg,#0f172a_0%,#020617_100%)]">
       <div className="mx-auto max-w-7xl">
-        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
           <div className="hidden" />
           <div className="hidden" />
 
@@ -496,13 +496,13 @@ export default function AdminSecurityAuditsPage() {
               <button
                 onClick={() => loadData(page, query)}
                 disabled={loading}
-                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
                 Làm mới
               </button>
 
-              <div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm">
+              <div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm dark:bg-sky-500/15 dark:text-sky-100 dark:ring-1 dark:ring-sky-500/20">
                 Tổng bản ghi: <span className="font-black">{total}</span>
               </div>
             </div>
@@ -540,23 +540,23 @@ export default function AdminSecurityAuditsPage() {
           />
         </section>
 
-        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-slate-600">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-slate-600 dark:bg-white/10 dark:text-slate-300">
                 <Filter className="h-4 w-4" />
                 Bộ lọc dữ liệu
               </div>
-              <div className="mt-3 text-xl font-black text-slate-950">
+              <div className="mt-3 text-xl font-black text-slate-950 dark:text-slate-100">
                 Tìm nhanh bản ghi cần kiểm tra
               </div>
-              <div className="mt-1 text-sm text-slate-500">
+              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Lọc theo email, action, đường dẫn API, IP hoặc trạng thái xử lý.
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Trang hiện tại: <span className="font-bold text-slate-900">{page}</span> /{" "}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+              Trang hiện tại: <span className="font-bold text-slate-900 dark:text-slate-100">{page}</span> /{" "}
               {totalPages}
             </div>
           </div>
@@ -627,7 +627,7 @@ export default function AdminSecurityAuditsPage() {
 
             <button
               onClick={resetFilters}
-              className="inline-flex h-14 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-14 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               <RotateCcw className="h-4 w-4" />
               Đặt lại
@@ -641,20 +641,20 @@ export default function AdminSecurityAuditsPage() {
           </div>
         ) : null}
 
-        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="text-xl font-black text-slate-950">
+              <div className="text-xl font-black text-slate-950 dark:text-slate-100">
                 Danh sách bản ghi
               </div>
-              <div className="mt-1 text-sm text-slate-500">
+              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Hiển thị các hoạt động bảo mật mới nhất theo bộ lọc hiện tại.
               </div>
             </div>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Đang hiển thị <span className="font-bold text-slate-900">{items.length}</span> /
-              <span className="font-bold text-slate-900"> {total}</span> bản ghi
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              Đang hiển thị <span className="font-bold text-slate-900 dark:text-slate-100">{items.length}</span> /
+              <span className="font-bold text-slate-900 dark:text-slate-100"> {total}</span> bản ghi
             </div>
           </div>
 
@@ -665,14 +665,14 @@ export default function AdminSecurityAuditsPage() {
               <LoadingCard />
             </div>
           ) : items.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white shadow-sm">
+            <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center dark:border-white/10 dark:bg-white/5">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none">
                 <ShieldAlert className="h-7 w-7 text-slate-400" />
               </div>
-              <div className="mt-5 text-2xl font-black text-slate-900">
+              <div className="mt-5 text-2xl font-black text-slate-900 dark:text-slate-100">
                 Không có dữ liệu phù hợp
               </div>
-              <div className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
+              <div className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Hệ thống chưa có audit tương ứng với bộ lọc hiện tại hoặc chưa
                 phát sinh thao tác bảo mật nào để ghi log.
               </div>
@@ -689,20 +689,20 @@ export default function AdminSecurityAuditsPage() {
             <button
               onClick={() => hasPrev && loadData(page - 1, query)}
               disabled={!hasPrev || loading}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               <ChevronLeft className="h-4 w-4" />
               Trang trước
             </button>
 
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              Trang <span className="font-black text-slate-950">{page}</span> / {totalPages}
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:bg-white/5 dark:text-slate-200">
+              Trang <span className="font-black text-slate-950 dark:text-slate-100">{page}</span> / {totalPages}
             </div>
 
             <button
               onClick={() => hasNext && loadData(page + 1, query)}
               disabled={!hasNext || loading}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               Trang sau
               <ChevronRight className="h-4 w-4" />

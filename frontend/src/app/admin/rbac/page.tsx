@@ -29,54 +29,60 @@ function roleTheme(code: string) {
 
   if (c === "ADMIN") {
     return {
-      row: "bg-[#f5f0ff]",
-      iconWrap: "bg-[#ede3ff]",
-      iconColor: "text-[#7c3aed]",
-      badge: "border-[#a78bfa] text-[#7c3aed] bg-[#faf5ff]",
+      row: "bg-violet-50 dark:bg-violet-500/10",
+      iconWrap: "bg-violet-100 dark:bg-violet-500/15",
+      iconColor: "text-violet-700 dark:text-violet-200",
+      badge:
+        "border-violet-300 text-violet-700 bg-violet-50 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200",
     };
   }
 
   if (c === "MANAGER") {
     return {
-      row: "bg-[#fff7ed]",
-      iconWrap: "bg-[#ffedd5]",
-      iconColor: "text-[#ea580c]",
-      badge: "border-[#fdba74] text-[#ea580c] bg-[#fff7ed]",
+      row: "bg-amber-50 dark:bg-amber-500/10",
+      iconWrap: "bg-amber-100 dark:bg-amber-500/15",
+      iconColor: "text-amber-700 dark:text-amber-200",
+      badge:
+        "border-amber-300 text-amber-700 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200",
     };
   }
 
   if (c === "TEACHER") {
     return {
-      row: "bg-[#ecfdf5]",
-      iconWrap: "bg-[#d1fae5]",
-      iconColor: "text-[#059669]",
-      badge: "border-[#6ee7b7] text-[#059669] bg-[#f0fdf4]",
+      row: "bg-emerald-50 dark:bg-emerald-500/10",
+      iconWrap: "bg-emerald-100 dark:bg-emerald-500/15",
+      iconColor: "text-emerald-700 dark:text-emerald-200",
+      badge:
+        "border-emerald-300 text-emerald-700 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200",
     };
   }
 
   if (c === "STUDENT") {
     return {
-      row: "bg-[#eff6ff]",
-      iconWrap: "bg-[#dbeafe]",
-      iconColor: "text-[#2563eb]",
-      badge: "border-[#93c5fd] text-[#2563eb] bg-[#eff6ff]",
+      row: "bg-blue-50 dark:bg-blue-500/10",
+      iconWrap: "bg-blue-100 dark:bg-blue-500/15",
+      iconColor: "text-blue-700 dark:text-blue-200",
+      badge:
+        "border-blue-300 text-blue-700 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200",
     };
   }
 
   if (c === "USER") {
     return {
-      row: "bg-[#f8fafc]",
-      iconWrap: "bg-[#e2e8f0]",
-      iconColor: "text-[#475569]",
-      badge: "border-[#94a3b8] text-[#475569] bg-[#f8fafc]",
+      row: "bg-slate-50 dark:bg-white/5",
+      iconWrap: "bg-slate-200 dark:bg-white/10",
+      iconColor: "text-slate-600 dark:text-slate-200",
+      badge:
+        "border-slate-300 text-slate-600 bg-slate-50 dark:border-white/15 dark:bg-white/5 dark:text-slate-200",
     };
   }
 
   return {
-    row: "bg-white",
-    iconWrap: "bg-[#f1f5f9]",
-    iconColor: "text-[#64748b]",
-    badge: "border-[#cbd5e1] text-[#64748b] bg-[#f8fafc]",
+    row: "bg-white dark:bg-white/5",
+    iconWrap: "bg-slate-100 dark:bg-white/10",
+    iconColor: "text-slate-500 dark:text-slate-200",
+    badge:
+      "border-slate-300 text-slate-600 bg-slate-50 dark:border-white/15 dark:bg-white/5 dark:text-slate-200",
   };
 }
 
@@ -167,13 +173,13 @@ function RoleFormModal({
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-[560px] rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+      <div className="w-full max-w-[560px] rounded-2xl bg-white shadow-2xl dark:bg-slate-950 dark:shadow-black/30">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
               {mode === "create" ? "Thêm role" : "Sửa role"}
             </h3>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {mode === "create"
                 ? "Tạo vai trò mới cho hệ thống"
                 : "Cập nhật thông tin vai trò"}
@@ -183,7 +189,7 @@ function RoleFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
           >
             <X size={18} />
           </button>
@@ -192,7 +198,7 @@ function RoleFormModal({
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
                 Mã role
               </label>
               <input
@@ -205,12 +211,12 @@ function RoleFormModal({
                 }
                 disabled={mode === "edit"}
                 placeholder="VD: CONTENT_MANAGER"
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-slate-500 disabled:bg-slate-100"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-500 disabled:bg-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-white/10"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
                 Tên hiển thị
               </label>
               <input
@@ -222,13 +228,13 @@ function RoleFormModal({
                   }))
                 }
                 placeholder="VD: Content Manager"
-                className="h-11 w-full rounded-xl border border-slate-300 px-3 text-sm outline-none focus:border-slate-500"
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
               Mô tả
             </label>
             <textarea
@@ -241,11 +247,11 @@ function RoleFormModal({
                 }))
               }
               placeholder="Nhập mô tả role"
-              className="w-full rounded-xl border border-slate-300 px-3 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
 
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3">
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 dark:border-white/10">
             <input
               type="checkbox"
               checked={form.isActive}
@@ -257,14 +263,14 @@ function RoleFormModal({
               }
               className="h-4 w-4"
             />
-            <span className="text-sm text-slate-700">Kích hoạt role</span>
+            <span className="text-sm text-slate-700 dark:text-slate-200">Kích hoạt role</span>
           </label>
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
               Hủy
             </button>
@@ -480,8 +486,8 @@ export default function AdminRbacPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#f7f9fc]">
-        <div className="inline-flex items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f7f9fc] dark:bg-transparent">
+        <div className="inline-flex items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-950 dark:text-slate-300">
           <Loader2 size={16} className="animate-spin" />
           Đang tải phân quyền...
         </div>
@@ -491,9 +497,9 @@ export default function AdminRbacPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f7f9fc] px-6 py-5">
+      <div className="min-h-screen bg-[#f7f9fc] px-6 py-5 dark:bg-transparent">
         <div className="mx-auto max-w-[1450px]">
-          <div className="mb-4 flex flex-col gap-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end">
+          <div className="mb-4 flex flex-col gap-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-slate-950/60">
             <div className="hidden">
               <h1 className="text-[22px] font-bold text-slate-900">
                 Role & Permissions
@@ -507,7 +513,7 @@ export default function AdminRbacPage() {
               <button
                 type="button"
                 onClick={() => void loadAll(true)}
-                className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
+                className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 <RefreshCw
                   size={14}
@@ -527,7 +533,7 @@ export default function AdminRbacPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[6px] border border-slate-300 bg-white">
+          <div className="overflow-hidden rounded-[6px] border border-slate-300 bg-white dark:border-white/10 dark:bg-slate-950/60">
             {sortedRoles.map((role) => {
               const theme = roleTheme(role.code);
               const preview = getPermissionPreview(role.code);
@@ -537,7 +543,7 @@ export default function AdminRbacPage() {
                 <div
                   key={role._id}
                   className={cn(
-                    "grid min-h-[102px] grid-cols-[90px_360px_1fr_150px_90px_150px] items-center border-b border-slate-200 px-5",
+                    "grid min-h-[102px] grid-cols-[90px_360px_1fr_150px_90px_150px] items-center border-b border-slate-200 px-5 dark:border-white/10",
                     theme.row
                   )}
                 >
@@ -558,7 +564,7 @@ export default function AdminRbacPage() {
 
                   <div className="pr-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[18px] font-bold leading-none text-slate-900">
+                      <h3 className="text-[18px] font-bold leading-none text-slate-900 dark:text-slate-100">
                         {getDisplayName(role)}
                       </h3>
 
@@ -572,7 +578,7 @@ export default function AdminRbacPage() {
                       </span>
                     </div>
 
-                    <div className="mt-3 text-[13px] text-slate-500">
+                    <div className="mt-3 text-[13px] text-slate-500 dark:text-slate-400">
                       {getDescription(role)}
                     </div>
                   </div>
@@ -583,14 +589,14 @@ export default function AdminRbacPage() {
                         {preview.list.map((item) => (
                           <span
                             key={item}
-                            className="rounded-[8px] bg-white/75 px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm"
+                            className="rounded-[8px] bg-white/75 px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm dark:bg-white/10 dark:text-slate-100 dark:shadow-none"
                           >
                             {item}
                           </span>
                         ))}
 
                         {preview.remain > 0 && (
-                          <span className="rounded-[8px] bg-white/80 px-3 py-2 text-[12px] font-semibold text-slate-700 shadow-sm">
+                          <span className="rounded-[8px] bg-white/80 px-3 py-2 text-[12px] font-semibold text-slate-700 shadow-sm dark:bg-white/10 dark:text-slate-200 dark:shadow-none">
                             +{preview.remain}
                           </span>
                         )}
@@ -607,8 +613,8 @@ export default function AdminRbacPage() {
                       className={cn(
                         "rounded-full px-4 py-1 text-[13px] font-bold",
                         role.isActive === false
-                          ? "bg-rose-100 text-rose-700"
-                          : "bg-[#bde9be] text-[#176b2d]"
+                          ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+                          : "bg-[#bde9be] text-[#176b2d] dark:bg-emerald-500/15 dark:text-emerald-200"
                       )}
                     >
                       {role.isActive === false ? "INACTIVE" : "ACTIVE"}
@@ -616,12 +622,12 @@ export default function AdminRbacPage() {
                   </div>
 
                   <div className="flex items-center justify-center gap-2">
-                    <span className="text-[14px] font-bold text-slate-800">
+                    <span className="text-[14px] font-bold text-slate-800 dark:text-slate-100">
                       {getUserCount(role)}
                     </span>
                     <Users
                       size={15}
-                      className="text-slate-400"
+                      className="text-slate-400 dark:text-slate-500"
                       strokeWidth={1.8}
                     />
                   </div>
@@ -664,7 +670,7 @@ export default function AdminRbacPage() {
             })}
 
             {sortedRoles.length === 0 && (
-              <div className="px-4 py-10 text-center text-sm text-slate-500">
+              <div className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
                 Không có role nào
               </div>
             )}

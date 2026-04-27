@@ -28,18 +28,26 @@ const nonNegativeNumberSchema = z.preprocess(
     .optional()
 );
 
-const optionalDateStringSchema = z.preprocess(
+const createOptionalDateStringSchema = z.preprocess(
   emptyToUndefined,
   z.string().trim().optional()
 );
 
-function isValidDateInput(value?: string) {
+const updateOptionalDateStringSchema = z.preprocess(
+  (value) => {
+    if (value === null) return null;
+    return value;
+  },
+  z.string().trim().nullable().optional()
+);
+
+function isValidDateInput(value?: string | null) {
   if (!value) return true;
   return !Number.isNaN(new Date(value).getTime());
 }
 
 function validateDateRange(
-  data: { startedAt?: string; endedAt?: string },
+  data: { startedAt?: string | null; endedAt?: string | null },
   ctx: z.RefinementCtx
 ) {
   if (data.startedAt && !isValidDateInput(data.startedAt)) {
@@ -84,8 +92,8 @@ export const createClassRoomSchema = z
     mode: z.enum(["ONLINE", "OFFLINE"]).optional(),
     scheduleText: z.string().trim().optional(),
     room: z.string().trim().optional(),
-    startedAt: optionalDateStringSchema,
-    endedAt: optionalDateStringSchema,
+    startedAt: createOptionalDateStringSchema,
+    endedAt: createOptionalDateStringSchema,
     maxStudents: nonNegativeNumberSchema,
     isActive: booleanLikeSchema,
   })
@@ -100,8 +108,8 @@ export const updateClassRoomSchema = z
     mode: z.enum(["ONLINE", "OFFLINE"]).optional(),
     scheduleText: z.string().trim().optional(),
     room: z.string().trim().optional(),
-    startedAt: optionalDateStringSchema,
-    endedAt: optionalDateStringSchema,
+    startedAt: updateOptionalDateStringSchema,
+    endedAt: updateOptionalDateStringSchema,
     maxStudents: nonNegativeNumberSchema,
     isActive: booleanLikeSchema,
   })

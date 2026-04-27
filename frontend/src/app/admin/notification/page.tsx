@@ -66,29 +66,34 @@ const TYPE_META: Record<NotificationType, TypeMeta> = {
     label: "Thông tin",
     description: "Thông báo chung cho người dùng.",
     icon: Info,
-    badgeClass: "border-blue-200 bg-blue-50 text-blue-700",
-    softClass: "bg-blue-50 text-blue-700",
+    badgeClass:
+      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200",
+    softClass: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-200",
   },
   SUCCESS: {
     label: "Thành công",
     description: "Xác nhận thao tác hoặc tiến độ tích cực.",
     icon: CheckCircle2,
-    badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    softClass: "bg-emerald-50 text-emerald-700",
+    badgeClass:
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
+    softClass:
+      "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200",
   },
   WARNING: {
     label: "Cảnh báo",
     description: "Nhắc người dùng chú ý hoặc cần xử lý.",
     icon: AlertTriangle,
-    badgeClass: "border-amber-200 bg-amber-50 text-amber-700",
-    softClass: "bg-amber-50 text-amber-700",
+    badgeClass:
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200",
+    softClass: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200",
   },
   ERROR: {
     label: "Lỗi",
     description: "Thông báo vấn đề hoặc trạng thái thất bại.",
     icon: XCircle,
-    badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
-    softClass: "bg-rose-50 text-rose-700",
+    badgeClass:
+      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
+    softClass: "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200",
   },
 };
 
@@ -167,10 +172,13 @@ function StatCard({
   tone?: "slate" | "blue" | "emerald" | "amber";
 }) {
   const toneClass = {
-    slate: "border-slate-200 bg-white text-slate-900",
-    blue: "border-blue-100 bg-blue-50 text-blue-900",
-    emerald: "border-emerald-100 bg-emerald-50 text-emerald-900",
-    amber: "border-amber-100 bg-amber-50 text-amber-900",
+    slate:
+      "border-slate-200 bg-white text-slate-900 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-100",
+    blue: "border-blue-100 bg-blue-50 text-blue-900 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-100",
+    emerald:
+      "border-emerald-100 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100",
+    amber:
+      "border-amber-100 bg-amber-50 text-amber-900 dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100",
   };
 
   const iconClass = {
@@ -184,7 +192,9 @@ function StatCard({
     <div className={cn("rounded-[26px] border p-5 shadow-sm", toneClass[tone])}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-semibold text-slate-500">{label}</div>
+          <div className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            {label}
+          </div>
           <div className="mt-2 text-3xl font-black tracking-tight">{value}</div>
         </div>
         <div
@@ -201,7 +211,11 @@ function StatCard({
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="mb-2 block text-sm font-bold text-slate-700">{children}</label>;
+  return (
+    <label className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+      {children}
+    </label>
+  );
 }
 
 function formatUserOption(user: NotificationRecipientItem) {
@@ -476,7 +490,7 @@ export default function AdminNotificationPage() {
       <Toaster richColors position="top-right" />
 
       <main className="space-y-6">
-        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="hidden">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
@@ -499,7 +513,7 @@ export default function AdminNotificationPage() {
                 type="button"
                 onClick={() => void loadUsers()}
                 disabled={loadingUsers}
-                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 <UsersRound className="h-4 w-4" />
                 Tải user
@@ -548,11 +562,11 @@ export default function AdminNotificationPage() {
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[430px_minmax(0,1fr)]">
           <form
             onSubmit={handleSubmit}
-            className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6"
+            className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50"
           >
             <div className="mb-5">
-              <h2 className="text-xl font-black text-slate-950">Tạo thông báo mới</h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500">
+              <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Tạo thông báo mới</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Nội dung sẽ xuất hiện trong khu vực thông báo của người dùng được
                 chọn.
               </p>
@@ -567,7 +581,7 @@ export default function AdminNotificationPage() {
                     value={userSearch}
                     onChange={(event) => setUserSearch(event.target.value)}
                     placeholder="Tên, email hoặc vai trò"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
                   />
                 </div>
               </div>
@@ -580,7 +594,7 @@ export default function AdminNotificationPage() {
                     setForm((prev) => ({ ...prev, userId: event.target.value }))
                   }
                   disabled={loadingUsers}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
                 >
                   <option value="">
                     {loadingUsers ? "Đang tải người dùng..." : "Chọn người nhận"}
@@ -593,15 +607,15 @@ export default function AdminNotificationPage() {
                 </select>
 
                 {selectedUser ? (
-                  <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white">
                       {getInitials(selectedUser.name, selectedUser.email)}
                     </div>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-slate-900">
+                      <div className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">
                         {selectedUser.name || "Người dùng"}
                       </div>
-                      <div className="truncate text-xs text-slate-500">
+                      <div className="truncate text-xs text-slate-500 dark:text-slate-400">
                         {selectedUser.email}
                       </div>
                     </div>
@@ -625,8 +639,8 @@ export default function AdminNotificationPage() {
                         className={cn(
                           "rounded-2xl border p-3 text-left transition",
                           active
-                            ? "border-slate-900 bg-slate-950 text-white shadow-sm"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            ? "border-slate-900 bg-slate-950 text-white shadow-sm dark:border-sky-400/40 dark:bg-sky-500/15 dark:text-sky-100"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
                         )}
                       >
                         <div className="flex items-center gap-2 text-sm font-black">
@@ -636,7 +650,7 @@ export default function AdminNotificationPage() {
                         <div
                           className={cn(
                             "mt-1 text-xs leading-5",
-                            active ? "text-slate-200" : "text-slate-500"
+                            active ? "text-slate-200 dark:text-sky-100/80" : "text-slate-500 dark:text-slate-400"
                           )}
                         >
                           {meta.label}
@@ -664,7 +678,7 @@ export default function AdminNotificationPage() {
                   }
                   maxLength={255}
                   placeholder="Ví dụ: Lịch học mới đã được cập nhật"
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
                 />
               </div>
 
@@ -678,7 +692,7 @@ export default function AdminNotificationPage() {
                   rows={7}
                   maxLength={2000}
                   placeholder="Nhập nội dung thông báo gửi cho người dùng..."
-                  className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
                 />
                 <div className="mt-2 text-right text-xs font-medium text-slate-400">
                   {form.message.length}/2000

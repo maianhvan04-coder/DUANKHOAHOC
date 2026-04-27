@@ -94,6 +94,8 @@ type AdminListTableProps<TItem, TSortKey extends string> = {
   emptyText?: string;
   labels?: AdminListTableLabels;
   tableMinWidthClassName?: string;
+  toolbarStart?: ReactNode;
+  toolbarEnd?: ReactNode;
 };
 
 const DEFAULT_LABELS = {
@@ -233,6 +235,8 @@ export default function AdminListTable<TItem, TSortKey extends string>({
   emptyText,
   labels: labelOverrides,
   tableMinWidthClassName = "min-w-[1080px]",
+  toolbarStart,
+  toolbarEnd,
 }: AdminListTableProps<TItem, TSortKey>) {
   const labels = { ...DEFAULT_LABELS, ...labelOverrides };
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -281,9 +285,15 @@ export default function AdminListTable<TItem, TSortKey extends string>({
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/45">
-        <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
+        <div className="flex flex-wrap items-center gap-3">
+          {toolbarStart ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {toolbarStart}
+            </div>
+          ) : null}
+
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="relative w-full lg:max-w-md">
+            <div className="relative min-w-[240px] flex-1 lg:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={searchValue}
@@ -388,9 +398,11 @@ export default function AdminListTable<TItem, TSortKey extends string>({
             </button>
           </div>
 
-          <div className="inline-flex h-10 items-center rounded-xl bg-slate-100 px-4 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:bg-white/10 dark:text-slate-200">
-            {pagination.totalItems} found
-          </div>
+          {toolbarEnd ? (
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {toolbarEnd}
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -402,7 +414,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
               tableMinWidthClassName
             )}
           >
-            <thead className="bg-slate-900 text-white dark:bg-slate-800">
+            <thead className="border-b border-slate-200 bg-white text-slate-900 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
               <tr>
                 {columns.map((column) => (
                   <th
@@ -420,7 +432,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
                         type="button"
                         onClick={() => handleSortClick(column.sortKey as TSortKey)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 bg-transparent p-0 text-left text-sm font-bold text-white transition hover:text-sky-100",
+                          "inline-flex items-center gap-1.5 bg-transparent p-0 text-left text-sm font-bold text-slate-900 transition hover:text-sky-600 dark:text-slate-100 dark:hover:text-sky-300",
                           column.align === "center" && "justify-center",
                           column.align === "right" && "justify-end"
                         )}

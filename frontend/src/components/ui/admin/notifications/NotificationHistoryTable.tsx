@@ -88,22 +88,26 @@ const TYPE_META: Record<NotificationType, TypeMeta> = {
   INFO: {
     label: "Thông tin",
     icon: Info,
-    badgeClass: "border-blue-200 bg-blue-50 text-blue-700",
+    badgeClass:
+      "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200",
   },
   SUCCESS: {
     label: "Thành công",
     icon: CheckCircle2,
-    badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    badgeClass:
+      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
   },
   WARNING: {
     label: "Cảnh báo",
     icon: AlertTriangle,
-    badgeClass: "border-amber-200 bg-amber-50 text-amber-700",
+    badgeClass:
+      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200",
   },
   ERROR: {
     label: "Lỗi",
     icon: XCircle,
-    badgeClass: "border-rose-200 bg-rose-50 text-rose-700",
+    badgeClass:
+      "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
   },
 };
 
@@ -170,8 +174,8 @@ function StatusBadge({ isRead }: { isRead: boolean }) {
       className={cn(
         "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold",
         isRead
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "border-amber-200 bg-amber-50 text-amber-700"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200"
+          : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200"
       )}
     >
       {isRead ? "Đã đọc" : "Chưa đọc"}
@@ -201,8 +205,8 @@ function ActionButton({
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50",
         danger
-          ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
-          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+          ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/20"
+          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-slate-100"
       )}
     >
       {children}
@@ -313,17 +317,17 @@ export default function NotificationHistoryTable({
   );
 
   return (
-    <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+    <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
       <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h2 className="text-xl font-black text-slate-950">Lịch sử thông báo</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
+          <h2 className="text-xl font-black text-slate-950 dark:text-slate-100">Lịch sử thông báo</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
             Tìm kiếm, lọc, sắp xếp và phân trang trực tiếp trên dữ liệu backend.
           </p>
         </div>
 
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-          Trang <span className="font-black text-slate-950">{currentPage}</span> /{" "}
+        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 dark:bg-white/5 dark:text-slate-300">
+          Trang <span className="font-black text-slate-950 dark:text-slate-100">{currentPage}</span> /{" "}
           {totalPages}
         </div>
       </div>
@@ -336,7 +340,7 @@ export default function NotificationHistoryTable({
               value={keyword}
               onChange={(event) => onKeywordChange(event.target.value)}
               placeholder="Tìm tiêu đề, nội dung, người nhận"
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
             />
           </div>
 
@@ -344,7 +348,7 @@ export default function NotificationHistoryTable({
             <button
               type="button"
               onClick={() => setIsFilterOpen((prev) => !prev)}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               <Filter className="h-4 w-4" />
               <span>Lọc</span>
@@ -352,16 +356,16 @@ export default function NotificationHistoryTable({
             </button>
 
             {isFilterOpen ? (
-              <div className="absolute right-0 z-20 mt-2 w-[380px] max-w-[92vw] rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl">
+              <div className="absolute right-0 z-20 mt-2 w-[380px] max-w-[92vw] rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                       Người nhận
                     </label>
                     <select
                       value={filterUserId}
                       onChange={(event) => onFilterUserIdChange(event.target.value)}
-                      className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                      className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
                     >
                       <option value="">Tất cả người nhận</option>
                       {users.map((user) => (
@@ -374,7 +378,7 @@ export default function NotificationHistoryTable({
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                         Loại
                       </label>
                       <select
@@ -382,7 +386,7 @@ export default function NotificationHistoryTable({
                         onChange={(event) =>
                           onFilterTypeChange(event.target.value as "" | NotificationType)
                         }
-                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
                       >
                         <option value="">Tất cả loại</option>
                         {TYPE_OPTIONS.map((type) => (
@@ -394,7 +398,7 @@ export default function NotificationHistoryTable({
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
                         Trạng thái
                       </label>
                       <select
@@ -402,7 +406,7 @@ export default function NotificationHistoryTable({
                         onChange={(event) =>
                           onFilterReadChange(event.target.value as NotificationHistoryReadFilter)
                         }
-                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-900 outline-none focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
                       >
                         <option value="">Tất cả trạng thái</option>
                         <option value="false">Chưa đọc</option>
@@ -412,14 +416,14 @@ export default function NotificationHistoryTable({
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
+                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-4 dark:border-white/10">
                   <button
                     type="button"
                     onClick={() => {
                       onApplyFilters();
                       setIsFilterOpen(false);
                     }}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-700"
                   >
                     Áp dụng
                   </button>
@@ -435,7 +439,7 @@ export default function NotificationHistoryTable({
                 onKeywordChange("");
                 onClearFilters();
               }}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
             >
               <BrushCleaning className="h-4 w-4" />
               <span>Clear</span>
@@ -444,7 +448,7 @@ export default function NotificationHistoryTable({
             <button
               type="button"
               onClick={onReload}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white transition hover:bg-slate-800"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white transition hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-700"
               title="Lam moi"
             >
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -459,7 +463,7 @@ export default function NotificationHistoryTable({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-[28px] border border-slate-200">
+      <div className="overflow-hidden rounded-[28px] border border-slate-200 dark:border-white/10">
         <div className="overflow-x-auto">
           <table className="min-w-[1120px] w-full table-fixed">
             <thead className="bg-slate-950 text-white">
@@ -497,7 +501,7 @@ export default function NotificationHistoryTable({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-slate-100 bg-white dark:divide-white/10 dark:bg-slate-950/50">
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={`loading-${index}`} className="animate-pulse">
@@ -549,7 +553,7 @@ export default function NotificationHistoryTable({
                   const createdByName = getUserName(item.createdBy);
 
                   return (
-                    <tr key={item._id} className="align-top transition hover:bg-slate-50/70">
+                    <tr key={item._id} className="align-top transition hover:bg-slate-50/70 dark:hover:bg-white/5">
                       <td className="px-5 py-4">
                         <div className="text-sm font-black text-slate-950">{item.title}</div>
                         <div className="mt-1 truncate text-sm text-slate-500">
@@ -606,7 +610,7 @@ export default function NotificationHistoryTable({
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-white/10 dark:bg-slate-950/70">
           <div className="text-sm font-semibold text-slate-500">
             Hiển thị <span className="text-slate-950">{pageStart}</span> -{" "}
             <span className="text-slate-950">{pageEnd}</span> /{" "}

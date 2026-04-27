@@ -17,6 +17,7 @@ const ADMIN_PAGE_TITLES: Array<{ path: string; title: string }> = [
   { path: "/admin/teachers", title: "Teacher Management" },
   { path: "/admin/course", title: "Course Management" },
   { path: "/admin/classes", title: "Quản lý lớp học" },
+  { path: "/admin/schedule", title: "Quản lý lịch học" },
   { path: "/admin/category", title: "Category Management" },
   { path: "/admin/notification", title: "Trung tâm thông báo" },
   { path: "/admin/rbac", title: "Role & Permissions" },
@@ -62,33 +63,35 @@ export default function AdminTopbar() {
 
         <div className="flex shrink-0 items-center gap-3">
           <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full border transition",
-              dark
-                ? "border-white/10 bg-white/5 text-white"
-                : "border-black/8 bg-white text-slate-700"
-            )}
-            aria-label={dark ? "Chuyển sang light mode" : "Chuyển sang dark mode"}
-          >
-            {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-full border transition",
+                dark
+                  ? "border-white/10 bg-white/5 text-white"
+                  : "border-black/8 bg-white text-slate-700"
+              )}
+              aria-label={
+                dark ? "Chuyển sang light mode" : "Chuyển sang dark mode"
+              }
+            >
+              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
 
-          <Link
-            href="/admin/notification"
-            className={cn(
-              "relative flex h-11 w-11 items-center justify-center rounded-full border transition",
-              dark
-                ? "border-white/10 bg-white/5 text-white"
-                : "border-black/8 bg-white text-slate-700"
-            )}
-            aria-label="Thông báo"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#1677ff]" />
-          </Link>
+            <Link
+              href="/admin/notification"
+              className={cn(
+                "relative flex h-11 w-11 items-center justify-center rounded-full border transition",
+                dark
+                  ? "border-white/10 bg-white/5 text-white"
+                  : "border-black/8 bg-white text-slate-700"
+              )}
+              aria-label="Thông báo"
+            >
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#1677ff]" />
+            </Link>
           </div>
 
           <AvatarMenu />

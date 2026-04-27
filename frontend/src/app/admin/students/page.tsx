@@ -771,7 +771,7 @@ export default function AdminStudentsPage() {
       <Toaster richColors position="top-right" />
 
       <div className="space-y-6">
-        <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="hidden rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="hidden">
               <p className="mt-2 text-base text-slate-500">
@@ -900,6 +900,53 @@ export default function AdminStudentsPage() {
             setPage(1);
           }}
           onReload={() => void loadData()}
+          toolbarStart={
+            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("active");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "active"
+                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
+                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                )}
+              >
+                <UserRound className="h-4 w-4" />
+                Students
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("deleted");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "deleted"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
+                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
+                )}
+              >
+                <Trash2 className="h-4 w-4" />
+                Deleted
+              </button>
+            </div>
+          }
+          toolbarEnd={
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              New Student
+            </button>
+          }
           pagination={{
             currentPage,
             totalPages,

@@ -111,26 +111,26 @@ export default function RolePermissionModal({
   if (!open || !role) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/25">
-      <div className="mx-auto mt-6 flex max-h-[94vh] w-[min(980px,96vw)] flex-col overflow-hidden rounded-[8px] border border-slate-300 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
-        <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3">
+    <div className="fixed inset-0 z-[120] bg-black/25 dark:bg-slate-950/75">
+      <div className="mx-auto mt-6 flex max-h-[94vh] w-[min(980px,96vw)] flex-col overflow-hidden rounded-[8px] border border-slate-300 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
+        <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[12px] font-semibold text-slate-900">
+              <h2 className="text-[12px] font-semibold text-slate-900 dark:text-slate-100">
                 Manage Permissions
               </h2>
-              <span className="rounded-[4px] border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-sky-700">
+              <span className="rounded-[4px] border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
                 {role.code}
               </span>
             </div>
-            <p className="mt-0.5 text-[10px] text-slate-500">
+            <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
               Chọn permissions cho role này
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100"
+            className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
           >
             <X size={14} />
           </button>
@@ -144,23 +144,23 @@ export default function RolePermissionModal({
               return (
                 <div
                   key={group.groupKey}
-                  className="rounded-[4px] border border-slate-300"
+                  className="rounded-[4px] border border-slate-300 dark:border-white/10"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
-                    <div className="text-[11px] font-semibold text-slate-800">
+                  <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+                    <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-100">
                       {group.groupLabel}
                     </div>
 
                     <button
                       type="button"
                       onClick={() => clearGroup(keys)}
-                      className="text-[10px] text-slate-500 hover:text-slate-700"
+                      className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                     >
                       Clear All
                     </button>
                   </div>
 
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-slate-100 dark:divide-white/10">
                     {group.items.map((item) => {
                       const checked = selectedSet.has(item.key);
 
@@ -176,7 +176,7 @@ export default function RolePermissionModal({
                               onChange={() => togglePermission(item.key)}
                               className="h-3.5 w-3.5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                             />
-                            <span className="truncate text-[10.5px] text-slate-700">
+                            <span className="truncate text-[10.5px] text-slate-700 dark:text-slate-200">
                               {item.label}
                             </span>
                           </label>
@@ -185,7 +185,7 @@ export default function RolePermissionModal({
                             disabled
                             defaultValue="ALL"
                             className={cn(
-                              "h-5 min-w-[54px] rounded border border-slate-300 bg-white px-1.5 text-[9px] text-slate-500 outline-none"
+                              "h-5 min-w-[54px] rounded border border-slate-300 bg-white px-1.5 text-[9px] text-slate-500 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-400"
                             )}
                           >
                             <option value="ALL">ALL</option>
@@ -200,16 +200,16 @@ export default function RolePermissionModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3">
-          <div className="text-[11px] text-slate-500">
-            Đã chọn <span className="font-semibold text-slate-900">{selected.length}</span>{" "}
+        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-white/10">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+            Đã chọn <span className="font-semibold text-slate-900 dark:text-slate-100">{selected.length}</span>{" "}
             quyền
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="h-8 rounded-[6px] border border-slate-300 px-3 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+              className="h-8 rounded-[6px] border border-slate-300 px-3 text-[11px] font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
               Hủy
             </button>
