@@ -24,6 +24,7 @@ type FindAllQuery = {
   courseId?: string;
   teacherId?: string;
   isActive?: string;
+  status?: string;
 };
 
 type CreateClassRoomRepoPayload = {
@@ -56,6 +57,8 @@ function buildFindFilter(query: FindAllQuery) {
 
   if (query.isActive === "true") filter.isActive = true;
   if (query.isActive === "false") filter.isActive = false;
+  if (query.status === "active") filter.isActive = true;
+  if (query.status === "inactive") filter.isActive = false;
 
   return filter;
 }
@@ -71,9 +74,19 @@ export const classRoomRepository = {
     );
   },
 
-  findDeleted() {
+  findDeleted(query: FindAllQuery = {}) {
+    const filter: Record<string, unknown> = { isDeleted: true };
+
+    if (query.courseId && isValidObjectId(query.courseId)) {
+      filter.course = new Types.ObjectId(query.courseId);
+    }
+
+    if (query.teacherId && isValidObjectId(query.teacherId)) {
+      filter.teacher = new Types.ObjectId(query.teacherId);
+    }
+
     return applyPopulate(
-      ClassRoomModel.find({ isDeleted: true }).sort({ deletedAt: -1 })
+      ClassRoomModel.find(filter).sort({ deletedAt: -1 })
     );
   },
 

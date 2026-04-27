@@ -2,14 +2,37 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import {
+  Lock,
+  LockOpen,
+  Pencil,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { userApi, type UserRow } from "@/app/api/user.api";
 import UserFormModal, { type UserFormInitial } from "@/components/ui/admin/users/UserFormModal";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import {
+  makePaginationMeta,
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 type ApiErrorBody = { message?: string };
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type TabKey = "USERS" | "DELETED";
 type FormRole = UserFormInitial["role"];
+type UserSortKey = "name" | "email" | "role" | "status" | "createdAt";
 
 /** ===== UI ViewModel (NO any) ===== */
 type UserVM = {
@@ -33,69 +56,6 @@ function toFormRole(input?: string): FormRole {
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
-}
-
-/** ====== icons ====== */
-function IconUsers(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 20v-1a4 4 0 0 0-3-3.87" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-function IconTrash(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v6" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14 11v6" />
-    </svg>
-  );
-}
-function IconRestore(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 0 3-6.7" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 4v6h6" />
-    </svg>
-  );
-}
-function IconSearch(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z" />
-    </svg>
-  );
-}
-function IconRefresh(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-2.64-6.36" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 3v6h-6" />
-    </svg>
-  );
-}
-function IconEdit(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
-    </svg>
-  );
-}
-function IconPlus(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
-    </svg>
-  );
 }
 
 /** ====== safe readers (NO any) ====== */
@@ -171,23 +131,29 @@ function getInitials(name?: string) {
   const parts = s.split(/\s+/).slice(0, 2);
   return parts.map((p) => p[0]?.toUpperCase()).join("");
 }
+
 function hashToHue(input: string) {
   let h = 0;
-  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  }
   return h % 360;
 }
+
 function Avatar({ name, seed }: { name: string; seed: string }) {
   const initials = getInitials(name);
   const hue = hashToHue(seed || name || "seed");
   const bg = `hsl(${hue} 85% 55%)`;
   return (
-    <div className="grid h-9 w-9 place-items-center rounded-full text-xs font-extrabold text-white" style={{ background: bg }}>
+    <div
+      className="grid h-9 w-9 place-items-center rounded-full text-xs font-extrabold text-white"
+      style={{ background: bg }}
+    >
       {initials}
     </div>
   );
 }
 
-/** pills */
 function RolePill({ role }: { role: string }) {
   return (
     <span
@@ -280,6 +246,13 @@ export default function UsersPage() {
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [sortKey, setSortKey] = useState<UserSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [serverPagination, setServerPagination] = useState<PaginationMeta>(
+    makePaginationMeta(0, 1, 10)
+  );
 
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<UserFormInitial | null>(null);
@@ -307,8 +280,18 @@ export default function UsersPage() {
       setLoading(true);
       setErr(null);
       try {
-        const data = await userApi.list({ deleted: t === "DELETED" });
-        setItems(data.map(normalizeUser));
+        const data = await userApi.list({
+          deleted: t === "DELETED",
+          q,
+          role: roleFilter,
+          status: statusFilter,
+          sortBy: sortKey,
+          sortOrder: sortDirection,
+          page,
+          limit: rowsPerPage,
+        });
+        setItems(data.items.map(normalizeUser));
+        setServerPagination(data.pagination);
       } catch (error: unknown) {
         if (axios.isAxiosError<ApiErrorBody>(error)) {
           setErr(error.response?.data?.message || error.message || "Load users failed");
@@ -321,7 +304,7 @@ export default function UsersPage() {
         setLoading(false);
       }
     },
-    [tab]
+    [page, q, roleFilter, rowsPerPage, sortDirection, sortKey, statusFilter, tab]
   );
 
   useEffect(() => {
@@ -444,40 +427,38 @@ export default function UsersPage() {
     }
   };
 
-  /** filter */
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return items.filter((u) => {
-      const okSearch = !s ? true : [u.name, u.email, u.roles.join(" ")].some((v) => v.toLowerCase().includes(s));
-      const okRole = roleFilter === "ALL" ? true : u.roles.includes(roleFilter);
-      const okStatus = statusFilter === "ALL" ? true : statusFilter === "ACTIVE" ? u.active : !u.active;
-      return okSearch && okRole && okStatus;
-    });
-  }, [items, q, roleFilter, statusFilter]);
+  const paged = items;
+  const totalPages = serverPagination.totalPages;
+  const currentPage = serverPagination.page;
+  const foundCount = serverPagination.total;
+  const from = foundCount === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const to = Math.min(currentPage * rowsPerPage, foundCount);
 
-  const foundCount = filtered.length;
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
-  /** select all (filtered only) */
+  /** select all (current page) */
   const allSelected = useMemo(() => {
-    return filtered.length > 0 && filtered.every((u) => selected.has(u.id));
-  }, [filtered, selected]);
+    return paged.length > 0 && paged.every((u) => selected.has(u.id));
+  }, [paged, selected]);
 
   const selectedCount = selected.size;
 
   const toggleAll = useCallback(() => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (filtered.length === 0) return next;
+      if (paged.length === 0) return next;
 
-      const every = filtered.every((u) => next.has(u.id));
+      const every = paged.every((u) => next.has(u.id));
       if (every) {
-        for (const u of filtered) next.delete(u.id);
+        for (const u of paged) next.delete(u.id);
       } else {
-        for (const u of filtered) next.add(u.id);
+        for (const u of paged) next.add(u.id);
       }
       return next;
     });
-  }, [filtered]);
+  }, [paged]);
 
   const bulkChunk = async (ids: string[], fn: (id: string) => Promise<void>) => {
     const chunkSize = 8;
@@ -524,151 +505,280 @@ export default function UsersPage() {
     }
   };
 
-  const cardCls =
-    "rounded-2xl border px-6 shadow-sm " +
-    "border-slate-200 bg-white " +
-    "dark:border-white/10 dark:bg-slate-950/40 dark:shadow-[0_16px_50px_rgba(0,0,0,0.35)]";
+  const activeFilterCount =
+    (roleFilter !== "ALL" ? 1 : 0) + (statusFilter !== "ALL" ? 1 : 0);
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "role",
+        title: "Role",
+        options: [
+          {
+            id: "role-all",
+            label: "All Roles",
+            checked: roleFilter === "ALL",
+            onToggle: () => {
+              setRoleFilter("ALL");
+              setPage(1);
+            },
+          },
+          ...roleOptions.map((role) => ({
+            id: `role-${role}`,
+            label: role,
+            checked: roleFilter === role,
+            onToggle: () => {
+              setRoleFilter(role);
+              setPage(1);
+            },
+          })),
+        ],
+      },
+      {
+        id: "status",
+        title: "Status",
+        options: [
+          {
+            id: "status-all",
+            label: "All Status",
+            checked: statusFilter === "ALL",
+            onToggle: () => {
+              setStatusFilter("ALL");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-active",
+            label: "ACTIVE",
+            checked: statusFilter === "ACTIVE",
+            onToggle: () => {
+              setStatusFilter("ACTIVE");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-inactive",
+            label: "INACTIVE",
+            checked: statusFilter === "INACTIVE",
+            onToggle: () => {
+              setStatusFilter("INACTIVE");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [roleFilter, roleOptions, statusFilter]
+  );
+
+  const tableColumns: AdminTableColumn<UserVM, UserSortKey>[] = [
+      {
+        id: "select",
+        label: (
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={toggleAll}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+        ),
+        widthClassName: "w-[56px]",
+        render: (u) => (
+          <input
+            type="checkbox"
+            checked={selected.has(u.id)}
+            onChange={() => toggleOne(u.id)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+        ),
+      },
+      {
+        id: "user",
+        label: "User",
+        sortKey: "name",
+        widthClassName: "w-[320px]",
+        render: (u) => (
+          <AdminEntityCell
+            title={u.name || "--"}
+            subtitle={u.email || "--"}
+            fallback={getInitials(u.name)}
+          />
+        ),
+      },
+      {
+        id: "roles",
+        label: "Roles",
+        sortKey: "role",
+        widthClassName: "w-[180px]",
+        render: (u) =>
+          u.roles.length ? (
+            <div className="flex flex-wrap gap-2">
+              {u.roles.map((role) => (
+                <AdminStatusBadge
+                  key={role}
+                  tone="neutral"
+                  className="min-w-[72px]"
+                >
+                  {role}
+                </AdminStatusBadge>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-slate-400">No roles</span>
+          ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        sortKey: "status",
+        widthClassName: "w-[140px]",
+        render: (u) => {
+          const label =
+            tab === "DELETED" ? "DELETED" : u.active ? "ACTIVE" : "INACTIVE";
+
+          return (
+            <AdminStatusBadge tone={label === "ACTIVE" ? "success" : "danger"}>
+              {statusBusy.has(u.id) ? "..." : label}
+            </AdminStatusBadge>
+          );
+        },
+      },
+      {
+        id: "created",
+        label: "Created",
+        sortKey: "createdAt",
+        widthClassName: "w-[150px]",
+        render: (u) => formatCreated(u.createdAt),
+      },
+      {
+        id: "actions",
+        label: <div className="text-right">Actions</div>,
+        widthClassName: "w-[150px]",
+        align: "right",
+        render: (u) => (
+          <div className="flex items-center justify-end gap-2">
+            {tab === "USERS" ? (
+              <>
+                <AdminActionIconButton title="Edit" onClick={() => onEdit(u)}>
+                  <Pencil className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  title={u.active ? "Lock" : "Unlock"}
+                  disabled={statusBusy.has(u.id)}
+                  onClick={() => void onToggleStatus(u)}
+                >
+                  {u.active ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <LockOpen className="h-4 w-4" />
+                  )}
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Move to Deleted"
+                  onClick={() => void onDelete(u.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            ) : (
+              <>
+                <AdminActionIconButton
+                  title="Restore"
+                  onClick={() => void onRestore(u.id)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete permanently"
+                  onClick={() => void onDelete(u.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            )}
+          </div>
+        ),
+      },
+  ];
 
   return (
     <>
-      <div className="space-y-5">
+      <div className="space-y-6">
         {/* Header */}
-        <div className={cn(cardCls, "py-5")}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">User Management</h1>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create, edit and manage users.</p>
-
-              {/* Tabs */}
-              <div className="mt-4 inline-flex rounded-full border p-1 border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+        <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
                 <button
                   type="button"
-                  onClick={() => setTab("USERS")}
+                  onClick={() => {
+                    setTab("USERS");
+                    setPage(1);
+                  }}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition",
+                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
                     tab === "USERS"
-                      ? "bg-emerald-200/70 text-slate-900 dark:bg-emerald-400/15 dark:text-emerald-100"
-                      : "text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "text-slate-700 hover:bg-white"
                   )}
                 >
-                  <IconUsers className="h-4 w-4" />
+                  <Users className="h-4 w-4" />
                   Users
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setTab("DELETED")}
+                  onClick={() => {
+                    setTab("DELETED");
+                    setPage(1);
+                  }}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition",
+                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
                     tab === "DELETED"
-                      ? "bg-white text-slate-900 shadow-sm dark:bg-white/10 dark:text-white dark:shadow-none"
-                      : "text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-white/10"
+                      ? "bg-rose-100 text-rose-700"
+                      : "text-slate-700 hover:bg-white"
                   )}
                 >
-                  <IconTrash className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                   Deleted
                 </button>
               </div>
-            </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={onCreate}
                 disabled={tab === "DELETED"}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-extrabold transition active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed",
-                  "bg-emerald-900 text-white hover:bg-emerald-950",
-                  "dark:bg-emerald-500/20 dark:text-emerald-50 dark:hover:bg-emerald-500/30 dark:ring-1 dark:ring-emerald-400/20"
+                  "inline-flex h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 )}
               >
-                <IconPlus className="h-4 w-4" />
+                <Plus className="h-4.5 w-4.5" />
                 New User
               </button>
 
               <button
                 type="button"
-                onClick={() => load(tab)}
+                onClick={() => void load(tab)}
                 disabled={loading}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-extrabold transition active:scale-[0.99] disabled:opacity-60",
-                  "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                  "dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                  "inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 )}
               >
-                <IconRefresh className="h-4 w-4" />
+                <RefreshCw className={cn("h-4.5 w-4.5", loading && "animate-spin")} />
                 Refresh
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Filters */}
-        <div className={cn(cardCls, "py-4")}>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              {/* Search */}
-              <div className={cn("flex items-center gap-2 rounded-full border px-4 py-2", "border-slate-200 bg-white", "dark:border-white/10 dark:bg-slate-950/60")}>
-                <IconSearch className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-                <input
-                  className={cn(
-                    "w-[320px] max-w-[75vw] bg-transparent text-sm outline-none",
-                    "text-slate-900 placeholder:text-slate-400",
-                    "dark:text-slate-100 dark:placeholder:text-slate-500"
-                  )}
-                  placeholder="Search name, email..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </div>
-
-              {/* Role filter */}
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className={cn(
-                  "h-10 rounded-full border px-4 text-sm font-semibold outline-none",
-                  "border-slate-200 bg-white text-slate-700",
-                  "dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100"
-                )}
-              >
-                <option value="ALL">All Roles</option>
-                {roleOptions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-
-              {/* Status filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className={cn(
-                  "h-10 rounded-full border px-4 text-sm font-semibold outline-none",
-                  "border-slate-200 bg-white text-slate-700",
-                  "dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100"
-                )}
-              >
-                <option value="ALL">All Status</option>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
-            </div>
-
-            {/* Found badge */}
-            <div className={cn("inline-flex items-center justify-center rounded-full px-4 py-2 text-xs font-extrabold", "bg-slate-100 text-slate-800", "dark:bg-white/10 dark:text-slate-200")}>
-              {foundCount} FOUND
-            </div>
-          </div>
-        </div>
+        </section>
 
         {/* Bulk bar */}
         {selectedCount > 0 ? (
-          <div className={cn("rounded-2xl border px-5 py-4", "border-slate-200 bg-white", "dark:border-white/10 dark:bg-slate-950/40")}>
+          <section className="rounded-[30px] border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <div className="text-sm font-semibold text-slate-700">
                 Selected: <span className="font-extrabold">{selectedCount}</span>
               </div>
 
@@ -677,11 +787,7 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={onBulkRestore}
-                    className={cn(
-                      "h-10 rounded-full px-4 text-sm font-extrabold transition",
-                      "bg-emerald-900 text-white hover:bg-emerald-950",
-                      "dark:bg-emerald-400/20 dark:text-emerald-50 dark:hover:bg-emerald-400/30 dark:ring-1 dark:ring-emerald-400/20"
-                    )}
+                    className="h-10 rounded-[16px] bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
                   >
                     Restore selected
                   </button>
@@ -690,11 +796,7 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={clearSelected}
-                  className={cn(
-                    "h-10 rounded-full border px-4 text-sm font-extrabold transition",
-                    "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                    "dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                  )}
+                  className="h-10 rounded-[16px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
                   Clear
                 </button>
@@ -702,18 +804,63 @@ export default function UsersPage() {
                 <button
                   type="button"
                   onClick={onBulkDelete}
-                  className={cn("h-10 rounded-full px-4 text-sm font-extrabold transition", "bg-rose-600 text-white hover:bg-rose-700")}
+                  className="h-10 rounded-[16px] bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700"
                 >
                   {tab === "DELETED" ? "Delete permanently" : "Move to Deleted"}
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         ) : null}
+
+        <AdminListTable<UserVM, UserSortKey>
+          rows={paged}
+          columns={tableColumns}
+          rowKey={(item) => item.id}
+          loading={loading}
+          searchValue={q}
+          searchPlaceholder="Search name, email..."
+          onSearchChange={(value) => {
+            setQ(value);
+            setPage(1);
+          }}
+          filterSections={filterSections}
+          activeFilterCount={activeFilterCount}
+          onApplyFilters={() => setPage(1)}
+          onClearFilters={() => {
+            setQ("");
+            setRoleFilter("ALL");
+            setStatusFilter("ALL");
+            setPage(1);
+          }}
+          sortBy={sortKey}
+          sortOrder={sortDirection}
+          onSortChange={(nextSortBy, nextSortOrder) => {
+            setSortKey(nextSortBy);
+            setSortDirection(nextSortOrder);
+            setPage(1);
+          }}
+          onReload={() => void load(tab)}
+          pagination={{
+            currentPage,
+            totalPages,
+            totalItems: foundCount,
+            pageSize: rowsPerPage,
+            onPageSizeChange: (nextPageSize) => {
+              setRowsPerPage(nextPageSize);
+              setPage(1);
+            },
+            onPageChange: setPage,
+            pageSizeOptions: [5, 10, 20],
+          }}
+          emptyText={err || "Khong co du lieu"}
+          tableMinWidthClassName="min-w-[1040px]"
+        />
 
         {/* Table */}
         <div
           className={cn(
+            "hidden",
             "overflow-hidden rounded-2xl border",
             "border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
             "dark:border-white/10 dark:bg-slate-950/40 dark:shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
@@ -770,14 +917,14 @@ export default function UsersPage() {
                       {err}
                     </td>
                   </tr>
-                ) : filtered.length === 0 ? (
+                ) : paged.length === 0 ? (
                   <tr className="border-t border-slate-200 dark:border-white/10">
                     <td className="px-4 py-6 text-slate-500 dark:text-slate-400" colSpan={6}>
                       Không có dữ liệu
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((u) => {
+                  paged.map((u) => {
                     const busy = statusBusy.has(u.id);
                     return (
                       <tr
@@ -833,12 +980,12 @@ export default function UsersPage() {
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <IconBtn title="Edit" onClick={() => onEdit(u)} disabled={tab === "DELETED"}>
-                              <IconEdit className="h-4 w-4" />
+                              <Pencil className="h-4 w-4" />
                             </IconBtn>
 
                             {tab === "DELETED" ? (
                               <IconBtn title="Restore" onClick={() => onRestore(u.id)}>
-                                <IconRestore className="h-4 w-4" />
+                                <RotateCcw className="h-4 w-4" />
                               </IconBtn>
                             ) : null}
 
@@ -850,7 +997,7 @@ export default function UsersPage() {
                                 "dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200 dark:hover:bg-rose-500/15 dark:hover:text-rose-100"
                               )}
                             >
-                              <IconTrash className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </IconBtn>
                           </div>
                         </td>
@@ -862,74 +1009,49 @@ export default function UsersPage() {
             </table>
           </div>
 
-          {/* Footer pagination (UI giữ nguyên) */}
+          {/* Footer pagination */}
           <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between border-slate-200 dark:border-white/10">
-            <div className="text-sm text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               Showing{" "}
-              <span className="font-bold text-slate-800 dark:text-slate-100">1–{Math.min(5, foundCount)}</span> of{" "}
+              <span className="font-bold text-slate-800 dark:text-slate-100">{from}-{to}</span> of{" "}
               <span className="font-bold text-slate-800 dark:text-slate-100">{foundCount}</span>
-              <span className="ml-3">Rows</span>
-              <select className="ml-2 h-9 rounded-full border px-3 text-sm font-semibold outline-none border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100">
-                <option>5</option>
-                <option>10</option>
-                <option>25</option>
+              <span>Rows</span>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-full border px-3 text-sm font-semibold outline-none border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
               </select>
             </div>
 
             <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
-                className="grid h-9 w-9 place-items-center rounded-full border transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                className="grid h-9 w-9 place-items-center rounded-full border transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
               >
-                ‹
+                {"<"}
               </button>
 
-              <button
-                type="button"
-                className="grid h-9 w-9 place-items-center rounded-full text-sm font-extrabold transition bg-emerald-900 text-white dark:bg-emerald-400/20 dark:text-emerald-50 dark:ring-1 dark:ring-emerald-400/20"
-              >
-                1
-              </button>
-
-              {["2", "3"].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="grid h-9 w-9 place-items-center rounded-full border text-sm font-bold transition border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                >
-                  {n}
-                </button>
-              ))}
-
-              <span className="px-1 text-slate-400 dark:text-slate-500">…</span>
-
-              <button
-                type="button"
-                className="grid h-9 w-9 place-items-center rounded-full border text-sm font-bold transition border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-              >
-                5
-              </button>
-
-              <button
-                type="button"
-                className="grid h-9 w-9 place-items-center rounded-full border transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-              >
-                ›
-              </button>
-
-              <div className="ml-3 flex items-center gap-2">
-                <span className="text-sm text-slate-500 dark:text-slate-400">Jump</span>
-                <input
-                  defaultValue={1}
-                  className="h-9 w-24 rounded-full border px-4 text-sm font-semibold outline-none border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-slate-950/60 dark:text-slate-100"
-                />
-                <button
-                  type="button"
-                  className="h-9 rounded-full px-4 text-sm font-extrabold transition bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
-                >
-                  Go
-                </button>
+              <div className="grid h-9 min-w-9 place-items-center rounded-full px-3 text-sm font-extrabold transition bg-emerald-900 text-white dark:bg-emerald-400/20 dark:text-emerald-50 dark:ring-1 dark:ring-emerald-400/20">
+                {currentPage} / {totalPages}
               </div>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                className="grid h-9 w-9 place-items-center rounded-full border transition border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+              >
+                {">"}
+              </button>
             </div>
           </div>
         </div>

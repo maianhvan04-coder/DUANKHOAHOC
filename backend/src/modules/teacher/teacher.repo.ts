@@ -9,6 +9,15 @@ import type {
   TeacherProductItem,
   UpdateTeacherInput,
 } from "./teacher.types";
+import {
+  compareListValues,
+  getQueryString,
+  makeListResponse,
+  normalizeSortOrder,
+  paginateArray,
+  parsePagination,
+  type ListQueryInput,
+} from "../../utils/list-query";
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -108,15 +117,16 @@ async function mapTeachers(items: any[]): Promise<TeacherListItem[]> {
   }
 
   for (const product of products) {
+    const productRecord = product as any;
     const productItem: TeacherProductItem = {
       _id: String(product._id),
       title: String(product.title || ""),
       slug: String(product.slug || ""),
       status: String(product.status || ""),
-      studentCount: Number(product.studentCount || 0),
+      studentCount: Number(productRecord.studentCount || 0),
       image: String(product.image || ""),
       price: Number(product.price || 0),
-      originalPrice: Number(product.originalPrice || 0),
+      originalPrice: Number(productRecord.originalPrice || 0),
     };
 
     const teacherIdFromRef =
@@ -179,7 +189,7 @@ async function mapTeachers(items: any[]): Promise<TeacherListItem[]> {
 }
 
 export const teacherRepo = {
-  async list(query?: { q?: string; deleted?: boolean }) {
+  async list(query: ListQueryInput & { deleted?: boolean } = {}) {
     const keyword = String(query?.q || "").trim();
     const deleted = Boolean(query?.deleted);
 
@@ -221,12 +231,57 @@ export const teacherRepo = {
       .sort({ createdAt: -1 })
       .lean();
 
-    return mapTeachers(teachers as any[]);
+    let items = await mapTeachers(teachers as any[]);
+
+    const specialty = getQueryString(query, ["specialty"]);
+    if (specialty && specialty.toLowerCase() !== "all") {
+      items = items.filter((item) => item.specialty === specialty);
+    }
+
+    const status = getQueryString(query, ["status"]).toLowerCase();
+    if (status === "active") {
+      items = items.filter((item) => item.active);
+    }
+    if (status === "inactive") {
+      items = items.filter((item) => !item.active);
+    }
+
+    const sortBy = getQueryString(query, ["sortBy", "sort"]);
+    const sortOrder = normalizeSortOrder(query.sortOrder ?? query.order);
+    const sortField = sortBy || "createdAt";
+    const total = items.length;
+
+    items = [...items].sort((left, right) => {
+      const pick = (item: TeacherListItem) => {
+        switch (sortField) {
+          case "name":
+            return item.name;
+          case "specialty":
+            return item.specialty;
+          case "courses":
+          case "productCount":
+            return item.productCount;
+          case "students":
+          case "totalStudents":
+            return item.totalStudents;
+          case "rating":
+            return item.rating;
+          case "createdAt":
+          default:
+            return item.createdAt;
+        }
+      };
+
+      return compareListValues(pick(left), pick(right), sortOrder);
+    });
+
+    const pagination = parsePagination(query);
+    return makeListResponse(paginateArray(items, pagination), total, pagination);
   },
 
   async listPublic(query?: { q?: string }) {
-    const items = await this.list({ q: query?.q, deleted: false });
-    return items.filter((item) => item.active);
+    const result = await this.list({ q: query?.q, deleted: false });
+    return result.items.filter((item) => item.active);
   },
 
   async findUserByEmail(email: string) {

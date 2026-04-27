@@ -25,6 +25,18 @@ import {
   type TeacherItem,
   type UpdateTeacherPayload,
 } from "@/app/api/teacher.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import {
+  makePaginationMeta,
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -55,6 +67,13 @@ function formatDate(value?: string) {
 type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
 type StatusFilter = "all" | "active" | "inactive";
+type TeacherSortKey =
+  | "name"
+  | "specialty"
+  | "courses"
+  | "students"
+  | "rating"
+  | "createdAt";
 
 type TeacherFormState = {
   name: string;
@@ -432,9 +451,14 @@ export default function AdminTeachersPage() {
   const [search, setSearch] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<TeacherSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
+  const [serverPagination, setServerPagination] = useState<PaginationMeta>(
+    makePaginationMeta(0, 1, 5)
+  );
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -447,17 +471,34 @@ export default function AdminTeachersPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await teacherApi.list({
+      const data = await teacherApi.listPaged({
         deleted: viewMode === "deleted",
+        q: search,
+        specialty: specialtyFilter,
+        status: statusFilter,
+        sortBy: sortKey,
+        sortOrder: sortDirection,
+        page,
+        limit: rowsPerPage,
       });
-      setItems(data);
+      setItems(data.items);
+      setServerPagination(data.pagination);
     } catch (error) {
       console.error(error);
       toast.error("Không tải được danh sách giảng viên");
     } finally {
       setLoading(false);
     }
-  }, [viewMode]);
+  }, [
+    page,
+    rowsPerPage,
+    search,
+    sortDirection,
+    sortKey,
+    specialtyFilter,
+    statusFilter,
+    viewMode,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -471,48 +512,12 @@ export default function AdminTeachersPage() {
     return ["all", ...Array.from(unique)];
   }, [items]);
 
-  const filteredItems = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    return items.filter((item) => {
-      const matchSearch =
-        !keyword ||
-        [
-          item.name,
-          item.email,
-          item.specialty,
-          item.phone,
-          item.degree,
-          item.experience,
-          item.achievement,
-          ...item.products.map((p) => p.title),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
-
-      const matchSpecialty =
-        specialtyFilter === "all" || item.specialty === specialtyFilter;
-
-      const matchStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && item.active) ||
-        (statusFilter === "inactive" && !item.active);
-
-      return matchSearch && matchSpecialty && matchStatus;
-    });
-  }, [items, search, specialtyFilter, statusFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
+  const pagedItems = items;
+  const totalPages = serverPagination.totalPages;
 
   useEffect(() => {
     if (page > totalPages) setPage(1);
   }, [page, totalPages]);
-
-  const pagedItems = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredItems.slice(start, start + rowsPerPage);
-  }, [filteredItems, page, rowsPerPage]);
 
   function resetForm() {
     setForm(INITIAL_FORM);
@@ -703,26 +708,220 @@ export default function AdminTeachersPage() {
     pagedItems.length > 0 &&
     pagedItems.every((item) => selectedIds.includes(item._id));
 
+  const activeFilterCount =
+    (specialtyFilter !== "all" ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0);
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "specialty",
+        title: "Specialty",
+        options: [
+          {
+            id: "specialty-all",
+            label: "All Specialty",
+            checked: specialtyFilter === "all",
+            onToggle: () => {
+              setSpecialtyFilter("all");
+              setPage(1);
+            },
+          },
+          ...specialties
+            .filter((specialty) => specialty !== "all")
+            .map((specialty) => ({
+              id: `specialty-${specialty}`,
+              label: specialty,
+              checked: specialtyFilter === specialty,
+              onToggle: () => {
+                setSpecialtyFilter(specialty);
+                setPage(1);
+              },
+            })),
+        ],
+      },
+      {
+        id: "status",
+        title: "Status",
+        options: [
+          {
+            id: "status-all",
+            label: "All Status",
+            checked: statusFilter === "all",
+            onToggle: () => {
+              setStatusFilter("all");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-active",
+            label: "ACTIVE",
+            checked: statusFilter === "active",
+            onToggle: () => {
+              setStatusFilter("active");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-inactive",
+            label: "INACTIVE",
+            checked: statusFilter === "inactive",
+            onToggle: () => {
+              setStatusFilter("inactive");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [specialties, specialtyFilter, statusFilter]
+  );
+
+  const tableColumns: AdminTableColumn<TeacherItem, TeacherSortKey>[] = [
+      {
+        id: "select",
+        label: (
+          <input
+            type="checkbox"
+            checked={allPageSelected}
+            onChange={toggleSelectPage}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+        ),
+        widthClassName: "w-[56px]",
+        render: (item) => (
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(item._id)}
+            onChange={() => toggleSelectOne(item._id)}
+            className="h-4 w-4 rounded border-slate-300"
+          />
+        ),
+      },
+      {
+        id: "teacher",
+        label: "Teacher",
+        sortKey: "name",
+        widthClassName: "w-[340px]",
+        render: (item) => (
+          <AdminEntityCell
+            title={item.name || "--"}
+            subtitle={item.email || "--"}
+            meta={item.achievement ? `Thanh tich: ${item.achievement}` : undefined}
+            image={item.avatar}
+            fallback={getInitials(item.name)}
+          />
+        ),
+      },
+      {
+        id: "specialty",
+        label: "Specialty",
+        sortKey: "specialty",
+        widthClassName: "w-[160px]",
+        render: (item) => (
+          <div className="truncate text-sm">{item.specialty || "--"}</div>
+        ),
+      },
+      {
+        id: "courses",
+        label: "Courses",
+        sortKey: "courses",
+        widthClassName: "w-[110px]",
+        align: "center",
+        render: (item) => (
+          <span className="font-semibold">{formatNumber(item.productCount)}</span>
+        ),
+      },
+      {
+        id: "students",
+        label: "Students",
+        sortKey: "students",
+        widthClassName: "w-[120px]",
+        align: "center",
+        render: (item) => (
+          <span className="font-semibold">{formatNumber(item.totalStudents)}</span>
+        ),
+      },
+      {
+        id: "rating",
+        label: "Rating",
+        sortKey: "rating",
+        widthClassName: "w-[100px]",
+        align: "center",
+        render: (item) => item.rating.toFixed(1),
+      },
+      {
+        id: "status",
+        label: "Status",
+        widthClassName: "w-[130px]",
+        align: "center",
+        render: (item) => (
+          <AdminStatusBadge tone={item.active ? "success" : "neutral"}>
+            {item.active ? "ACTIVE" : "INACTIVE"}
+          </AdminStatusBadge>
+        ),
+      },
+      {
+        id: "created",
+        label: "Created",
+        sortKey: "createdAt",
+        widthClassName: "w-[130px]",
+        align: "center",
+        render: (item) => formatDate(item.createdAt),
+      },
+      {
+        id: "actions",
+        label: <div className="text-right">Actions</div>,
+        widthClassName: "w-[130px]",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-2">
+            {viewMode === "active" ? (
+              <>
+                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+                  <Pencil className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete"
+                  onClick={() => handleSoftDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            ) : (
+              <>
+                <AdminActionIconButton title="Restore" onClick={() => handleRestore(item)}>
+                  <RotateCcw className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete permanently"
+                  onClick={() => handleHardDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            )}
+          </div>
+        ),
+      },
+  ];
+
   return (
     <div className="space-y-4 p-4 md:p-5">
       <Toaster richColors position="top-right" />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-[28px] font-semibold leading-tight text-slate-900 md:text-[32px]">
-              Teacher Management
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Create, edit and manage teacher profiles.
-            </p>
-
-            <div className="mt-4 inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
               <button
                 type="button"
                 onClick={() => {
                   setViewMode("active");
                   setSelectedIds([]);
+                  setPage(1);
                 }}
                 className={cn(
                   "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium transition",
@@ -740,6 +939,7 @@ export default function AdminTeachersPage() {
                 onClick={() => {
                   setViewMode("deleted");
                   setSelectedIds([]);
+                  setPage(1);
                 }}
                 className={cn(
                   "inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-medium transition",
@@ -754,7 +954,7 @@ export default function AdminTeachersPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={openCreate}
@@ -776,7 +976,51 @@ export default function AdminTeachersPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <AdminListTable<TeacherItem, TeacherSortKey>
+        rows={pagedItems}
+        columns={tableColumns}
+        rowKey={(item) => item._id}
+        loading={loading}
+        searchValue={search}
+        searchPlaceholder="Search name, email, specialty, achievement..."
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        filterSections={filterSections}
+        activeFilterCount={activeFilterCount}
+        onApplyFilters={() => setPage(1)}
+        onClearFilters={() => {
+          setSearch("");
+          setSpecialtyFilter("all");
+          setStatusFilter("all");
+          setPage(1);
+        }}
+        sortBy={sortKey}
+        sortOrder={sortDirection}
+        onSortChange={(nextSortBy, nextSortOrder) => {
+          setSortKey(nextSortBy);
+          setSortDirection(nextSortOrder);
+          setPage(1);
+        }}
+        onReload={loadData}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems: serverPagination.total,
+          pageSize: rowsPerPage,
+          onPageSizeChange: (nextPageSize) => {
+            setRowsPerPage(nextPageSize);
+            setPage(1);
+          },
+          onPageChange: setPage,
+          pageSizeOptions: [5, 10, 20],
+        }}
+        emptyText="Khong co du lieu phu hop"
+        tableMinWidthClassName="min-w-[1280px]"
+      />
+
+      <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
@@ -828,13 +1072,47 @@ export default function AdminTeachersPage() {
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
 
+          <div className="relative w-full xl:w-45">
+            <select
+              value={sortKey}
+              onChange={(e) => {
+                setSortKey(e.target.value as TeacherSortKey);
+                setPage(1);
+              }}
+              className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="createdAt">Sort: Created</option>
+              <option value="name">Sort: Name</option>
+              <option value="specialty">Sort: Specialty</option>
+              <option value="courses">Sort: Courses</option>
+              <option value="students">Sort: Students</option>
+              <option value="rating">Sort: Rating</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          </div>
+
+          <div className="relative w-full xl:w-35">
+            <select
+              value={sortDirection}
+              onChange={(e) => {
+                setSortDirection(e.target.value as SortDirection);
+                setPage(1);
+              }}
+              className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="desc">Desc</option>
+              <option value="asc">Asc</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          </div>
+
           <div className="ml-auto inline-flex h-10 items-center rounded-2xl bg-slate-100 px-4 text-[13px] font-semibold text-slate-700">
-            {filteredItems.length} FOUND
+            {serverPagination.total} FOUND
           </div>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-265 w-full table-fixed">
             <thead>
@@ -1043,12 +1321,12 @@ export default function AdminTeachersPage() {
             <span>
               Showing{" "}
               <span className="font-semibold text-slate-900">
-                {filteredItems.length === 0 ? 0 : (page - 1) * rowsPerPage + 1}-
-                {Math.min(page * rowsPerPage, filteredItems.length)}
+                {serverPagination.total === 0 ? 0 : (page - 1) * rowsPerPage + 1}-
+                {Math.min(page * rowsPerPage, serverPagination.total)}
               </span>{" "}
               of{" "}
               <span className="font-semibold text-slate-900">
-                {filteredItems.length}
+                {serverPagination.total}
               </span>
             </span>
 

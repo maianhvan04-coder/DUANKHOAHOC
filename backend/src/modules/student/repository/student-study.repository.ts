@@ -280,6 +280,24 @@ export const studentStudyRepository = {
     );
   },
 
+  deactivateByStudent(studentId: string) {
+    return StudentStudyModel.updateMany(
+      { student: studentId },
+      { $set: { isActive: false } }
+    );
+  },
+
+  reactivateByStudent(studentId: string) {
+    return StudentStudyModel.updateMany(
+      { student: studentId, isDeleted: { $ne: true } },
+      { $set: { isActive: true } }
+    );
+  },
+
+  deleteByStudent(studentId: string) {
+    return StudentStudyModel.deleteMany({ student: studentId });
+  },
+
   countDocuments(filter: Record<string, unknown>) {
     return StudentStudyModel.countDocuments(filter);
   },

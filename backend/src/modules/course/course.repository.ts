@@ -1,5 +1,6 @@
 import { isValidObjectId, Types } from "mongoose";
 import { ProductModel, type Product, type ProductMode } from "./course.model";
+import { escapeRegex, getQueryString, type ListQueryInput } from "../../utils/list-query";
 
 type CreateProductRepoPayload = {
   title: string;
@@ -31,7 +32,7 @@ const teacherPopulate = {
 };
 
 export const productRepository = {
-  findAll(query: { categoryId?: string; limit?: string | number }) {
+  findAll(query: ListQueryInput & { categoryId?: string } = {}) {
     const filter: Record<string, unknown> = {
       isDeleted: false,
     };
@@ -44,22 +45,55 @@ export const productRepository = {
       filter.category = new Types.ObjectId(query.categoryId);
     }
 
-    let mongoQuery = ProductModel.find(filter)
+    const keyword = getQueryString(query, ["q", "search", "keyword"]);
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [
+        { title: regex },
+        { teacherName: regex },
+        { shortDescription: regex },
+        { status: regex },
+      ];
+    }
+
+    const status = getQueryString(query, ["status"]);
+    if (status && status.toUpperCase() !== "ALL") {
+      filter.status = status.toUpperCase();
+    }
+
+    return ProductModel.find(filter)
       .populate("category")
       .populate(teacherPopulate)
       .sort({ createdAt: -1 });
-
-    if (query.limit) {
-      mongoQuery = mongoQuery.limit(Number(query.limit));
-    }
-
-    return mongoQuery;
   },
 
-  findAllDeleted() {
-    return ProductModel.find({
+  findAllDeleted(query: ListQueryInput = {}) {
+    const filter: Record<string, unknown> = {
       isDeleted: true,
-    })
+    };
+
+    const categoryId = getQueryString(query, ["categoryId"]);
+    if (categoryId && categoryId !== "ALL" && categoryId !== "all" && isValidObjectId(categoryId)) {
+      filter.category = new Types.ObjectId(categoryId);
+    }
+
+    const keyword = getQueryString(query, ["q", "search", "keyword"]);
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [
+        { title: regex },
+        { teacherName: regex },
+        { shortDescription: regex },
+        { status: regex },
+      ];
+    }
+
+    const status = getQueryString(query, ["status"]);
+    if (status && status.toUpperCase() !== "ALL") {
+      filter.status = status.toUpperCase();
+    }
+
+    return ProductModel.find(filter)
       .populate("category")
       .populate(teacherPopulate)
       .sort({ deletedAt: -1 });

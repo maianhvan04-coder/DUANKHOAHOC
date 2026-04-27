@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { studentRepository } from "../repository/student.repository";
 import { studentStudyRepository } from "../repository/student-study.repository";
+import type { ListQueryInput } from "../../../utils/list-query";
 
 type CreateStudentPayload = {
   name: string;
@@ -21,12 +22,12 @@ function normalizeEmail(email: string) {
 }
 
 export const studentService = {
-  async list() {
-    return studentRepository.findAll();
+  async list(query: ListQueryInput = {}) {
+    return studentRepository.findAll(query);
   },
 
-  async listDeleted() {
-    return studentRepository.findDeleted();
+  async listDeleted(query: ListQueryInput = {}) {
+    return studentRepository.findDeleted(query);
   },
 
   async getById(id: string) {

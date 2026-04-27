@@ -10,6 +10,7 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
 } from "../constants/rbac.catalog";
 import { SEED_ROLES } from "../constants/sendRoles";
+import type { Role as RoleCode } from "../constants/roles";
 
 async function main() {
   const uri = process.env.MONGO_DB_URL || process.env.MONGO_URI;
@@ -60,7 +61,7 @@ async function main() {
   console.log("Roles seeded");
 
   // 3. Seed role-permission
-  for (const roleCode of Object.keys(DEFAULT_ROLE_PERMISSIONS)) {
+  for (const roleCode of Object.keys(DEFAULT_ROLE_PERMISSIONS) as RoleCode[]) {
     const role = await Role.findOne({ code: roleCode });
     if (!role) continue;
 

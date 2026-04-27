@@ -40,8 +40,11 @@ export type NotificationPagination = {
 
 export type GetNotificationsQuery = {
   userId?: string;
+  keyword?: string;
   isRead?: NotificationReadStatus;
   type?: NotificationType;
+  sortBy?: "createdAt" | "title" | "type" | "isRead" | "readAt";
+  sortOrder?: "asc" | "desc";
   page?: string | number;
   limit?: string | number;
 };

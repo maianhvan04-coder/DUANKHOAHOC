@@ -5,6 +5,15 @@ import { CategoryModel } from "../category/category.model";
 import { TeacherModel } from "../teacher/teacher.model";
 import { studentStudyRepository } from "../student/repository/student-study.repository";
 import { slugify } from "../../utils/slug";
+import {
+  compareListValues,
+  getQueryString,
+  makeListResponse,
+  normalizeSortOrder,
+  paginateArray,
+  parsePagination,
+  type ListQueryInput,
+} from "../../utils/list-query";
 
 function toObjectId(id: string, message = "ID không hợp lệ") {
   if (!isValidObjectId(id)) {
@@ -133,8 +142,47 @@ type ProductImagePayload = {
   imagePublicId: string;
 };
 
+function getCategoryName(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+  return String((value as { name?: unknown }).name || "");
+}
+
+function sortProducts<T extends Record<string, any>>(
+  items: T[],
+  query: ListQueryInput,
+  deleted: boolean
+) {
+  const sortBy = getQueryString(query, ["sortBy", "sort"]);
+  const sortOrder = normalizeSortOrder(query.sortOrder ?? query.order);
+  const sortField = sortBy || (deleted ? "deletedAt" : "createdAt");
+
+  return [...items].sort((left, right) => {
+    const pick = (item: T) => {
+      switch (sortField) {
+        case "title":
+          return item.title;
+        case "category":
+          return getCategoryName(item.category);
+        case "teacher":
+          return item.teacherName;
+        case "status":
+          return item.status;
+        case "price":
+          return item.price;
+        case "deletedAt":
+          return item.deletedAt;
+        case "createdAt":
+        default:
+          return item.createdAt;
+      }
+    };
+
+    return compareListValues(pick(left), pick(right), sortOrder);
+  });
+}
+
 export const productService = {
-  async getAll(query: { categoryId?: string; limit?: string }) {
+  async getAll(query: ListQueryInput & { categoryId?: string } = {}) {
     const items = await productRepository.findAll(query);
 
     const mapped = await Promise.all(
@@ -148,11 +196,25 @@ export const productService = {
       })
     );
 
-    return mapped;
+    const sorted = sortProducts(mapped, query, false);
+    const pagination = parsePagination(query);
+    return makeListResponse(
+      paginateArray(sorted, pagination),
+      sorted.length,
+      pagination
+    );
   },
 
-  async getDeleted() {
-    return productRepository.findAllDeleted();
+  async getDeleted(query: ListQueryInput = {}) {
+    const items = await productRepository.findAllDeleted(query);
+    const mapped = items.map((item) => item.toObject());
+    const sorted = sortProducts(mapped, query, true);
+    const pagination = parsePagination(query);
+    return makeListResponse(
+      paginateArray(sorted, pagination),
+      sorted.length,
+      pagination
+    );
   },
 
   async getById(id: string) {

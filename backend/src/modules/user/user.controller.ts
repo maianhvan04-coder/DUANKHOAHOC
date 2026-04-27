@@ -16,8 +16,8 @@ export const userController = {
   // GET /users?deleted=0|1
   list: asyncHandler(async (req: Request, res: Response) => {
     const deleted = String(req.query.deleted ?? "0") === "1";
-    const users = await userService.list(deleted);
-    res.json(users);
+    const result = await userService.list(deleted, req.query);
+    res.json(result);
   }),
 
   get: asyncHandler(async (req: Request<IdParams>, res: Response) => {

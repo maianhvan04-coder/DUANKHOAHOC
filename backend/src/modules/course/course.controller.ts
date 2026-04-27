@@ -12,6 +12,12 @@ type ProductParams = {
 type ProductQuery = {
   categoryId?: string;
   limit?: string;
+  page?: string;
+  q?: string;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: string;
 };
 
 type ProductBody = {
@@ -42,8 +48,8 @@ export const productController = {
     res: Response
   ) {
     try {
-      const items = await productService.getAll(req.query);
-      return res.json({ items });
+      const result = await productService.getAll(req.query);
+      return res.json(result);
     } catch (error: any) {
       console.error("GET /api/products error:", error);
       console.error("STACK:", error?.stack);
@@ -53,10 +59,10 @@ export const productController = {
     }
   },
 
-  async getDeleted(_req: Request, res: Response) {
+  async getDeleted(req: Request, res: Response) {
     try {
-      const items = await productService.getDeleted();
-      return res.json({ items });
+      const result = await productService.getDeleted(req.query);
+      return res.json(result);
     } catch (error: any) {
       return res.status(500).json({
         message: error.message || "Server error",

@@ -13,10 +13,10 @@ type IdParams = {
 };
 
 export const studentController = {
-  async getAll(_req: Request, res: Response) {
+  async getAll(req: Request, res: Response) {
     try {
-      const items = await studentService.list();
-      return res.json({ items });
+      const result = await studentService.list(req.query);
+      return res.json(result);
     } catch (error: any) {
       return res.status(500).json({
         message: error.message || "Server error",
@@ -24,10 +24,10 @@ export const studentController = {
     }
   },
 
-  async getDeleted(_req: Request, res: Response) {
+  async getDeleted(req: Request, res: Response) {
     try {
-      const items = await studentService.listDeleted();
-      return res.json({ items });
+      const result = await studentService.listDeleted(req.query);
+      return res.json(result);
     } catch (error: any) {
       return res.status(500).json({
         message: error.message || "Server error",

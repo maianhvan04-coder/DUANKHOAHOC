@@ -27,6 +27,18 @@ import {
   teacherApi,
   type TeacherItem,
 } from "@/app/api/teacher.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import {
+  makePaginationMeta,
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -34,6 +46,13 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
+type ProductSortKey =
+  | "title"
+  | "category"
+  | "teacher"
+  | "status"
+  | "price"
+  | "createdAt";
 
 type ProductFormState = {
   title: string;
@@ -140,8 +159,13 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [sortKey, setSortKey] = useState<ProductSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [serverPagination, setServerPagination] = useState<PaginationMeta>(
+    makePaginationMeta(0, 1, 5)
+  );
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
@@ -184,13 +208,32 @@ export default function AdminProductsPage() {
 
       const [productRes, categoryRes, teacherRes] = await Promise.all([
         mode === "active"
-          ? productApi.getAll({ limit: 100 })
-          : productApi.getDeleted(),
+          ? productApi.getAll({
+              q: search,
+              categoryId: categoryFilter,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: pageSize,
+            })
+          : productApi.getDeleted({
+              q: search,
+              categoryId: categoryFilter,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: pageSize,
+            }),
         categoryApi.getAll(),
         teacherApi.list(),
       ]);
 
       setProducts(productRes.items || []);
+      setServerPagination(
+        productRes.pagination ?? makePaginationMeta(productRes.items?.length || 0, page, pageSize)
+      );
       setCategories(categoryRes.items || []);
       setTeachers(teacherRes || []);
     } catch (error) {
@@ -207,38 +250,27 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     void loadData(viewMode);
-  }, [viewMode]);
+  }, [
+    categoryFilter,
+    page,
+    pageSize,
+    search,
+    sortDirection,
+    sortKey,
+    statusFilter,
+    viewMode,
+  ]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((item) => {
-      const keyword = search.trim().toLowerCase();
+  const pagedProducts = products;
+  const totalPages = serverPagination.totalPages;
+  const currentPage = serverPagination.page;
+  const from =
+    serverPagination.total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, serverPagination.total);
 
-      const matchSearch =
-        !keyword ||
-        item.title?.toLowerCase().includes(keyword) ||
-        getTeacherDisplayName(item).toLowerCase().includes(keyword) ||
-        getCategoryName(item.category).toLowerCase().includes(keyword);
-
-      const matchCategory =
-        categoryFilter === "ALL" || getCategoryId(item.category) === categoryFilter;
-
-      const matchStatus =
-        statusFilter === "ALL" || item.status === statusFilter;
-
-      return matchSearch && matchCategory && matchStatus;
-    });
-  }, [products, search, categoryFilter, statusFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-
-  const pagedProducts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredProducts.slice(start, start + pageSize);
-  }, [filteredProducts, currentPage, pageSize]);
-
-  const from = filteredProducts.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const to = Math.min(currentPage * pageSize, filteredProducts.length);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const resetForm = () => {
     clearObjectUrl();
@@ -406,11 +438,309 @@ export default function AdminProductsPage() {
     }
   };
 
+  const activeFilterCount =
+    (categoryFilter !== "ALL" ? 1 : 0) + (statusFilter !== "ALL" ? 1 : 0);
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "category",
+        title: "Category",
+        options: [
+          {
+            id: "category-all",
+            label: "All Category",
+            checked: categoryFilter === "ALL",
+            onToggle: () => {
+              setCategoryFilter("ALL");
+              setPage(1);
+            },
+          },
+          ...categories.map((category) => ({
+            id: `category-${category._id}`,
+            label: category.name,
+            checked: categoryFilter === category._id,
+            onToggle: () => {
+              setCategoryFilter(category._id);
+              setPage(1);
+            },
+          })),
+        ],
+      },
+      {
+        id: "status",
+        title: "Status",
+        options: [
+          {
+            id: "status-all",
+            label: "All Status",
+            checked: statusFilter === "ALL",
+            onToggle: () => {
+              setStatusFilter("ALL");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-open",
+            label: "OPEN",
+            checked: statusFilter === "OPEN",
+            onToggle: () => {
+              setStatusFilter("OPEN");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-coming",
+            label: "COMING",
+            checked: statusFilter === "COMING",
+            onToggle: () => {
+              setStatusFilter("COMING");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-full",
+            label: "FULL",
+            checked: statusFilter === "FULL",
+            onToggle: () => {
+              setStatusFilter("FULL");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [categories, categoryFilter, statusFilter]
+  );
+
+  const tableColumns: AdminTableColumn<ProductItem, ProductSortKey>[] = [
+      {
+        id: "course",
+        label: "Course",
+        sortKey: "title",
+        widthClassName: "w-[330px]",
+        render: (item) => (
+          <AdminEntityCell
+            title={item.title || "--"}
+            subtitle={item.durationText || getTeacherDisplayName(item)}
+            image={item.image}
+            icon={<BookOpen className="h-4 w-4 text-slate-500" />}
+          />
+        ),
+      },
+      {
+        id: "category",
+        label: "Category",
+        sortKey: "category",
+        widthClassName: "w-[170px]",
+        render: (item) => (
+          <div className="truncate">{getCategoryName(item.category)}</div>
+        ),
+      },
+      {
+        id: "teacher",
+        label: "Teacher",
+        sortKey: "teacher",
+        widthClassName: "w-[190px]",
+        render: (item) => (
+          <div className="truncate">{getTeacherDisplayName(item)}</div>
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        sortKey: "status",
+        widthClassName: "w-[130px]",
+        render: (item) => (
+          <AdminStatusBadge
+            tone={
+              item.status === "OPEN"
+                ? "success"
+                : item.status === "COMING"
+                  ? "warning"
+                  : "danger"
+            }
+          >
+            {item.status}
+          </AdminStatusBadge>
+        ),
+      },
+      {
+        id: "tuition",
+        label: "Tuition",
+        sortKey: "price",
+        widthClassName: "w-[140px]",
+        render: (item) => (
+          <span className="font-semibold text-slate-900">{formatPrice(item.price)}</span>
+        ),
+      },
+      {
+        id: "created",
+        label: viewMode === "active" ? "Created" : "Deleted",
+        sortKey: "createdAt",
+        widthClassName: "w-[140px]",
+        render: (item) => {
+          const value = viewMode === "active" ? item.createdAt : item.deletedAt;
+          return value ? new Date(value).toLocaleDateString("vi-VN") : "--";
+        },
+      },
+      {
+        id: "actions",
+        label: <div className="text-right">Actions</div>,
+        widthClassName: "w-[120px]",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-2">
+            {viewMode === "active" ? (
+              <>
+                <AdminActionIconButton title="Edit" onClick={() => openEditForm(item)}>
+                  <Pencil className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete"
+                  onClick={() => void handleSoftDelete(item._id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            ) : (
+              <>
+                <AdminActionIconButton
+                  title="Restore"
+                  onClick={() => void handleRestore(item._id)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete permanently"
+                  onClick={() => void handleForceDelete(item._id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            )}
+          </div>
+        ),
+      },
+  ];
+
   return (
     <>
       <div className="min-h-screen bg-slate-50 p-3 md:p-4">
         <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("active");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium transition",
+                    viewMode === "active"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "text-slate-600 hover:bg-white"
+                  )}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Courses
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("deleted");
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium transition",
+                    viewMode === "deleted"
+                      ? "bg-rose-100 text-rose-700"
+                      : "text-slate-600 hover:bg-white"
+                  )}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Deleted
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {viewMode === "active" ? (
+                  <button
+                    type="button"
+                    onClick={openCreateForm}
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New Course
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => void handleRefresh()}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <AdminListTable<ProductItem, ProductSortKey>
+            rows={pagedProducts}
+            columns={tableColumns}
+            rowKey={(item) => item._id}
+            loading={loading}
+            searchValue={search}
+            searchPlaceholder="Search title, teacher, category..."
+            onSearchChange={(value) => {
+              setSearch(value);
+              setPage(1);
+            }}
+            filterSections={filterSections}
+            activeFilterCount={activeFilterCount}
+            onApplyFilters={() => setPage(1)}
+            onClearFilters={() => {
+              setSearch("");
+              setCategoryFilter("ALL");
+              setStatusFilter("ALL");
+              setPage(1);
+            }}
+            sortBy={sortKey}
+            sortOrder={sortDirection}
+            onSortChange={(nextSortBy, nextSortOrder) => {
+              setSortKey(nextSortBy);
+              setSortDirection(nextSortOrder);
+              setPage(1);
+            }}
+            onReload={() => void handleRefresh()}
+            pagination={{
+              currentPage,
+              totalPages,
+              totalItems: serverPagination.total,
+              pageSize,
+              onPageSizeChange: (nextPageSize) => {
+                setPageSize(nextPageSize);
+                setPage(1);
+              },
+              onPageChange: setPage,
+              pageSizeOptions: [5, 10, 20],
+            }}
+            emptyText={
+              viewMode === "active"
+                ? "Khong co khoa hoc nao"
+                : "Khong co du lieu"
+            }
+            tableMinWidthClassName="min-w-[1180px]"
+          />
+
+          <section className="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-slate-900">
@@ -525,15 +855,46 @@ export default function AdminProductsPage() {
                     { label: "Full", value: "FULL" },
                   ]}
                 />
+
+                <FilterSelect
+                  value={sortKey}
+                  onChange={(value) => {
+                    setSortKey(value as ProductSortKey);
+                    setPage(1);
+                  }}
+                  options={[
+                    {
+                      label: viewMode === "active" ? "Sort: Created" : "Sort: Deleted",
+                      value: "createdAt",
+                    },
+                    { label: "Sort: Course", value: "title" },
+                    { label: "Sort: Category", value: "category" },
+                    { label: "Sort: Teacher", value: "teacher" },
+                    { label: "Sort: Status", value: "status" },
+                    { label: "Sort: Tuition", value: "price" },
+                  ]}
+                />
+
+                <FilterSelect
+                  value={sortDirection}
+                  onChange={(value) => {
+                    setSortDirection(value as SortDirection);
+                    setPage(1);
+                  }}
+                  options={[
+                    { label: "Desc", value: "desc" },
+                    { label: "Asc", value: "asc" },
+                  ]}
+                />
               </div>
 
               <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 px-4 text-xs font-semibold text-slate-700">
-                {filteredProducts.length} FOUND
+                {serverPagination.total} FOUND
               </div>
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-full border-collapse">
                 <thead>
@@ -702,7 +1063,7 @@ export default function AdminProductsPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
                 <span>
                   Showing <span className="font-semibold text-slate-900">{from}-{to}</span> of{" "}
-                  <span className="font-semibold text-slate-900">{filteredProducts.length}</span>
+                  <span className="font-semibold text-slate-900">{serverPagination.total}</span>
                 </span>
 
                 <div className="flex items-center gap-2">

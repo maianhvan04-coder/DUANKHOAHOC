@@ -1,4 +1,9 @@
 import { http } from "@/lib/utils/http";
+import {
+  readPaginationMeta,
+  type ListResult,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 type AnyObj = Record<string, unknown>;
 
@@ -207,6 +212,24 @@ export const teacherApi = {
   list: async (params?: { q?: string; deleted?: boolean }) => {
     const res = await http.get("/api/teachers", { params });
     return pickArray(res.data).map(parseTeacher);
+  },
+
+  listPaged: async (params?: {
+    q?: string;
+    deleted?: boolean;
+    specialty?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+  }): Promise<ListResult<TeacherItem>> => {
+    const res = await http.get("/api/teachers", { params });
+    const items = pickArray(res.data).map(parseTeacher);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, params?.page, params?.limit),
+    };
   },
 
   listPublic: async (params?: { q?: string }) => {

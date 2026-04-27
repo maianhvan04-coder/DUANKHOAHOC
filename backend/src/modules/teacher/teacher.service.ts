@@ -7,6 +7,7 @@ import {
   uploadBufferToCloudinary,
 } from "../../utils/cloudinary-upload";
 import ApiError from "../../core/apiError";
+import type { ListQueryInput } from "../../utils/list-query";
 
 function buildLegacyBio(payload: {
   degree?: string;
@@ -32,7 +33,7 @@ function buildLegacyBio(payload: {
 }
 
 export const teacherService = {
-  async list(query?: { q?: string; deleted?: boolean }) {
+  async list(query?: ListQueryInput & { deleted?: boolean }) {
     return teacherRepo.list(query);
   },
 

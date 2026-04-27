@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Lock,
   LockOpen,
   Pencil,
@@ -18,6 +20,20 @@ import {
 import { Toaster, toast } from "sonner";
 import { http } from "@/lib/utils/http";
 import StudentStudyModal from "@/components/ui/admin/students/student-study-modal";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import {
+  makePaginationMeta,
+  readPaginationMeta,
+  type ListResult,
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -26,6 +42,7 @@ function cn(...xs: Array<string | false | null | undefined>) {
 type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
 type StatusFilter = "ALL" | "ACTIVE" | "LOCKED" | "DELETED";
+type StudentSortKey = "name" | "email" | "status" | "createdAt";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -182,14 +199,36 @@ function getInitialForm(mode: FormMode, initialData: StudentItem | null): Studen
 }
 
 const studentApi = {
-  async listActive(): Promise<StudentItem[]> {
-    const res = await http.get("/api/students");
-    return pickArray(res.data).map(normalizeStudent);
+  async listActive(query?: {
+    q?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+  }): Promise<ListResult<StudentItem>> {
+    const res = await http.get("/api/students", { params: query });
+    const items = pickArray(res.data).map(normalizeStudent);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, query?.page, query?.limit),
+    };
   },
 
-  async listDeleted(): Promise<StudentItem[]> {
-    const res = await http.get("/api/students/deleted");
-    return pickArray(res.data).map(normalizeStudent);
+  async listDeleted(query?: {
+    q?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+  }): Promise<ListResult<StudentItem>> {
+    const res = await http.get("/api/students/deleted", { params: query });
+    const items = pickArray(res.data).map(normalizeStudent);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, query?.page, query?.limit),
+    };
   },
 
   async create(payload: CreateStudentPayload): Promise<void> {
@@ -377,6 +416,13 @@ export default function AdminStudentsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("active");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [sortKey, setSortKey] = useState<StudentSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [serverPagination, setServerPagination] = useState<PaginationMeta>(
+    makePaginationMeta(0, 1, 10)
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
@@ -394,10 +440,25 @@ export default function AdminStudentsPage() {
     try {
       const data =
         viewMode === "active"
-          ? await studentApi.listActive()
-          : await studentApi.listDeleted();
+          ? await studentApi.listActive({
+              q: search,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: rowsPerPage,
+            })
+          : await studentApi.listDeleted({
+              q: search,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: rowsPerPage,
+            });
 
-      setItems(data);
+      setItems(data.items);
+      setServerPagination(data.pagination);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Không tải được danh sách học viên"));
     } finally {
@@ -406,29 +467,19 @@ export default function AdminStudentsPage() {
   }
 
   useEffect(() => {
-  void loadData();
-}, [viewMode]);
+    void loadData();
+  }, [viewMode, search, statusFilter, sortKey, sortDirection, page, rowsPerPage]);
 
-  const filteredItems = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const pagedItems = items;
+  const totalPages = serverPagination.totalPages;
+  const currentPage = serverPagination.page;
+  const from =
+    serverPagination.total === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const to = Math.min(currentPage * rowsPerPage, serverPagination.total);
 
-    return items.filter((item) => {
-      const matchesKeyword =
-        !keyword ||
-        `${item.name} ${item.email} ${item.role}`.toLowerCase().includes(keyword);
-
-      const matchesStatus =
-        statusFilter === "ALL"
-          ? true
-          : statusFilter === "ACTIVE"
-          ? item.active && !item.deletedAt
-          : statusFilter === "LOCKED"
-          ? !item.active && !item.deletedAt
-          : Boolean(item.deletedAt);
-
-      return matchesKeyword && matchesStatus;
-    });
-  }, [items, search, statusFilter]);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   function openCreate() {
     setFormMode("create");
@@ -540,23 +591,231 @@ export default function AdminStudentsPage() {
     }
   }
 
+  const activeFilterCount = statusFilter !== "ALL" ? 1 : 0;
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "status",
+        title: "Status",
+        options: [
+          {
+            id: "status-all",
+            label: "All Status",
+            checked: statusFilter === "ALL",
+            onToggle: () => {
+              setStatusFilter("ALL");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-active",
+            label: "ACTIVE",
+            checked: statusFilter === "ACTIVE",
+            onToggle: () => {
+              setStatusFilter("ACTIVE");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-locked",
+            label: "LOCKED",
+            checked: statusFilter === "LOCKED",
+            onToggle: () => {
+              setStatusFilter("LOCKED");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-deleted",
+            label: "DELETED",
+            checked: statusFilter === "DELETED",
+            onToggle: () => {
+              setStatusFilter("DELETED");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [statusFilter]
+  );
+
+  const tableColumns: AdminTableColumn<StudentItem, StudentSortKey>[] = [
+      {
+        id: "student",
+        label: "Student",
+        sortKey: "name",
+        widthClassName: "w-[320px]",
+        render: (item) => (
+          <AdminEntityCell
+            title={item.name || "--"}
+            subtitle={item.email || "--"}
+            fallback={getInitials(item.name)}
+          />
+        ),
+      },
+      {
+        id: "role",
+        label: "Role",
+        widthClassName: "w-[130px]",
+        render: (item) => (
+          <AdminStatusBadge tone="neutral" className="min-w-[92px]">
+            {item.role || "STUDENT"}
+          </AdminStatusBadge>
+        ),
+      },
+      {
+        id: "status",
+        label: "Status",
+        sortKey: "status",
+        widthClassName: "w-[140px]",
+        render: (item) => {
+          const label = getStatusLabel(item, viewMode);
+          return (
+            <AdminStatusBadge
+              tone={
+                label === "ACTIVE"
+                  ? "success"
+                  : label === "LOCKED"
+                    ? "warning"
+                    : "danger"
+              }
+            >
+              {label}
+            </AdminStatusBadge>
+          );
+        },
+      },
+      {
+        id: "study",
+        label: "Study",
+        widthClassName: "w-[120px]",
+        render: (item) => (
+          <button
+            type="button"
+            onClick={() =>
+              setStudyStudent({
+                id: item._id,
+                name: item.name,
+              })
+            }
+            className="inline-flex h-8 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-500/10 hover:text-sky-600"
+          >
+            <BookOpen className="h-4 w-4" />
+            Study
+          </button>
+        ),
+      },
+      {
+        id: "created",
+        label: "Created",
+        sortKey: "createdAt",
+        widthClassName: "w-[140px]",
+        render: (item) => formatDate(item.createdAt),
+      },
+      {
+        id: "actions",
+        label: <div className="text-right">Actions</div>,
+        widthClassName: "w-[150px]",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-2">
+            {viewMode === "active" ? (
+              <>
+                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+                  <Pencil className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  title={item.active ? "Lock" : "Unlock"}
+                  onClick={() => void handleToggleActive(item)}
+                >
+                  {item.active ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <LockOpen className="h-4 w-4" />
+                  )}
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete"
+                  onClick={() => void handleSoftDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            ) : (
+              <>
+                <AdminActionIconButton
+                  title="Restore"
+                  onClick={() => void handleRestore(item)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete permanently"
+                  onClick={() => void handleForceDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            )}
+          </div>
+        ),
+      },
+  ];
+
   return (
     <>
       <Toaster richColors position="top-right" />
 
       <div className="space-y-6">
-        <section className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h1 className="text-[30px] font-bold tracking-[-0.02em] text-slate-900">
-                Student Management
-              </h1>
+        <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="hidden">
               <p className="mt-2 text-base text-slate-500">
                 Tạo, chỉnh sửa và quản lý hồ sơ học viên.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("active");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "active"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "text-slate-700 hover:bg-white"
+                )}
+              >
+                <UserRound className="h-4 w-4" />
+                Students
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("deleted");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "deleted"
+                    ? "bg-rose-100 text-rose-700"
+                    : "text-slate-700 hover:bg-white"
+                )}
+              >
+                <Trash2 className="h-4 w-4" />
+                Deleted
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={openCreate}
@@ -577,10 +836,13 @@ export default function AdminStudentsPage() {
             </div>
           </div>
 
-          <div className="mt-6 inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
+          <div className="hidden">
             <button
               type="button"
-              onClick={() => setViewMode("active")}
+              onClick={() => {
+                setViewMode("active");
+                setPage(1);
+              }}
               className={cn(
                 "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
                 viewMode === "active"
@@ -594,7 +856,10 @@ export default function AdminStudentsPage() {
 
             <button
               type="button"
-              onClick={() => setViewMode("deleted")}
+              onClick={() => {
+                setViewMode("deleted");
+                setPage(1);
+              }}
               className={cn(
                 "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
                 viewMode === "deleted"
@@ -608,13 +873,59 @@ export default function AdminStudentsPage() {
           </div>
         </section>
 
-        <section className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_140px]">
+        <AdminListTable<StudentItem, StudentSortKey>
+          rows={pagedItems}
+          columns={tableColumns}
+          rowKey={(item) => item._id}
+          loading={loading}
+          searchValue={search}
+          searchPlaceholder="Search name, email..."
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          filterSections={filterSections}
+          activeFilterCount={activeFilterCount}
+          onApplyFilters={() => setPage(1)}
+          onClearFilters={() => {
+            setSearch("");
+            setStatusFilter("ALL");
+            setPage(1);
+          }}
+          sortBy={sortKey}
+          sortOrder={sortDirection}
+          onSortChange={(nextSortBy, nextSortOrder) => {
+            setSortKey(nextSortBy);
+            setSortDirection(nextSortOrder);
+            setPage(1);
+          }}
+          onReload={() => void loadData()}
+          pagination={{
+            currentPage,
+            totalPages,
+            totalItems: serverPagination.total,
+            pageSize: rowsPerPage,
+            onPageSizeChange: (nextPageSize) => {
+              setRowsPerPage(nextPageSize);
+              setPage(1);
+            },
+            onPageChange: setPage,
+            pageSizeOptions: [5, 10, 20],
+          }}
+          emptyText="Khong co hoc vien phu hop."
+          tableMinWidthClassName="min-w-[1040px]"
+        />
+
+        <section className="hidden rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px_190px_140px_140px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search name, email..."
                 className="h-[54px] w-full rounded-[20px] border border-slate-300 bg-white pl-14 pr-4 text-[15px] outline-none transition focus:border-slate-400"
               />
@@ -623,7 +934,10 @@ export default function AdminStudentsPage() {
             <div className="relative">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as StatusFilter);
+                  setPage(1);
+                }}
                 className="h-[54px] w-full appearance-none rounded-[20px] border border-slate-300 bg-white px-5 pr-12 text-[15px] outline-none transition focus:border-slate-400"
               >
                 <option value="ALL">All Status</option>
@@ -634,13 +948,45 @@ export default function AdminStudentsPage() {
               <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
             </div>
 
+            <div className="relative">
+              <select
+                value={sortKey}
+                onChange={(e) => {
+                  setSortKey(e.target.value as StudentSortKey);
+                  setPage(1);
+                }}
+                className="h-[54px] w-full appearance-none rounded-[20px] border border-slate-300 bg-white px-5 pr-12 text-[15px] outline-none transition focus:border-slate-400"
+              >
+                <option value="createdAt">Sort: Created</option>
+                <option value="name">Sort: Name</option>
+                <option value="email">Sort: Email</option>
+                <option value="status">Sort: Status</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            </div>
+
+            <div className="relative">
+              <select
+                value={sortDirection}
+                onChange={(e) => {
+                  setSortDirection(e.target.value as SortDirection);
+                  setPage(1);
+                }}
+                className="h-[54px] w-full appearance-none rounded-[20px] border border-slate-300 bg-white px-5 pr-12 text-[15px] outline-none transition focus:border-slate-400"
+              >
+                <option value="desc">Desc</option>
+                <option value="asc">Asc</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+            </div>
+
             <div className="flex h-[54px] items-center justify-center rounded-[20px] bg-slate-100 px-5 text-[15px] font-bold text-slate-700">
-              {filteredItems.length} FOUND
+              {serverPagination.total} FOUND
             </div>
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
+        <section className="hidden overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <div className="min-w-[1080px]">
               <div className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_1fr_210px] items-center border-b border-slate-200 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
@@ -662,12 +1008,12 @@ export default function AdminStudentsPage() {
                 <div className="p-10 text-center text-sm text-slate-500">
                   Đang tải danh sách học viên...
                 </div>
-              ) : filteredItems.length === 0 ? (
+              ) : pagedItems.length === 0 ? (
                 <div className="p-10 text-center text-sm text-slate-500">
                   Không có học viên phù hợp.
                 </div>
               ) : (
-                filteredItems.map((item) => (
+                pagedItems.map((item) => (
                   <div
                     key={item._id}
                     className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_1fr_210px] items-center border-b border-slate-200 px-6 py-5 last:border-b-0"
@@ -793,6 +1139,62 @@ export default function AdminStudentsPage() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-slate-200 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+              <span>
+                Showing{" "}
+                <span className="font-semibold text-slate-900">
+                  {from}-{to}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-slate-900">
+                  {serverPagination.total}
+                </span>
+              </span>
+
+              <span>Rows</span>
+              <div className="relative w-24">
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="h-10 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-3 pr-8 text-sm outline-none"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-300 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl bg-emerald-700 px-3 text-sm font-semibold text-white">
+                {currentPage} / {totalPages}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-300 text-slate-500 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </section>

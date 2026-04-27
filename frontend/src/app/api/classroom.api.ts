@@ -1,4 +1,9 @@
 import { http } from "@/lib/utils/http";
+import {
+  readPaginationMeta,
+  type ListResult,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 export type ClassMode = "ONLINE" | "OFFLINE";
 
@@ -608,9 +613,57 @@ export const classroomApi = {
     return pickArray(res.data).map(normalizeClassroom);
   },
 
-  async listDeleted() {
-    const res = await http.get("/api/classes/deleted");
+  async listPaged(query?: {
+    q?: string;
+    search?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+    courseId?: string;
+    teacherId?: string;
+  }): Promise<ListResult<ClassroomItem>> {
+    const res = await http.get("/api/classes", { params: query });
+    const items = pickArray(res.data).map(normalizeClassroom);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, query?.page, query?.limit),
+    };
+  },
+
+  async listDeleted(query?: {
+    q?: string;
+    search?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+    courseId?: string;
+    teacherId?: string;
+  }): Promise<ClassroomItem[]> {
+    const res = await http.get("/api/classes/deleted", { params: query });
     return pickArray(res.data).map(normalizeClassroom);
+  },
+
+  async listDeletedPaged(query?: {
+    q?: string;
+    search?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+    courseId?: string;
+    teacherId?: string;
+  }): Promise<ListResult<ClassroomItem>> {
+    const res = await http.get("/api/classes/deleted", { params: query });
+    const items = pickArray(res.data).map(normalizeClassroom);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, query?.page, query?.limit),
+    };
   },
 
   async getById(id: string) {

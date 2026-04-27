@@ -7,6 +7,16 @@ import type {
   CreateClassRoomInput,
   UpdateClassRoomInput,
 } from "./classroom.schema";
+import {
+  compareListValues,
+  escapeRegex,
+  getQueryString,
+  makeListResponse,
+  normalizeSortOrder,
+  paginateArray,
+  parsePagination,
+  type ListQueryInput,
+} from "../../utils/list-query";
 
 function assertObjectId(id: string, message = "ID không hợp lệ") {
   if (!isValidObjectId(id)) {
@@ -116,17 +126,98 @@ async function ensureTeacher(teacherId: string) {
   return teacher;
 }
 
+function toPlainClassRoom(item: any) {
+  if (item?.toObject) return item.toObject();
+  return item;
+}
+
+function getCourseTitle(item: any) {
+  return String(item?.course?.title || "");
+}
+
+function getTeacherName(item: any) {
+  return String(item?.teacher?.user?.name || "");
+}
+
+function filterAndSortClassRooms(
+  items: any[],
+  query: ListQueryInput,
+  deleted: boolean
+) {
+  const keyword = getQueryString(query, ["q", "search", "keyword"]);
+  let rows = items.map(toPlainClassRoom);
+
+  if (keyword) {
+    const regex = new RegExp(escapeRegex(keyword), "i");
+    rows = rows.filter((item) =>
+      [
+        item.className,
+        item.scheduleText,
+        item.room,
+        item.mode,
+        getCourseTitle(item),
+        getTeacherName(item),
+      ].some((value) => regex.test(String(value || "")))
+    );
+  }
+
+  const sortBy = getQueryString(query, ["sortBy", "sort"]);
+  const sortOrder = normalizeSortOrder(query.sortOrder ?? query.order);
+  const sortField = sortBy || (deleted ? "deletedAt" : "createdAt");
+
+  return [...rows].sort((left, right) => {
+    const pick = (item: any) => {
+      switch (sortField) {
+        case "className":
+          return item.className;
+        case "course":
+          return getCourseTitle(item);
+        case "teacher":
+          return getTeacherName(item);
+        case "schedule":
+          return item.scheduleText;
+        case "room":
+          return item.room;
+        case "status":
+          return item.isActive;
+        case "deletedAt":
+          return item.deletedAt;
+        case "createdAt":
+        default:
+          return item.createdAt;
+      }
+    };
+
+    return compareListValues(pick(left), pick(right), sortOrder);
+  });
+}
+
 export const classRoomService = {
-  async getAll(query: {
+  async getAll(query: ListQueryInput & {
     courseId?: string;
     teacherId?: string;
     isActive?: string;
+    status?: string;
   }) {
-    return classRoomRepository.findAll(query);
+    const items = await classRoomRepository.findAll(query);
+    const sorted = filterAndSortClassRooms(items as any[], query, false);
+    const pagination = parsePagination(query);
+    return makeListResponse(
+      paginateArray(sorted, pagination),
+      sorted.length,
+      pagination
+    );
   },
 
-  async getDeleted() {
-    return classRoomRepository.findDeleted();
+  async getDeleted(query: ListQueryInput = {}) {
+    const items = await classRoomRepository.findDeleted(query);
+    const sorted = filterAndSortClassRooms(items as any[], query, true);
+    const pagination = parsePagination(query);
+    return makeListResponse(
+      paginateArray(sorted, pagination),
+      sorted.length,
+      pagination
+    );
   },
 
   async getById(id: string) {

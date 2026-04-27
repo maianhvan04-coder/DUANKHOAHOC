@@ -249,14 +249,14 @@ export default function DashboardPage() {
 
       <section
         className={cn(
-          "rounded-[30px] border p-6 shadow-sm transition-all duration-300 md:p-7",
+          "rounded-[30px] border p-4 shadow-sm transition-all duration-300 md:p-5",
           dark
             ? "border-white/10 bg-[#111827] shadow-black/20"
             : "border-black/8 bg-white shadow-black/5"
         )}
       >
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="hidden">
             <p
               className={cn(
                 "text-sm font-medium",
@@ -286,7 +286,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-130">
+          <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4">
             {overviewCards.map((item) => (
               <div
                 key={item.label}

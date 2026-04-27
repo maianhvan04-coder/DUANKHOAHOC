@@ -1,5 +1,9 @@
 import { http } from "@/lib/utils/http";
 import type { CategoryItem } from "./category.api";
+import {
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 export type ProductMode = "ONLINE" | "OFFLINE";
 export type ProductLevel = "Cơ bản" | "Trung cấp" | "Nâng cao";
@@ -48,6 +52,17 @@ export type ProductItem = {
 export type GetProductsQuery = {
   categoryId?: string;
   limit?: string | number;
+  page?: string | number;
+  q?: string;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: SortDirection;
+};
+
+export type ProductListResponse = {
+  items: ProductItem[];
+  pagination?: PaginationMeta;
 };
 
 export type CreateProductBody = {
@@ -115,14 +130,18 @@ function buildProductFormData(body: CreateProductBody | UpdateProductBody) {
 export const productApi = {
   getAll: async (query?: GetProductsQuery) => {
     return (
-      await http.get<{ items: ProductItem[] }>("/api/products", {
+      await http.get<ProductListResponse>("/api/products", {
         params: query,
       })
     ).data;
   },
 
-  getDeleted: async () => {
-    return (await http.get<{ items: ProductItem[] }>("/api/products/deleted")).data;
+  getDeleted: async (query?: GetProductsQuery) => {
+    return (
+      await http.get<ProductListResponse>("/api/products/deleted", {
+        params: query,
+      })
+    ).data;
   },
 
   getById: async (id: string) => {

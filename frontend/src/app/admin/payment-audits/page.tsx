@@ -240,7 +240,7 @@ export default function AdminPaymentAuditsPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
+        <div className="hidden">
           <h1 className="text-3xl font-extrabold text-slate-900">Audit thanh toán</h1>
           <p className="mt-2 text-slate-600">
             Theo dõi toàn bộ lịch sử thanh toán, IPN, return, đổi trạng thái và ghi chú admin.

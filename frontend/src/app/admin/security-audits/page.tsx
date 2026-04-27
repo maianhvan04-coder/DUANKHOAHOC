@@ -470,12 +470,12 @@ export default function AdminSecurityAuditsPage() {
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_32%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_100%)] px-4 py-6 md:px-6 xl:px-8">
       <div className="mx-auto max-w-7xl">
-        <section className="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur xl:p-8">
-          <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-blue-100/60 blur-3xl" />
-          <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-emerald-100/50 blur-3xl" />
+        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="hidden" />
+          <div className="hidden" />
 
-          <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="hidden">
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700">
                 <Activity className="h-4 w-4" />
                 Trung tâm giám sát bảo mật
@@ -492,7 +492,7 @@ export default function AdminSecurityAuditsPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 onClick={() => loadData(page, query)}
                 disabled={loading}

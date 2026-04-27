@@ -1,5 +1,10 @@
 import { http } from "@/lib/utils/http";
 import type { Role } from "@/app/api/auth.api";
+import {
+  readPaginationMeta,
+  type ListResult,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 export type UserRow = {
   id: string;
@@ -80,15 +85,29 @@ function parseUser(it: unknown): UserRow | null {
 
 export const userApi = {
   // Users tab: list({deleted:false}) | Deleted tab: list({deleted:true})
-  list: async (opts?: { deleted?: boolean }): Promise<UserRow[]> => {
+  list: async (opts?: {
+    deleted?: boolean;
+    q?: string;
+    role?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+  }): Promise<ListResult<UserRow>> => {
     const deleted = opts?.deleted ? 1 : 0;
 
     const res = await http.get<unknown>("/api/users", {
-      params: { deleted },
+      params: { ...opts, deleted },
     });
 
     const arr = pickArray(res.data);
-    return arr.map(parseUser).filter((x): x is UserRow => x !== null);
+    const items = arr.map(parseUser).filter((x): x is UserRow => x !== null);
+
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, opts?.page, opts?.limit),
+    };
   },
 
   get: async (id: string): Promise<UserRow | null> => {

@@ -1,22 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FolderKanban,
   Pencil,
   Plus,
   RefreshCw,
-  Search,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
+  Trash2,
   X,
 } from "lucide-react";
-import {
-  categoryApi,
-  type CategoryItem,
-} from "@/app/api/category.api";
+import { categoryApi, type CategoryItem } from "@/app/api/category.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import type { SortDirection } from "@/lib/utils/admin-list";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -24,6 +26,8 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
+type CategoryStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+type CategorySortKey = "name" | "description" | "createdAt" | "deletedAt";
 
 type CategoryFormState = {
   name: string;
@@ -35,14 +39,49 @@ const INITIAL_FORM: CategoryFormState = {
   description: "",
 };
 
+function formatDate(value?: string | null) {
+  if (!value) return "--";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+}
+
+function getCategoryInitials(name?: string) {
+  const value = String(name ?? "").trim();
+  if (!value) return "DM";
+
+  const parts = value.split(/\s+/).slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase()).join("");
+}
+
+function getSortValue(item: CategoryItem, sortKey: CategorySortKey) {
+  if (sortKey === "createdAt" || sortKey === "deletedAt") {
+    const raw = item[sortKey];
+    const date = raw ? new Date(raw).getTime() : 0;
+    return Number.isNaN(date) ? 0 : date;
+  }
+
+  return String(item[sortKey] ?? "").toLowerCase();
+}
+
 export default function AdminCategoriesPage() {
   const [items, setItems] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [viewMode, setViewMode] = useState<ViewMode>("active");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<CategoryStatusFilter>("ALL");
+  const [sortKey, setSortKey] = useState<CategorySortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
@@ -50,7 +89,7 @@ export default function AdminCategoriesPage() {
   const [form, setForm] = useState<CategoryFormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadCategories = async (mode: ViewMode = viewMode) => {
+  const loadCategories = useCallback(async (mode: ViewMode) => {
     try {
       setLoading(true);
 
@@ -64,44 +103,105 @@ export default function AdminCategoriesPage() {
       console.error(error);
       alert(
         mode === "active"
-          ? "Không tải được danh mục"
-          : "Không tải được danh mục đã xóa"
+          ? "Could not load categories"
+          : "Could not load deleted categories"
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadCategories(viewMode);
-  }, [viewMode]);
+  }, [loadCategories, viewMode]);
 
   const filteredItems = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+
     return items.filter((item) => {
-      const keyword = search.trim().toLowerCase();
-      if (!keyword) return true;
-
-      return (
+      const matchesSearch =
+        !keyword ||
         item.name?.toLowerCase().includes(keyword) ||
-        item.description?.toLowerCase().includes(keyword)
-      );
-    });
-  }, [items, search]);
+        item.slug?.toLowerCase().includes(keyword) ||
+        item.description?.toLowerCase().includes(keyword);
 
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+      if (!matchesSearch) return false;
+
+      if (statusFilter === "ALL") return true;
+
+      const isActive = item.isActive !== false;
+      return statusFilter === "ACTIVE" ? isActive : !isActive;
+    });
+  }, [items, search, statusFilter]);
+
+  const sortedItems = useMemo(() => {
+    return [...filteredItems].sort((a, b) => {
+      const valueA = getSortValue(a, sortKey);
+      const valueB = getSortValue(b, sortKey);
+
+      const result =
+        typeof valueA === "number" && typeof valueB === "number"
+          ? valueA - valueB
+          : String(valueA).localeCompare(String(valueB));
+
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [filteredItems, sortDirection, sortKey]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / pageSize));
   const currentPage = Math.min(page, totalPages);
 
   const pagedItems = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, currentPage, pageSize]);
+    return sortedItems.slice(start, start + pageSize);
+  }, [currentPage, pageSize, sortedItems]);
 
-  const from = filteredItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const to = Math.min(currentPage * pageSize, filteredItems.length);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const activeFilterCount = statusFilter !== "ALL" ? 1 : 0;
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "status",
+        title: "Status",
+        options: [
+          {
+            id: "status-all",
+            label: "All Status",
+            checked: statusFilter === "ALL",
+            onToggle: () => {
+              setStatusFilter("ALL");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-active",
+            label: "ACTIVE",
+            checked: statusFilter === "ACTIVE",
+            onToggle: () => {
+              setStatusFilter("ACTIVE");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-inactive",
+            label: "INACTIVE",
+            checked: statusFilter === "INACTIVE",
+            onToggle: () => {
+              setStatusFilter("INACTIVE");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [statusFilter]
+  );
 
   const handleRefresh = async () => {
-    setSearch("");
-    setPage(1);
     await loadCategories(viewMode);
   };
 
@@ -134,7 +234,7 @@ export default function AdminCategoriesPage() {
     const description = form.description.trim();
 
     if (!name) {
-      alert("Vui lòng nhập tên danh mục");
+      alert("Please enter category name");
       return;
     }
 
@@ -142,33 +242,27 @@ export default function AdminCategoriesPage() {
       setSubmitting(true);
 
       if (formMode === "create") {
-        await categoryApi.create({
-          name,
-          description,
-        });
-
-        alert("Thêm danh mục thành công");
+        await categoryApi.create({ name, description });
+        alert("Category created successfully");
       } else {
         if (!editingItem?._id) return;
 
-        await categoryApi.update(editingItem._id, {
-          name,
-          description,
-        });
-
-        alert("Cập nhật danh mục thành công");
+        await categoryApi.update(editingItem._id, { name, description });
+        alert("Category updated successfully");
       }
 
       closeForm();
-      await loadCategories("active");
       setViewMode("active");
+      setSortKey("createdAt");
+      setSortDirection("desc");
       setPage(1);
+      await loadCategories("active");
     } catch (error) {
       console.error(error);
       alert(
         formMode === "create"
-          ? "Thêm danh mục thất bại"
-          : "Cập nhật danh mục thất bại"
+          ? "Create category failed"
+          : "Update category failed"
       );
     } finally {
       setSubmitting(false);
@@ -176,7 +270,7 @@ export default function AdminCategoriesPage() {
   };
 
   const handleSoftDelete = async (id: string) => {
-    const ok = window.confirm("Bạn có chắc muốn xóa mềm danh mục này?");
+    const ok = window.confirm("Move this category to Deleted?");
     if (!ok) return;
 
     try {
@@ -184,12 +278,12 @@ export default function AdminCategoriesPage() {
       await loadCategories(viewMode);
     } catch (error) {
       console.error(error);
-      alert("Xóa mềm danh mục thất bại");
+      alert("Delete category failed");
     }
   };
 
   const handleRestore = async (id: string) => {
-    const ok = window.confirm("Bạn có chắc muốn khôi phục danh mục này?");
+    const ok = window.confirm("Restore this category?");
     if (!ok) return;
 
     try {
@@ -197,13 +291,13 @@ export default function AdminCategoriesPage() {
       await loadCategories(viewMode);
     } catch (error) {
       console.error(error);
-      alert("Khôi phục danh mục thất bại");
+      alert("Restore category failed");
     }
   };
 
   const handleForceDelete = async (id: string) => {
     const ok = window.confirm(
-      "Bạn có chắc muốn xóa cứng danh mục này? Hành động này không thể hoàn tác."
+      "Delete this category permanently? This action cannot be undone."
     );
     if (!ok) return;
 
@@ -212,314 +306,252 @@ export default function AdminCategoriesPage() {
       await loadCategories(viewMode);
     } catch (error) {
       console.error(error);
-      alert("Xóa cứng danh mục thất bại");
+      alert("Delete category permanently failed");
     }
   };
 
+  const tableColumns: AdminTableColumn<CategoryItem, CategorySortKey>[] = [
+    {
+      id: "category",
+      label: "Category",
+      sortKey: "name",
+      widthClassName: "w-[320px]",
+      render: (item) => (
+        <AdminEntityCell
+          title={item.name || "--"}
+          subtitle={item.slug || "--"}
+          fallback={getCategoryInitials(item.name)}
+          icon={
+            <FolderKanban
+              className={cn(
+                "h-4 w-4",
+                viewMode === "active" ? "text-emerald-700" : "text-rose-700"
+              )}
+            />
+          }
+        />
+      ),
+    },
+    {
+      id: "description",
+      label: "Description",
+      sortKey: "description",
+      widthClassName: "w-[360px]",
+      render: (item) => (
+        <div className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
+          {item.description || "No description"}
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      widthClassName: "w-[140px]",
+      render: (item) => {
+        const label =
+          viewMode === "deleted"
+            ? "DELETED"
+            : item.isActive === false
+            ? "INACTIVE"
+            : "ACTIVE";
+
+        return (
+          <AdminStatusBadge
+            tone={
+              label === "ACTIVE"
+                ? "success"
+                : label === "INACTIVE"
+                ? "warning"
+                : "danger"
+            }
+          >
+            {label}
+          </AdminStatusBadge>
+        );
+      },
+    },
+    {
+      id: "date",
+      label: viewMode === "active" ? "Created" : "Deleted",
+      sortKey: viewMode === "active" ? "createdAt" : "deletedAt",
+      widthClassName: "w-[150px]",
+      render: (item) =>
+        viewMode === "active"
+          ? formatDate(item.createdAt)
+          : formatDate(item.deletedAt),
+    },
+    {
+      id: "actions",
+      label: <div className="text-right">Actions</div>,
+      widthClassName: "w-[150px]",
+      align: "right",
+      render: (item) => (
+        <div className="flex items-center justify-end gap-2">
+          {viewMode === "active" ? (
+            <>
+              <AdminActionIconButton
+                title="Edit"
+                onClick={() => openEditForm(item)}
+              >
+                <Pencil className="h-4 w-4" />
+              </AdminActionIconButton>
+
+              <AdminActionIconButton
+                danger
+                title="Move to Deleted"
+                onClick={() => void handleSoftDelete(item._id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </AdminActionIconButton>
+            </>
+          ) : (
+            <>
+              <AdminActionIconButton
+                title="Restore"
+                onClick={() => void handleRestore(item._id)}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </AdminActionIconButton>
+
+              <AdminActionIconButton
+                danger
+                title="Delete permanently"
+                onClick={() => void handleForceDelete(item._id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </AdminActionIconButton>
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className="min-h-screen bg-slate-50 p-3 md:p-4">
-        <div className="space-y-4">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-slate-900">
-                  Category Management
-                </h1>
-                <p className="mt-1 text-sm text-slate-500">
-                  Create, edit and manage categories.
-                </p>
+      <div className="space-y-6">
+        <section className="rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("active");
+                  setSortKey("createdAt");
+                  setSortDirection("desc");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "active"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "text-slate-700 hover:bg-white"
+                )}
+              >
+                <FolderKanban className="h-4 w-4" />
+                Categories
+              </button>
 
-                <div className="mt-4 inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode("active");
-                      setPage(1);
-                    }}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium transition",
-                      viewMode === "active"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "text-slate-600"
-                    )}
-                  >
-                    <FolderKanban className="h-4 w-4" />
-                    Categories
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setViewMode("deleted");
-                      setPage(1);
-                    }}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium transition",
-                      viewMode === "deleted"
-                        ? "bg-rose-100 text-rose-700"
-                        : "text-slate-600"
-                    )}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Deleted
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {viewMode === "active" ? (
-                  <button
-                    type="button"
-                    onClick={openCreateForm}
-                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Category
-                  </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => void handleRefresh()}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("deleted");
+                  setSortKey("deletedAt");
+                  setSortDirection("desc");
+                  setPage(1);
+                }}
+                className={cn(
+                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
+                  viewMode === "deleted"
+                    ? "bg-rose-100 text-rose-700"
+                    : "text-slate-700 hover:bg-white"
+                )}
+              >
+                <Trash2 className="h-4 w-4" />
+                Deleted
+              </button>
             </div>
-          </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="relative w-full max-w-[420px]">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Search category name, description..."
-                  className="h-10 w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Plus className="h-4.5 w-4.5" />
+                New Category
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleRefresh()}
+                disabled={loading}
+                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={cn("h-4.5 w-4.5", loading && "animate-spin")}
                 />
-              </div>
-
-              <div className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 px-4 text-xs font-semibold text-slate-700">
-                {filteredItems.length} FOUND
-              </div>
+                Refresh
+              </button>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-left">
-                    <th className="w-[50px] px-4 py-3">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300"
-                      />
-                    </th>
-                    <th className="min-w-[280px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Category
-                    </th>
-                    <th className="min-w-[320px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Description
-                    </th>
-                    <th className="min-w-[150px] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {viewMode === "active" ? "Created" : "Deleted"}
-                    </th>
-                    <th className="min-w-[120px] px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="border-b border-slate-200">
-                        <td className="px-4 py-4" colSpan={5}>
-                          <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : pagedItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-14 text-center text-sm text-slate-500">
-                        {viewMode === "active"
-                          ? "Không có danh mục nào"
-                          : "Không có dữ liệu"}
-                      </td>
-                    </tr>
-                  ) : (
-                    pagedItems.map((item) => (
-                      <tr
-                        key={item._id}
-                        className="border-b border-slate-200 last:border-b-0"
-                      >
-                        <td className="px-4 py-4">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-slate-300"
-                          />
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={cn(
-                                "flex h-10 w-10 items-center justify-center rounded-lg",
-                                viewMode === "active"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-rose-50 text-rose-700"
-                              )}
-                            >
-                              <FolderKanban className="h-4 w-4" />
-                            </div>
-
-                            <div className="text-sm font-semibold text-slate-900">
-                              {item.name}
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 text-sm text-slate-600">
-                          <div className="line-clamp-2">
-                            {item.description || "Chưa có mô tả"}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 text-sm text-slate-600">
-                          {viewMode === "active"
-                            ? item.createdAt
-                              ? new Date(item.createdAt).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })
-                              : "--"
-                            : item.deletedAt
-                            ? new Date(item.deletedAt).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })
-                            : "--"}
-                        </td>
-
-                        <td className="px-4 py-4">
-                          <div className="flex justify-end gap-2">
-                            {viewMode === "active" ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => openEditForm(item)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => void handleSoftDelete(item._id)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleRestore(item._id)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-emerald-700 transition hover:bg-slate-50"
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => void handleForceDelete(item._id)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-rose-700 transition hover:bg-slate-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                <span>
-                  Showing <span className="font-semibold text-slate-900">{from}-{to}</span> of{" "}
-                  <span className="font-semibold text-slate-900">{filteredItems.length}</span>
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <span>Rows</span>
-                  <select
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setPage(1);
-                    }}
-                    className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 disabled:opacity-50"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-
-                <div className="flex h-9 min-w-[40px] items-center justify-center rounded-lg bg-emerald-700 px-3 text-sm font-semibold text-white">
-                  {currentPage}
-                </div>
-
-                <button
-                  type="button"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 disabled:opacity-50"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
+        <AdminListTable<CategoryItem, CategorySortKey>
+          rows={pagedItems}
+          columns={tableColumns}
+          rowKey={(item) => item._id}
+          loading={loading}
+          searchValue={search}
+          searchPlaceholder="Search category name, slug, description..."
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          filterSections={filterSections}
+          activeFilterCount={activeFilterCount}
+          onApplyFilters={() => setPage(1)}
+          onClearFilters={() => {
+            setSearch("");
+            setStatusFilter("ALL");
+            setPage(1);
+          }}
+          sortBy={sortKey}
+          sortOrder={sortDirection}
+          onSortChange={(nextSortBy, nextSortOrder) => {
+            setSortKey(nextSortBy);
+            setSortDirection(nextSortOrder);
+            setPage(1);
+          }}
+          onReload={() => void handleRefresh()}
+          pagination={{
+            currentPage,
+            totalPages,
+            totalItems: sortedItems.length,
+            pageSize,
+            onPageSizeChange: (nextPageSize) => {
+              setPageSize(nextPageSize);
+              setPage(1);
+            },
+            onPageChange: setPage,
+            pageSizeOptions: [5, 10, 20],
+          }}
+          emptyText={
+            viewMode === "active" ? "No categories found." : "No deleted data."
+          }
+          tableMinWidthClassName="min-w-[1040px]"
+        />
       </div>
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-3">
-          <div className="w-full max-w-[520px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4">
+          <div className="w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="text-xl font-bold text-slate-900">
                   {formMode === "create" ? "New Category" : "Edit Category"}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-1 text-sm text-slate-500">
                   {formMode === "create"
                     ? "Create a new category."
                     : "Update category information."}
@@ -530,69 +562,69 @@ export default function AdminCategoriesPage() {
                 type="button"
                 onClick={closeForm}
                 disabled={submitting}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-4 px-4 py-4">
+            <div className="space-y-5 p-6">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Category name <span className="text-rose-600">*</span>
                 </label>
                 <input
                   value={form.name}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, name: event.target.value }))
                   }
-                  placeholder="Nhập tên danh mục"
-                  className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                  placeholder="Enter category name"
+                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-slate-400"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Description
                 </label>
                 <textarea
                   value={form.description}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     setForm((prev) => ({
                       ...prev,
-                      description: e.target.value,
+                      description: event.target.value,
                     }))
                   }
-                  placeholder="Nhập mô tả danh mục"
+                  placeholder="Enter category description"
                   rows={4}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-slate-200 px-4 py-3">
-              <button
-                type="button"
-                onClick={closeForm}
-                disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
+            <div className="flex flex-wrap gap-3 border-t border-slate-200 px-6 py-5">
               <button
                 type="button"
                 onClick={() => void handleSubmitForm()}
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-50"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? formMode === "create"
                     ? "Creating..."
-                    : "Updating..."
+                    : "Saving..."
                   : formMode === "create"
                   ? "Create Category"
                   : "Save Changes"}
+              </button>
+
+              <button
+                type="button"
+                onClick={closeForm}
+                disabled={submitting}
+                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
               </button>
             </div>
           </div>

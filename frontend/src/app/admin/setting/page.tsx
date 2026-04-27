@@ -68,9 +68,9 @@ export default function AdminSettingsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 rounded-[28px] bg-[linear-gradient(135deg,#081225_0%,#0f1f43_100%)] p-6 text-white shadow-[0_20px_60px_rgba(2,6,23,0.18)] md:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4">
+        <div className="mb-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="hidden">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur">
                 <Settings className="h-7 w-7" />
               </div>

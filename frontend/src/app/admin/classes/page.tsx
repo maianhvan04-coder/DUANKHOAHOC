@@ -34,6 +34,18 @@ import {
   type UpdateStudentSessionPayload,
   type UpdateStudentTestsPayload,
 } from "@/app/api/classroom.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import {
+  makePaginationMeta,
+  type PaginationMeta,
+  type SortDirection,
+} from "@/lib/utils/admin-list";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -295,6 +307,14 @@ type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
 type StatusFilter = "all" | "active" | "inactive" | "deleted";
 type StudentFilter = "all" | StudyStatus;
+type ClassSortKey =
+  | "className"
+  | "course"
+  | "teacher"
+  | "schedule"
+  | "room"
+  | "status"
+  | "createdAt";
 
 type ClassFormState = {
   course: string;
@@ -1440,9 +1460,14 @@ export default function AdminClassesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("active");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<ClassSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [page, setPage] = useState(1);
+  const [serverPagination, setServerPagination] = useState<PaginationMeta>(
+    makePaginationMeta(0, 1, 5)
+  );
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode>("create");
@@ -1458,13 +1483,28 @@ export default function AdminClassesPage() {
 
       const [classrooms, courseOptions, teacherOptions] = await Promise.all([
         viewMode === "active"
-          ? classroomApi.list()
-          : classroomApi.listDeleted(),
+          ? classroomApi.listPaged({
+              q: search,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: rowsPerPage,
+            })
+          : classroomApi.listDeletedPaged({
+              q: search,
+              status: statusFilter,
+              sortBy: sortKey,
+              sortOrder: sortDirection,
+              page,
+              limit: rowsPerPage,
+            }),
         classroomApi.listCourseOptions(),
         classroomApi.listTeacherOptions(),
       ]);
 
-      setItems(classrooms);
+      setItems(classrooms.items);
+      setServerPagination(classrooms.pagination);
       setCourses(courseOptions);
       setTeachers(teacherOptions);
     } catch (error) {
@@ -1476,42 +1516,18 @@ export default function AdminClassesPage() {
 
   useEffect(() => {
     void fetchClassrooms();
-  }, [viewMode]);
+  }, [page, rowsPerPage, search, sortDirection, sortKey, statusFilter, viewMode]);
 
-  const filteredItems = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const pagedItems = items;
+  const totalPages = serverPagination.totalPages;
+  const currentPage = serverPagination.page;
+  const from =
+    serverPagination.total === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
+  const to = Math.min(currentPage * rowsPerPage, serverPagination.total);
 
-    return items.filter((item) => {
-      const matchSearch =
-        !keyword ||
-        [
-          item.className,
-          getCourseTitle(item),
-          getTeacherName(item),
-          item.room,
-          item.scheduleText,
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
-
-      const matchStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && item.isActive && !item.isDeleted) ||
-        (statusFilter === "inactive" && !item.isActive && !item.isDeleted) ||
-        (statusFilter === "deleted" && Boolean(item.isDeleted));
-
-      return matchSearch && matchStatus;
-    });
-  }, [items, search, statusFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
-  const currentPage = Math.min(page, totalPages);
-
-  const pagedItems = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage;
-    return filteredItems.slice(start, start + rowsPerPage);
-  }, [filteredItems, currentPage, rowsPerPage]);
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   function resetForm() {
     setForm(INITIAL_CLASS_FORM);
@@ -1637,21 +1653,180 @@ export default function AdminClassesPage() {
     }
   }
 
+  const activeFilterCount = statusFilter !== "all" ? 1 : 0;
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "status",
+        title: "Trạng thái",
+        options: [
+          {
+            id: "status-all",
+            label: "Tất cả trạng thái",
+            checked: statusFilter === "all",
+            onToggle: () => {
+              setStatusFilter("all");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-active",
+            label: "Đang hoạt động",
+            checked: statusFilter === "active",
+            onToggle: () => {
+              setStatusFilter("active");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-inactive",
+            label: "Tạm tắt",
+            checked: statusFilter === "inactive",
+            onToggle: () => {
+              setStatusFilter("inactive");
+              setPage(1);
+            },
+          },
+          {
+            id: "status-deleted",
+            label: "Đã xóa",
+            checked: statusFilter === "deleted",
+            onToggle: () => {
+              setStatusFilter("deleted");
+              setPage(1);
+            },
+          },
+        ],
+      },
+    ],
+    [statusFilter]
+  );
+
+  const tableColumns: AdminTableColumn<ClassroomItem, ClassSortKey>[] = [
+      {
+        id: "class",
+        label: "Lớp",
+        sortKey: "className",
+        widthClassName: "w-[260px]",
+        render: (item) => (
+          <AdminEntityCell
+            title={item.className || "--"}
+            subtitle={`${item.mode} · ${item.maxStudents} HV`}
+            icon={<School className="h-4 w-4 text-slate-500" />}
+          />
+        ),
+      },
+      {
+        id: "course",
+        label: "Khóa học",
+        sortKey: "course",
+        widthClassName: "w-[220px]",
+        render: (item) => <div className="truncate">{getCourseTitle(item)}</div>,
+      },
+      {
+        id: "teacher",
+        label: "Giảng viên",
+        sortKey: "teacher",
+        widthClassName: "w-[180px]",
+        render: (item) => <div className="truncate">{getTeacherName(item) || "--"}</div>,
+      },
+      {
+        id: "schedule",
+        label: "Lịch",
+        sortKey: "schedule",
+        widthClassName: "w-[190px]",
+        render: (item) => <div className="truncate">{item.scheduleText || "--"}</div>,
+      },
+      {
+        id: "room",
+        label: "Phòng",
+        sortKey: "room",
+        widthClassName: "w-[140px]",
+        render: (item) => <div className="truncate">{item.room || "--"}</div>,
+      },
+      {
+        id: "status",
+        label: "Trạng thái",
+        sortKey: "status",
+        widthClassName: "w-[140px]",
+        render: (item) => (
+          <AdminStatusBadge
+            tone={
+              viewMode === "deleted" || item.isDeleted
+                ? "danger"
+                : item.isActive
+                  ? "success"
+                  : "neutral"
+            }
+          >
+            {getClassStatusLabel(item, viewMode)}
+          </AdminStatusBadge>
+        ),
+      },
+      {
+        id: "actions",
+        label: <div className="text-right">Action</div>,
+        widthClassName: "w-[170px]",
+        align: "right",
+        render: (item) => (
+          <div className="flex items-center justify-end gap-2">
+            {viewMode === "active" ? (
+              <>
+                <AdminActionIconButton
+                  title="Học viên"
+                  onClick={() => setStudentsModalClass(item)}
+                >
+                  <Users className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+                  <Pencil className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete"
+                  onClick={() => void handleSoftDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            ) : (
+              <>
+                <AdminActionIconButton
+                  title="Restore"
+                  onClick={() => void handleRestore(item)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </AdminActionIconButton>
+                <AdminActionIconButton
+                  danger
+                  title="Delete"
+                  onClick={() => void handleHardDelete(item)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </AdminActionIconButton>
+              </>
+            )}
+          </div>
+        ),
+      },
+  ];
+
   return (
     <div className="space-y-4 p-4 md:p-5">
       <Toaster richColors position="top-right" />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-[28px] font-semibold leading-tight text-slate-900 md:text-[32px]">
+            <h1 className="hidden text-[28px] font-semibold leading-tight text-slate-900 md:text-[32px]">
               Quản lý lớp học
             </h1>
-            <p className="mt-1.5 text-sm text-slate-500">
+            <p className="hidden mt-1.5 text-sm text-slate-500">
               Tạo, sửa và quản lý lớp học cùng danh sách học viên.
             </p>
 
-            <div className="mt-4 inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            <div className="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1690,7 +1865,7 @@ export default function AdminClassesPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={openCreate}
@@ -1712,7 +1887,51 @@ export default function AdminClassesPage() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <AdminListTable<ClassroomItem, ClassSortKey>
+        rows={pagedItems}
+        columns={tableColumns}
+        rowKey={(item) => item._id}
+        loading={loading}
+        searchValue={search}
+        searchPlaceholder="Tìm lớp, khóa học, giảng viên, phòng..."
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        filterSections={filterSections}
+        activeFilterCount={activeFilterCount}
+        onApplyFilters={() => setPage(1)}
+        onClearFilters={() => {
+          setSearch("");
+          setStatusFilter(viewMode === "deleted" ? "deleted" : "all");
+          setPage(1);
+        }}
+        sortBy={sortKey}
+        sortOrder={sortDirection}
+        onSortChange={(nextSortBy, nextSortOrder) => {
+          setSortKey(nextSortBy);
+          setSortDirection(nextSortOrder);
+          setPage(1);
+        }}
+        onReload={() => void fetchClassrooms()}
+        pagination={{
+          currentPage,
+          totalPages,
+          totalItems: serverPagination.total,
+          pageSize: rowsPerPage,
+          onPageSizeChange: (nextPageSize) => {
+            setRowsPerPage(nextPageSize);
+            setPage(1);
+          },
+          onPageChange: setPage,
+          pageSizeOptions: [5, 10, 20],
+        }}
+        emptyText="Chua co lop hoc nao phu hop."
+        labels={{ showing: "Hiển thị", rows: "Số dòng / trang" }}
+        tableMinWidthClassName="min-w-[1220px]"
+      />
+
+      <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
@@ -1744,13 +1963,50 @@ export default function AdminClassesPage() {
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
 
+          <div className="relative w-full xl:w-[220px]">
+            <select
+              value={sortKey}
+              onChange={(e) => {
+                setSortKey(e.target.value as ClassSortKey);
+                setPage(1);
+              }}
+              className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="createdAt">
+                {viewMode === "active" ? "Sort: Ngày tạo" : "Sort: Ngày xóa"}
+              </option>
+              <option value="className">Sort: Lớp</option>
+              <option value="course">Sort: Khóa học</option>
+              <option value="teacher">Sort: Giảng viên</option>
+              <option value="schedule">Sort: Lịch</option>
+              <option value="room">Sort: Phòng</option>
+              <option value="status">Sort: Trạng thái</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          </div>
+
+          <div className="relative w-full xl:w-[150px]">
+            <select
+              value={sortDirection}
+              onChange={(e) => {
+                setSortDirection(e.target.value as SortDirection);
+                setPage(1);
+              }}
+              className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm text-slate-700 outline-none focus:border-emerald-500"
+            >
+              <option value="desc">Desc</option>
+              <option value="asc">Asc</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          </div>
+
           <div className="ml-auto inline-flex h-10 items-center rounded-2xl bg-slate-100 px-4 text-[13px] font-semibold text-slate-700">
-            {filteredItems.length} KẾT QUẢ
+            {serverPagination.total} KẾT QUẢ
           </div>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <section className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <div className="min-w-[1250px]">
             <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1fr_220px] items-center border-b border-slate-200 bg-slate-50 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
@@ -1870,7 +2126,18 @@ export default function AdminClassesPage() {
         </div>
 
         <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <span>
+              Hiển thị{" "}
+              <span className="font-semibold text-slate-900">
+                {from}-{to}
+              </span>{" "}
+              /{" "}
+              <span className="font-semibold text-slate-900">
+                {serverPagination.total}
+              </span>
+            </span>
+
             <span>Số dòng / trang</span>
             <select
               value={rowsPerPage}

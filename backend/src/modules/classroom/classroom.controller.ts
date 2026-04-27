@@ -15,6 +15,13 @@ type ClassRoomQuery = {
   courseId?: string;
   teacherId?: string;
   isActive?: string;
+  status?: string;
+  page?: string;
+  limit?: string;
+  q?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
 };
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -37,10 +44,13 @@ export const classRoomController = {
     }
   },
 
-  async getDeleted(_req: Request, res: Response) {
+  async getDeleted(
+    req: Request<Record<string, never>, unknown, unknown, ClassRoomQuery>,
+    res: Response
+  ) {
     try {
-      const items = await classRoomService.getDeleted();
-      return res.json({ items });
+      const result = await classRoomService.getDeleted(req.query);
+      return res.json(result);
     } catch (error) {
       return res.status(500).json({
         message: getErrorMessage(error, "Server error"),

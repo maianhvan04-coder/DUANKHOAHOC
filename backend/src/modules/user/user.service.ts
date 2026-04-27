@@ -3,6 +3,14 @@ import { ROLES, type RoleCode } from "../../constants/roles";
 import { UserModel } from "./user.model";
 import { setRolesForUser } from "../rbac/rbac.service";
 import UserRole from "../rbac/models/userRole.model";
+import {
+  escapeRegex,
+  getQueryString,
+  makeListResponse,
+  normalizeSortOrder,
+  parsePagination,
+  type ListQueryInput,
+} from "../../utils/list-query";
 
 type CreateUserInput = {
   name: string;
@@ -23,17 +31,57 @@ function sanitizeUser<T extends Record<string, any>>(user: T | null) {
 }
 
 export const userService = {
-  async list(deleted: boolean) {
-    const filter = deleted
+  async list(deleted: boolean, query: ListQueryInput = {}) {
+    const filter: Record<string, unknown> = deleted
       ? { deletedAt: { $ne: null } }
       : { deletedAt: null };
 
-    const users = await UserModel.find(filter)
-      .sort({ createdAt: -1 })
+    const keyword = getQueryString(query, ["q", "search", "keyword"]);
+    if (keyword) {
+      const regex = new RegExp(escapeRegex(keyword), "i");
+      filter.$or = [{ name: regex }, { email: regex }, { role: regex }];
+    }
+
+    const role = getQueryString(query, ["role"]);
+    if (role && role.toUpperCase() !== "ALL") {
+      filter.role = role.toUpperCase();
+    }
+
+    const status = getQueryString(query, ["status"]).toUpperCase();
+    if (status === "ACTIVE") filter.active = true;
+    if (status === "INACTIVE") filter.active = false;
+
+    const sortBy = getQueryString(query, ["sortBy", "sort"]);
+    const sortOrder = normalizeSortOrder(query.sortOrder ?? query.order);
+    const sortFieldMap: Record<string, string> = {
+      name: "name",
+      email: "email",
+      role: "role",
+      status: "active",
+      active: "active",
+      createdAt: "createdAt",
+      deletedAt: "deletedAt",
+    };
+
+    const fallbackSort = deleted ? "deletedAt" : "createdAt";
+    const sortField = sortFieldMap[sortBy] || fallbackSort;
+    const pagination = parsePagination(query);
+
+    let userQuery = UserModel.find(filter)
+      .sort({ [sortField]: sortOrder, _id: sortOrder })
       .select("-passwordHash")
       .lean();
 
-    return users;
+    if (pagination.enabled) {
+      userQuery = userQuery.skip(pagination.skip).limit(pagination.limit);
+    }
+
+    const [total, users] = await Promise.all([
+      UserModel.countDocuments(filter),
+      userQuery,
+    ]);
+
+    return makeListResponse(users, total, pagination);
   },
 
   async getById(id: string) {

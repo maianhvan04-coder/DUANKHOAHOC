@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   KeyRound,
   Pencil,
-  Shield,
+  ShieldCheck,
   Trash2,
   Users,
   Loader2,
@@ -29,27 +29,54 @@ function roleTheme(code: string) {
 
   if (c === "ADMIN") {
     return {
-      row: "bg-[#eef6fd]",
-      iconWrap: "bg-[#d9c2f3]",
-      iconColor: "text-[#7c4ed8]",
-      badge: "border-[#9d7ce9] text-[#7c4ed8] bg-[#f6f1fe]",
+      row: "bg-[#f5f0ff]",
+      iconWrap: "bg-[#ede3ff]",
+      iconColor: "text-[#7c3aed]",
+      badge: "border-[#a78bfa] text-[#7c3aed] bg-[#faf5ff]",
     };
   }
 
   if (c === "MANAGER") {
     return {
-      row: "bg-[#f6f1ec]",
-      iconWrap: "bg-[#efd8b2]",
-      iconColor: "text-[#db6d21]",
-      badge: "border-[#f09b62] text-[#db6d21] bg-[#fff4ea]",
+      row: "bg-[#fff7ed]",
+      iconWrap: "bg-[#ffedd5]",
+      iconColor: "text-[#ea580c]",
+      badge: "border-[#fdba74] text-[#ea580c] bg-[#fff7ed]",
+    };
+  }
+
+  if (c === "TEACHER") {
+    return {
+      row: "bg-[#ecfdf5]",
+      iconWrap: "bg-[#d1fae5]",
+      iconColor: "text-[#059669]",
+      badge: "border-[#6ee7b7] text-[#059669] bg-[#f0fdf4]",
+    };
+  }
+
+  if (c === "STUDENT") {
+    return {
+      row: "bg-[#eff6ff]",
+      iconWrap: "bg-[#dbeafe]",
+      iconColor: "text-[#2563eb]",
+      badge: "border-[#93c5fd] text-[#2563eb] bg-[#eff6ff]",
+    };
+  }
+
+  if (c === "USER") {
+    return {
+      row: "bg-[#f8fafc]",
+      iconWrap: "bg-[#e2e8f0]",
+      iconColor: "text-[#475569]",
+      badge: "border-[#94a3b8] text-[#475569] bg-[#f8fafc]",
     };
   }
 
   return {
     row: "bg-white",
-    iconWrap: "bg-[#b7daf1]",
-    iconColor: "text-[#317ac8]",
-    badge: "border-[#4091ea] text-[#317ac8] bg-[#f5fbff]",
+    iconWrap: "bg-[#f1f5f9]",
+    iconColor: "text-[#64748b]",
+    badge: "border-[#cbd5e1] text-[#64748b] bg-[#f8fafc]",
   };
 }
 
@@ -267,9 +294,8 @@ export default function AdminRbacPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [openPermissionModal, setOpenPermissionModal] = useState(false);
-  const [activePermissionRole, setActivePermissionRole] = useState<RoleItem | null>(
-    null
-  );
+  const [activePermissionRole, setActivePermissionRole] =
+    useState<RoleItem | null>(null);
 
   const [openRoleForm, setOpenRoleForm] = useState(false);
   const [roleFormMode, setRoleFormMode] = useState<RoleFormMode>("create");
@@ -315,7 +341,7 @@ export default function AdminRbacPage() {
   }
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
   }, []);
 
   const sortedRoles = useMemo(() => {
@@ -348,7 +374,10 @@ export default function AdminRbacPage() {
     setOpenPermissionModal(true);
   }
 
-  function handleSavedPermissions(roleCode: string, permissionKeys: PermissionKey[]) {
+  function handleSavedPermissions(
+    roleCode: string,
+    permissionKeys: PermissionKey[]
+  ) {
     setRolePermissionMap((prev) => ({
       ...prev,
       [roleCode]: permissionKeys,
@@ -464,8 +493,8 @@ export default function AdminRbacPage() {
     <>
       <div className="min-h-screen bg-[#f7f9fc] px-6 py-5">
         <div className="mx-auto max-w-[1450px]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
+          <div className="mb-4 flex flex-col gap-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end">
+            <div className="hidden">
               <h1 className="text-[22px] font-bold text-slate-900">
                 Role & Permissions
               </h1>
@@ -474,9 +503,10 @@ export default function AdminRbacPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="ml-auto flex items-center justify-end gap-2">
               <button
-                onClick={() => loadAll(true)}
+                type="button"
+                onClick={() => void loadAll(true)}
                 className="inline-flex h-9 items-center gap-2 rounded-[8px] border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-700 hover:bg-slate-50"
               >
                 <RefreshCw
@@ -487,6 +517,7 @@ export default function AdminRbacPage() {
               </button>
 
               <button
+                type="button"
                 onClick={handleOpenCreate}
                 className="inline-flex h-9 items-center gap-2 rounded-[8px] bg-slate-900 px-3 text-[12px] font-semibold text-white hover:bg-slate-800"
               >
@@ -517,10 +548,10 @@ export default function AdminRbacPage() {
                         theme.iconWrap
                       )}
                     >
-                      <Shield
-                        size={28}
+                      <ShieldCheck
+                        size={32}
                         className={theme.iconColor}
-                        strokeWidth={1.8}
+                        strokeWidth={2.35}
                       />
                     </div>
                   </div>
@@ -530,6 +561,7 @@ export default function AdminRbacPage() {
                       <h3 className="text-[18px] font-bold leading-none text-slate-900">
                         {getDisplayName(role)}
                       </h3>
+
                       <span
                         className={cn(
                           "rounded-[6px] border px-1.5 py-0.5 text-[10px] font-semibold uppercase",
@@ -551,14 +583,14 @@ export default function AdminRbacPage() {
                         {preview.list.map((item) => (
                           <span
                             key={item}
-                            className="rounded-[8px] bg-slate-100 px-3 py-2 text-[12px] font-semibold text-slate-800"
+                            className="rounded-[8px] bg-white/75 px-3 py-2 text-[12px] font-semibold text-slate-800 shadow-sm"
                           >
                             {item}
                           </span>
                         ))}
 
                         {preview.remain > 0 && (
-                          <span className="rounded-[8px] bg-slate-200 px-3 py-2 text-[12px] font-semibold text-slate-700">
+                          <span className="rounded-[8px] bg-white/80 px-3 py-2 text-[12px] font-semibold text-slate-700 shadow-sm">
                             +{preview.remain}
                           </span>
                         )}
@@ -571,7 +603,14 @@ export default function AdminRbacPage() {
                   </div>
 
                   <div className="flex justify-center">
-                    <span className="rounded-full bg-[#bde9be] px-4 py-1 text-[13px] font-bold text-[#176b2d]">
+                    <span
+                      className={cn(
+                        "rounded-full px-4 py-1 text-[13px] font-bold",
+                        role.isActive === false
+                          ? "bg-rose-100 text-rose-700"
+                          : "bg-[#bde9be] text-[#176b2d]"
+                      )}
+                    >
                       {role.isActive === false ? "INACTIVE" : "ACTIVE"}
                     </span>
                   </div>
@@ -589,6 +628,7 @@ export default function AdminRbacPage() {
 
                   <div className="flex items-center justify-center gap-4">
                     <button
+                      type="button"
                       onClick={() => handleOpenPermission(role)}
                       className="text-[#7c4ed8] transition hover:scale-105"
                       title="Permissions"
@@ -597,6 +637,7 @@ export default function AdminRbacPage() {
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => handleOpenEdit(role)}
                       className="text-[#3b82f6] transition hover:scale-105"
                       title="Edit"
@@ -605,7 +646,8 @@ export default function AdminRbacPage() {
                     </button>
 
                     <button
-                      onClick={() => handleDelete(role)}
+                      type="button"
+                      onClick={() => void handleDelete(role)}
                       disabled={deleting}
                       className="text-[#ef4444] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
                       title="Delete"
@@ -647,7 +689,8 @@ export default function AdminRbacPage() {
       />
 
       <RoleFormModal
-        key={`${roleFormMode}-${activeEditRole?.code ?? "new"}-${openRoleForm ? "open" : "close"}`}
+        key={`${roleFormMode}-${activeEditRole?.code ?? "new"}-${openRoleForm ? "open" : "close"
+          }`}
         open={openRoleForm}
         mode={roleFormMode}
         initialValue={roleFormInitialValue}

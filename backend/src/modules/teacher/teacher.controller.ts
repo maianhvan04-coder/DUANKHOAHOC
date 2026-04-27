@@ -9,8 +9,8 @@ export const teacherController = {
     const deletedRaw = String(req.query.deleted || "").trim().toLowerCase();
     const deleted = deletedRaw === "true" || deletedRaw === "1";
 
-    const items = await teacherService.list({ q, deleted });
-    res.json(items);
+    const result = await teacherService.list({ ...req.query, q, deleted });
+    res.json(result);
   }),
 
   listPublic: asyncHandler(async (req: Request, res: Response) => {
