@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bell,
   BookOpen,
   CalendarDays,
   ChevronDown,
@@ -25,7 +27,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
-import { authApi, type AuthUser } from "@/app/api/auth.api";
+import { authApi, type AuthUser, type Role } from "@/app/api/auth.api";
 import type { PermissionMetaItem, PermissionKey } from "@/app/api/rbac.api";
 import { clearAuth } from "@/lib/utils/storage";
 
@@ -38,6 +40,7 @@ type SidebarChildItem = {
   text: string;
   icon: LucideIcon;
   requiredGroupKeys?: string[];
+  requiredRolesAny?: Role[];
 };
 
 type SidebarItem = {
@@ -45,6 +48,7 @@ type SidebarItem = {
   text: string;
   icon: LucideIcon;
   requiredGroupKeys?: string[];
+  requiredRolesAny?: Role[];
   children?: SidebarChildItem[];
 };
 
@@ -55,8 +59,17 @@ type SidebarGroup = {
 
 type AdminSidebarProps = {
   currentUser: AuthUser | null;
+  currentRole?: Role | null;
   permissionMeta: PermissionMetaItem[];
   grantedPermissions: PermissionKey[];
+};
+
+const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: "Admin",
+  MANAGER: "Manager",
+  TEACHER: "Teacher",
+  STUDENT: "Student",
+  USER: "User",
 };
 
 const menuGroups: SidebarGroup[] = [
@@ -136,6 +149,18 @@ const menuGroups: SidebarGroup[] = [
     ],
   },
   {
+    label: "NOTIFICATIONS",
+    items: [
+      {
+        href: "/admin/notification",
+        text: "Thông báo",
+        icon: Bell,
+        requiredGroupKeys: ["NOTIFICATIONS"],
+        requiredRolesAny: ["ADMIN", "MANAGER", "TEACHER"],
+      },
+    ],
+  },
+  {
     label: "AUDIT",
     items: [
       {
@@ -173,6 +198,7 @@ const menuGroups: SidebarGroup[] = [
 
 export default function AdminSidebar({
   currentUser,
+  currentRole,
   permissionMeta,
   grantedPermissions,
 }: AdminSidebarProps) {
@@ -182,9 +208,22 @@ export default function AdminSidebar({
   const { theme } = useAdminTheme();
   const dark = theme === "dark";
 
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const [showToggleButton, setShowToggleButton] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "Khóa học": false,
   });
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!sidebarRef.current) return;
+      if (sidebarRef.current.contains(event.target as Node)) return;
+      setShowToggleButton(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
 
   const grantedGroupKeys = useMemo(() => {
     const grantedPermissionSet = new Set(grantedPermissions);
@@ -197,9 +236,28 @@ export default function AdminSidebar({
   }, [permissionMeta, grantedPermissions]);
 
   const visibleMenuGroups = useMemo(() => {
-    const canShow = (requiredGroupKeys?: string[]) => {
-      if (!requiredGroupKeys || requiredGroupKeys.length === 0) return true;
-      return requiredGroupKeys.some((key) => grantedGroupKeys.has(key));
+    const canShow = (
+      requiredGroupKeys?: string[],
+      requiredRolesAny?: Role[]
+    ) => {
+      const matchGroup =
+        !requiredGroupKeys || requiredGroupKeys.length === 0
+          ? false
+          : requiredGroupKeys.some((key) => grantedGroupKeys.has(key));
+
+      const matchRole =
+        !requiredRolesAny || requiredRolesAny.length === 0
+          ? false
+          : !!currentRole && requiredRolesAny.includes(currentRole);
+
+      if (
+        (!requiredGroupKeys || requiredGroupKeys.length === 0) &&
+        (!requiredRolesAny || requiredRolesAny.length === 0)
+      ) {
+        return true;
+      }
+
+      return matchGroup || matchRole;
     };
 
     return menuGroups
@@ -208,11 +266,12 @@ export default function AdminSidebar({
           .map((item) => {
             if (item.children?.length) {
               const visibleChildren = item.children.filter((child) =>
-                canShow(child.requiredGroupKeys)
+                canShow(child.requiredGroupKeys, child.requiredRolesAny)
               );
 
               const parentVisible =
-                canShow(item.requiredGroupKeys) || visibleChildren.length > 0;
+                canShow(item.requiredGroupKeys, item.requiredRolesAny) ||
+                visibleChildren.length > 0;
 
               if (!parentVisible) return null;
 
@@ -222,7 +281,10 @@ export default function AdminSidebar({
               };
             }
 
-            if (!canShow(item.requiredGroupKeys)) return null;
+            if (!canShow(item.requiredGroupKeys, item.requiredRolesAny)) {
+              return null;
+            }
+
             return item;
           })
           .filter(Boolean) as SidebarItem[];
@@ -235,7 +297,7 @@ export default function AdminSidebar({
         };
       })
       .filter(Boolean) as SidebarGroup[];
-  }, [grantedGroupKeys]);
+  }, [currentRole, grantedGroupKeys]);
 
   const toggleSubmenu = (text: string) => {
     setOpenMenus((prev) => ({
@@ -256,6 +318,17 @@ export default function AdminSidebar({
 
   return (
     <aside
+      ref={sidebarRef}
+      onMouseEnter={() => setShowToggleButton(true)}
+      onMouseLeave={() => setShowToggleButton(false)}
+      onTouchStart={() => setShowToggleButton(true)}
+      onFocusCapture={() => setShowToggleButton(true)}
+      onBlurCapture={(event) => {
+        const nextTarget = event.relatedTarget as Node | null;
+        if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
+          setShowToggleButton(false);
+        }
+      }}
       className={cn(
         "sticky top-0 flex h-screen shrink-0 flex-col overflow-visible transition-all duration-300",
         collapsed ? "w-24" : "w-[280px]",
@@ -276,9 +349,14 @@ export default function AdminSidebar({
                 : "min-w-0 gap-3 bg-[#f8fbff] px-3 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
           )}
         >
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#1677ff_0%,#3b82f6_100%)] text-white shadow-[0_12px_26px_rgba(22,119,255,0.28)]">
-            <GraduationCap className="h-7 w-7" />
-          </div>
+          <Image
+            src="/Logo.png"
+            alt="EduLearn"
+            width={56}
+            height={56}
+            priority
+            className="h-14 w-14 shrink-0 rounded-[20px] object-cover"
+          />
 
           {!collapsed && (
             <div className="min-w-0">
@@ -288,7 +366,7 @@ export default function AdminSidebar({
                   dark ? "text-white" : "text-slate-900"
                 )}
               >
-                EduLearn
+                Edu-Learn
               </div>
 
               <div
@@ -297,7 +375,7 @@ export default function AdminSidebar({
                   dark ? "text-slate-400" : "text-slate-500"
                 )}
               >
-                Quản trị
+                {currentRole ? ROLE_LABELS[currentRole] : "User"}
               </div>
             </div>
           )}
@@ -305,10 +383,16 @@ export default function AdminSidebar({
 
         <button
           type="button"
-          onClick={toggleCollapsed}
+          onClick={() => {
+            toggleCollapsed();
+            setShowToggleButton(true);
+          }}
           className={cn(
             "absolute top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full transition-all duration-200",
             collapsed ? "right-[-12px] h-11 w-11" : "right-[-14px] h-11 w-11",
+            showToggleButton
+              ? "pointer-events-auto translate-x-0 opacity-100"
+              : "pointer-events-none translate-x-1 opacity-0",
             dark
               ? "bg-[#e9edf3] text-slate-700 shadow-[0_10px_24px_rgba(2,6,23,0.22)] hover:bg-white"
               : "bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.16)] hover:bg-slate-50"

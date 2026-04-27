@@ -131,6 +131,7 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
       <div className="flex min-h-screen">
         <AdminSidebar
           currentUser={state.currentUser}
+          currentRole={state.userAccess?.primaryRole ?? null}
           permissionMeta={state.permissionMeta}
           grantedPermissions={state.userAccess?.permissions ?? []}
         />

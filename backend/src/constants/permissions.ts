@@ -54,6 +54,10 @@ export const PERMISSIONS = Object.freeze({
   SCHEDULE_UPDATE: "schedule:update",
   SCHEDULE_DELETE: "schedule:delete",
 
+  NOTIFICATION_READ: "notification:read",
+  NOTIFICATION_CREATE: "notification:create",
+  NOTIFICATION_DELETE: "notification:delete",
+
   PAYMENT_AUDIT_READ_OWN: "payment_audit:read_own",
   PAYMENT_AUDIT_READ_ALL: "payment_audit:read_all",
   PAYMENT_AUDIT_MANAGE: "payment_audit:manage",
