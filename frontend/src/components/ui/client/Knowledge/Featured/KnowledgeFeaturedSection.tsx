@@ -52,7 +52,7 @@ function FeaturedSkeleton() {
     <div className="grid gap-5 lg:grid-cols-[1.7fr_1fr]">
       <div className="h-[430px] animate-pulse rounded-[18px] bg-slate-100" />
       <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
             className="h-[122px] animate-pulse rounded-[16px] bg-slate-100"
@@ -74,7 +74,7 @@ export default function KnowledgeFeaturedSection() {
       try {
         setLoading(true);
         const res = await blogApi.getAll({
-          limit: 4,
+          limit: 5,
           sortBy: "publishedAt",
           sortOrder: "desc",
         });
@@ -96,11 +96,11 @@ export default function KnowledgeFeaturedSection() {
   }, []);
 
   const mainPost = items[0];
-  const sidePosts = useMemo(() => items.slice(1, 4), [items]);
+  const sidePosts = useMemo(() => items.slice(1, 5), [items]);
 
   return (
-    <section className="w-full bg-white px-4 py-8 md:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
+    <section className="w-full bg-white py-8">
+      <div className="mx-auto max-w-[1240px] px-4 md:px-6">
         {loading ? (
           <FeaturedSkeleton />
         ) : mainPost ? (

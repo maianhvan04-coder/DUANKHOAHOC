@@ -16,6 +16,7 @@ import {
   AdminPreferencesProvider,
   useAdminPreferences,
 } from "@/i18n";
+import { AdminToaster } from "@/components/ui/admin/admin-toast";
 
 import {
   authApi,
@@ -139,6 +140,7 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
       )}
     >
       <AdminAutoTranslator />
+      <AdminToaster theme={dark ? "dark" : "light"} />
       <div className="flex min-h-screen">
         <AdminSidebar
           currentUser={state.currentUser}

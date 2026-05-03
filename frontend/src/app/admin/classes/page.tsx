@@ -16,7 +16,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import {
   classroomApi,
   type AttendanceStatus,
@@ -1814,7 +1814,6 @@ export default function AdminClassesPage() {
 
   return (
     <div className="space-y-6">
-      <Toaster richColors position="top-right" />
 
       <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

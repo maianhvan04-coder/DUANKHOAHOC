@@ -13,7 +13,7 @@ import {
     Users,
     X,
 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import {
     classroomApi,
     type ClassMode,
@@ -835,7 +835,6 @@ export default function AdminSchedulePage() {
 
     return (
         <div className="space-y-6">
-            <Toaster richColors position="top-right" />
 
             <AdminListTable<ClassroomItem, ScheduleSortKey>
                 rows={classes}

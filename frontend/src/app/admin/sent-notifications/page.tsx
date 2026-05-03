@@ -15,7 +15,7 @@ import {
   RefreshCw,
   UsersRound,
 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import {
   adminNotificationApi,
   type NotificationItem,
@@ -321,7 +321,6 @@ export default function AdminSentNotificationsPage() {
 
   return (
     <>
-      <Toaster richColors position="top-right" />
 
       <main className="space-y-6">
         <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">

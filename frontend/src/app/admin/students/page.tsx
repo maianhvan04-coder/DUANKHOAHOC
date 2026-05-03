@@ -17,7 +17,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import { http } from "@/lib/utils/http";
 import StudentStudyModal from "@/components/ui/admin/students/student-study-modal";
 import AdminListTable, {
@@ -768,7 +768,6 @@ export default function AdminStudentsPage() {
 
   return (
     <>
-      <Toaster richColors position="top-right" />
 
       <div className="space-y-6">
         <section className="hidden rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">

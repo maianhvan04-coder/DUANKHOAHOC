@@ -10,6 +10,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import { toast } from "sonner";
 import {
   ChevronDown,
   Code2,
@@ -49,6 +50,7 @@ import AdminListTable, {
   type AdminFilterSection,
   type AdminTableColumn,
 } from "@/components/ui/admin/admin-list-table";
+import { showAdminConfirmToast } from "@/components/ui/admin/admin-toast";
 import {
   compareSortValues,
   getPageBounds,
@@ -382,14 +384,14 @@ export default function AdminBlogPage() {
       setItems(res.items || []);
     } catch (error) {
       console.error(error);
-      setErrorMessage(
-        getErrorMessage(
-          error,
-          viewMode === "deleted"
-            ? "Không tải được danh sách bài viết đã xóa"
-            : "Không tải được danh sách bài viết"
-        )
+      const message = getErrorMessage(
+        error,
+        viewMode === "deleted"
+          ? "Không tải được danh sách bài viết đã xóa"
+          : "Không tải được danh sách bài viết"
       );
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -402,7 +404,9 @@ export default function AdminBlogPage() {
       setCategories(res.items || []);
     } catch (error) {
       console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không tải được chuyên mục blog"));
+      const message = getErrorMessage(error, "Không tải được chuyên mục blog");
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setCategoryLoading(false);
     }
@@ -600,17 +604,17 @@ export default function AdminBlogPage() {
     const plainContent = form.content.replace(/<[^>]*>/g, "").trim();
 
     if (!form.title.trim()) {
-      setErrorMessage("Vui lòng nhập tiêu đề bài viết");
+      toast.warning("Vui lòng nhập tiêu đề bài viết");
       return;
     }
 
     if (!form.category) {
-      setErrorMessage("Vui lòng chọn chuyên mục blog");
+      toast.warning("Vui lòng chọn chuyên mục blog");
       return;
     }
 
     if (!plainContent) {
-      setErrorMessage("Vui lòng nhập nội dung bài viết");
+      toast.warning("Vui lòng nhập nội dung bài viết");
       return;
     }
 
@@ -627,9 +631,16 @@ export default function AdminBlogPage() {
 
       closeForm(true);
       await loadBlogs();
+      toast.success(
+        formMode === "edit"
+          ? "Cập nhật bài viết thành công"
+          : "Tạo bài viết thành công"
+      );
     } catch (error) {
       console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không lưu được bài viết"));
+      const message = getErrorMessage(error, "Không lưu được bài viết");
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -646,66 +657,92 @@ export default function AdminBlogPage() {
       }
       await blogApi.update(item._id, body);
       await loadBlogs();
+      toast.success(nextPublished ? "Đã xuất bản bài viết" : "Đã ẩn bài viết");
     } catch (error) {
       console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không cập nhật được trạng thái bài viết"));
+      const message = getErrorMessage(
+        error,
+        "Không cập nhật được trạng thái bài viết"
+      );
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setBusyPostId(null);
     }
   }
 
   async function handleDelete(item: BlogItem) {
-    if (!window.confirm(`Xóa bài viết "${item.title}"?`)) return;
-
-    try {
-      setBusyPostId(item._id);
-      setErrorMessage("");
-      await blogApi.remove(item._id);
-      await loadBlogs();
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không xóa được bài viết"));
-    } finally {
-      setBusyPostId(null);
-    }
+    showAdminConfirmToast({
+      message: `Xóa bài viết "${item.title}"?`,
+      description: "Bài viết sẽ được chuyển sang tab Đã xóa.",
+      confirmLabel: "Xóa",
+      onConfirm: async () => {
+        try {
+          setBusyPostId(item._id);
+          setErrorMessage("");
+          await blogApi.remove(item._id);
+          await loadBlogs();
+          toast.success("Đã xóa bài viết");
+        } catch (error) {
+          console.error(error);
+          const message = getErrorMessage(error, "Không xóa được bài viết");
+          setErrorMessage(message);
+          toast.error(message);
+        } finally {
+          setBusyPostId(null);
+        }
+      },
+    });
   }
 
   async function handleRestore(item: BlogItem) {
-    if (!window.confirm(`Khôi phục bài viết "${item.title}"?`)) return;
-
-    try {
-      setBusyPostId(item._id);
-      setErrorMessage("");
-      await blogApi.restore(item._id);
-      await loadBlogs();
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không khôi phục được bài viết"));
-    } finally {
-      setBusyPostId(null);
-    }
+    showAdminConfirmToast({
+      message: `Khôi phục bài viết "${item.title}"?`,
+      confirmLabel: "Khôi phục",
+      onConfirm: async () => {
+        try {
+          setBusyPostId(item._id);
+          setErrorMessage("");
+          await blogApi.restore(item._id);
+          await loadBlogs();
+          toast.success("Khôi phục bài viết thành công");
+        } catch (error) {
+          console.error(error);
+          const message = getErrorMessage(error, "Không khôi phục được bài viết");
+          setErrorMessage(message);
+          toast.error(message);
+        } finally {
+          setBusyPostId(null);
+        }
+      },
+    });
   }
 
   async function handleForceDelete(item: BlogItem) {
-    if (
-      !window.confirm(
-        `Xóa vĩnh viễn bài viết "${item.title}"? Hành động này không thể hoàn tác.`
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setBusyPostId(item._id);
-      setErrorMessage("");
-      await blogApi.forceRemove(item._id);
-      await loadBlogs();
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không xóa vĩnh viễn được bài viết"));
-    } finally {
-      setBusyPostId(null);
-    }
+    showAdminConfirmToast({
+      message: `Xóa vĩnh viễn bài viết "${item.title}"?`,
+      description: "Hành động này không thể hoàn tác.",
+      confirmLabel: "Xóa vĩnh viễn",
+      onConfirm: async () => {
+        try {
+          setBusyPostId(item._id);
+          setErrorMessage("");
+          await blogApi.forceRemove(item._id);
+          await loadBlogs();
+          toast.success("Đã xóa vĩnh viễn bài viết");
+        } catch (error) {
+          console.error(error);
+          const message = getErrorMessage(
+            error,
+            "Không xóa vĩnh viễn được bài viết"
+          );
+          setErrorMessage(message);
+          toast.error(message);
+        } finally {
+          setBusyPostId(null);
+        }
+      },
+    });
   }
 
   function resetCategoryForm() {
@@ -733,7 +770,7 @@ export default function AdminBlogPage() {
 
   async function handleSubmitCategory() {
     if (!categoryForm.name.trim()) {
-      setErrorMessage("Vui lòng nhập tên chuyên mục");
+      toast.warning("Vui lòng nhập tên chuyên mục");
       return;
     }
 
@@ -754,28 +791,42 @@ export default function AdminBlogPage() {
 
       resetCategoryForm();
       await loadCategories();
+      toast.success(
+        editingCategory
+          ? "Cập nhật chuyên mục thành công"
+          : "Tạo chuyên mục thành công"
+      );
     } catch (error) {
       console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không lưu được chuyên mục blog"));
+      const message = getErrorMessage(error, "Không lưu được chuyên mục blog");
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setCategorySubmitting(false);
     }
   }
 
   async function handleDeleteCategory(item: BlogCategoryItem) {
-    if (!window.confirm(`Xóa chuyên mục "${item.name}"?`)) return;
-
-    try {
-      setCategorySubmitting(true);
-      setErrorMessage("");
-      await blogApi.removeCategory(item._id);
-      await loadCategories();
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(getErrorMessage(error, "Không xóa được chuyên mục blog"));
-    } finally {
-      setCategorySubmitting(false);
-    }
+    showAdminConfirmToast({
+      message: `Xóa chuyên mục "${item.name}"?`,
+      confirmLabel: "Xóa",
+      onConfirm: async () => {
+        try {
+          setCategorySubmitting(true);
+          setErrorMessage("");
+          await blogApi.removeCategory(item._id);
+          await loadCategories();
+          toast.success("Đã xóa chuyên mục blog");
+        } catch (error) {
+          console.error(error);
+          const message = getErrorMessage(error, "Không xóa được chuyên mục blog");
+          setErrorMessage(message);
+          toast.error(message);
+        } finally {
+          setCategorySubmitting(false);
+        }
+      },
+    });
   }
 
   const filterSections: AdminFilterSection[] = [

@@ -24,6 +24,8 @@ export const studentViMessages = {
   "settings.currentLanguage": "Ngôn ngữ hiện tại",
   "settings.vietnamese": "Tiếng Việt",
   "settings.english": "English",
+  "shell.brandName": "Edu-Learn",
+  "shell.brandRole": "Học Viên",
   "shell.subtitle": "Khu vực học tập dành riêng cho học viên Everest",
   "shell.student": "Học viên",
   "shell.closeMenu": "Đóng menu",

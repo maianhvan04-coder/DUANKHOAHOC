@@ -18,7 +18,7 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import {
   adminNotificationApi,
   type NotificationRecipientItem,
@@ -252,7 +252,6 @@ export default function AdminNotificationPage() {
 
   return (
     <>
-      <Toaster richColors position="top-right" />
 
       <main className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">

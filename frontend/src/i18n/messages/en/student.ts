@@ -26,6 +26,8 @@ export const studentEnMessages = {
   "settings.currentLanguage": "Current language",
   "settings.vietnamese": "Vietnamese",
   "settings.english": "English",
+  "shell.brandName": "Edu-Learn",
+  "shell.brandRole": "Student",
   "shell.subtitle": "Everest learning area for students",
   "shell.student": "Student",
   "shell.closeMenu": "Close menu",

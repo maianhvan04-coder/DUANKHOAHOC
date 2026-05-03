@@ -133,8 +133,8 @@ export default function KnowledgePostGrid() {
   };
 
   return (
-    <section className="bg-white px-4 py-8 md:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
+    <section className="bg-white py-8">
+      <div className="mx-auto max-w-[1240px] px-4 md:px-6">
         <div className="no-scrollbar flex flex-wrap gap-3">
           {categories.map((item) => {
             const isActive = selectedCategory === item;

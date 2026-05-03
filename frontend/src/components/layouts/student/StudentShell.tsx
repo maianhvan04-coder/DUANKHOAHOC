@@ -98,15 +98,23 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <aside className="flex h-full w-[290px] shrink-0 flex-col border-r border-slate-200 bg-white transition-colors dark:border-white/10 dark:bg-slate-950">
       <div className="flex h-[88px] items-center justify-between border-b border-slate-100 px-5 dark:border-white/10">
-        <Link href="/" className="inline-flex items-center">
+        <Link href="/" className="inline-flex min-w-0 items-start gap-0">
           <Image
             src="/Logo.png"
             alt="Everest"
-            width={150}
-            height={62}
-            className="h-auto w-[132px] object-contain"
+            width={142}
+            height={59}
+            className="h-auto w-[124px] shrink-0 object-contain"
             priority
           />
+          <span className="-ml-2 min-w-0 pt-2 leading-none">
+            <span className="block truncate text-xl font-extrabold text-[#0B2C5F] dark:text-white">
+              {t("shell.brandName")}
+            </span>
+            <span className="mt-2 block truncate text-base font-semibold text-slate-500 dark:text-slate-400">
+              {t("shell.brandRole")}
+            </span>
+          </span>
         </Link>
 
         <button
