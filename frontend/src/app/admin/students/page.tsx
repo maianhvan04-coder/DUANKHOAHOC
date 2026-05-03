@@ -689,7 +689,7 @@ export default function AdminStudentsPage() {
       },
       {
         id: "study",
-        label: "Study",
+        label: "Học tập",
         widthClassName: "w-[120px]",
         render: (item) => (
           <button
@@ -703,7 +703,7 @@ export default function AdminStudentsPage() {
             className="inline-flex h-8 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-500/10 hover:text-sky-600"
           >
             <BookOpen className="h-4 w-4" />
-            Study
+            Học tập
           </button>
         ),
       },
@@ -959,7 +959,7 @@ export default function AdminStudentsPage() {
             onPageChange: setPage,
             pageSizeOptions: [5, 10, 20],
           }}
-          emptyText="Khong co hoc vien phu hop."
+          emptyText="Không có học viên phù hợp."
           tableMinWidthClassName="min-w-[1040px]"
         />
 
@@ -1046,7 +1046,7 @@ export default function AdminStudentsPage() {
                 <div>Student</div>
                 <div>Role</div>
                 <div>Status</div>
-                <div>Study</div>
+                <div>Học tập</div>
                 <div>Created</div>
                 <div>Actions</div>
               </div>
@@ -1114,7 +1114,7 @@ export default function AdminStudentsPage() {
                         className="inline-flex items-center gap-2 rounded-[14px] px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600"
                       >
                         <BookOpen className="h-4 w-4" />
-                        Study
+                        Học tập
                       </button>
                     </div>
 

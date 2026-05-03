@@ -124,7 +124,7 @@ export default function RolePermissionModal({
               </span>
             </div>
             <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-              Chọn permissions cho role này
+              Chọn quyền cho vai trò này
             </p>
           </div>
 

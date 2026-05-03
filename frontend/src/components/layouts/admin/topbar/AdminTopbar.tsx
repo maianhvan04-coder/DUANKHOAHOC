@@ -2,45 +2,200 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Moon, Sun } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Bell, Globe, Moon, Sun } from "lucide-react";
+import { notificationApi } from "@/app/api/notification.api";
 import AvatarMenu from "@/components/layouts/admin/topbar/AvatarMenu";
+import { NOTIFICATION_CHANGED_EVENT } from "@/lib/utils/notification-events";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
+import {
+  ADMIN_LOCALES,
+  useAdminPreferences,
+  type AdminMessageKey,
+} from "@/i18n";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-const ADMIN_PAGE_TITLES: Array<{ path: string; title: string }> = [
-  { path: "/admin/dashboard", title: "Dashboard quản trị" },
-  { path: "/admin/users", title: "User Management" },
-  { path: "/admin/students", title: "Student Management" },
-  { path: "/admin/teachers", title: "Teacher Management" },
-  { path: "/admin/course", title: "Course Management" },
-  { path: "/admin/classes", title: "Quản lý lớp học" },
-  { path: "/admin/schedule", title: "Quản lý lịch học" },
-  { path: "/admin/category", title: "Category Management" },
-  { path: "/admin/notification", title: "Trung tâm thông báo" },
-  { path: "/admin/rbac", title: "Role & Permissions" },
-  { path: "/admin/payment-audits", title: "Audit thanh toán" },
-  { path: "/admin/security-audits", title: "Audit bảo mật" },
-  { path: "/admin/setting", title: "Cài đặt" },
-];
+const ADMIN_PAGE_TITLES = [
+  { path: "/admin/dashboard", titleKey: "page.dashboard" },
+  { path: "/admin/users", titleKey: "page.users" },
+  { path: "/admin/students", titleKey: "page.students" },
+  { path: "/admin/teachers", titleKey: "page.teachers" },
+  { path: "/admin/course", titleKey: "page.course" },
+  { path: "/admin/classes", titleKey: "page.classes" },
+  { path: "/admin/schedule", titleKey: "page.schedule" },
+  { path: "/admin/category", titleKey: "page.category" },
+  { path: "/admin/blog", titleKey: "page.blog" },
+  { path: "/admin/notification", titleKey: "page.notification" },
+  { path: "/admin/sent-notifications", titleKey: "page.sentNotifications" },
+  { path: "/admin/my-notifications", titleKey: "page.myNotifications" },
+  { path: "/admin/rbac", titleKey: "page.rbac" },
+  { path: "/admin/payment-audits", titleKey: "page.paymentAudits" },
+  { path: "/admin/security-audits", titleKey: "page.securityAudits" },
+  { path: "/admin/setting", titleKey: "page.setting" },
+] as const satisfies Array<{ path: string; titleKey: AdminMessageKey }>;
 
-function getAdminPageTitle(pathname: string) {
-  if (pathname === "/admin") return "Dashboard quản trị";
+function getAdminPageTitle(pathname: string): AdminMessageKey {
+  if (pathname === "/admin") return "page.dashboard";
 
   const match = ADMIN_PAGE_TITLES.find(
     (item) => pathname === item.path || pathname.startsWith(`${item.path}/`)
   );
 
-  return match?.title ?? "Admin";
+  return match?.titleKey ?? "common.admin";
+}
+
+function LocaleFlag({ code }: { code: "vi" | "en" }) {
+  if (code === "vi") {
+    return (
+      <span
+        aria-hidden="true"
+        className="relative inline-flex h-[18px] w-[28px] shrink-0 items-center justify-center overflow-hidden rounded-[4px] bg-[#DA251D] shadow-sm ring-1 ring-slate-200"
+      >
+        <span className="text-[10px] leading-none text-[#FFDE00]">★</span>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="relative inline-flex h-[18px] w-[28px] shrink-0 overflow-hidden rounded-[4px] bg-white shadow-sm ring-1 ring-slate-200"
+    >
+      <span
+        className="absolute inset-0"
+        style={{
+          background:
+            "repeating-linear-gradient(to bottom, #B22234 0 2px, #fff 2px 4px)",
+        }}
+      />
+      <span className="absolute left-0 top-0 h-[10px] w-[13px] bg-[#3C3B6E]">
+        <span className="absolute left-[2px] top-[1px] text-[5px] leading-none text-white">
+          ★
+        </span>
+      </span>
+    </span>
+  );
+}
+
+function AdminLanguageSwitcher({ dark }: { dark: boolean }) {
+  const { locale, setLocale, t } = useAdminPreferences();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) setOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className={cn(
+          "flex h-11 w-11 items-center justify-center rounded-full border transition",
+          dark
+            ? "border-white/10 bg-white/5 text-white hover:bg-white/10"
+            : "border-black/8 bg-white text-slate-700 hover:bg-slate-50"
+        )}
+        aria-label={t("language.label")}
+        aria-expanded={open}
+      >
+        <Globe className="h-5 w-5" />
+      </button>
+
+      <div
+        className={cn(
+          "absolute right-0 top-[calc(100%+10px)] z-[100] w-[170px] overflow-hidden rounded-xl border py-1 shadow-[0_16px_42px_rgba(15,23,42,0.18)] transition-all duration-200",
+          dark
+            ? "border-white/10 bg-[#111827]"
+            : "border-slate-200 bg-white",
+          open
+            ? "visible translate-y-0 opacity-100"
+            : "invisible -translate-y-1 opacity-0"
+        )}
+      >
+        {ADMIN_LOCALES.map((item) => (
+          <button
+            key={item.code}
+            type="button"
+            onClick={() => {
+              setLocale(item.code);
+              setOpen(false);
+            }}
+            className={cn(
+              "flex h-11 w-full items-center gap-3 px-4 text-left text-[14px] font-semibold transition",
+              locale === item.code
+                ? dark
+                  ? "bg-white/10 text-white"
+                  : "bg-[#F5F9FF] text-[#0D56A6]"
+                : dark
+                  ? "text-slate-200 hover:bg-white/10"
+                  : "text-slate-700 hover:bg-[#F5F9FF]"
+            )}
+          >
+            <LocaleFlag code={item.code} />
+            <span>{t(item.nameKey)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function AdminTopbar() {
   const { theme, toggleTheme } = useAdminTheme();
+  const { t } = useAdminPreferences();
   const pathname = usePathname();
   const dark = theme === "dark";
-  const title = getAdminPageTitle(pathname);
+  const title = t(getAdminPageTitle(pathname));
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const result = await notificationApi.getMine({
+        page: 1,
+        limit: 1,
+        isRead: "false",
+      });
+      setUnreadCount(result.data.unreadCount || 0);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadUnreadCount();
+    }, 0);
+
+    const handleChanged = () => {
+      void loadUnreadCount();
+    };
+
+    window.addEventListener(NOTIFICATION_CHANGED_EVENT, handleChanged);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(NOTIFICATION_CHANGED_EVENT, handleChanged);
+    };
+  }, [loadUnreadCount]);
 
   return (
     <header
@@ -73,25 +228,31 @@ export default function AdminTopbar() {
                   : "border-black/8 bg-white text-slate-700"
               )}
               aria-label={
-                dark ? "Chuyển sang light mode" : "Chuyển sang dark mode"
+                dark ? t("common.lightMode") : t("common.darkMode")
               }
             >
               {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
             <Link
-              href="/admin/notification"
+              href="/admin/my-notifications"
               className={cn(
                 "relative flex h-11 w-11 items-center justify-center rounded-full border transition",
                 dark
                   ? "border-white/10 bg-white/5 text-white"
                   : "border-black/8 bg-white text-slate-700"
               )}
-              aria-label="Thông báo"
+              aria-label={t("common.notificationsMine")}
             >
               <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#1677ff]" />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#1677ff] px-1 text-[10px] font-black text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
             </Link>
+
+            <AdminLanguageSwitcher dark={dark} />
           </div>
 
           <AvatarMenu />

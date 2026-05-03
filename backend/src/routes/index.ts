@@ -17,6 +17,7 @@ import paymentAuditRouter from "../modules/audit/payment/payment-audit.route";
 import securityAuditRouter from "../modules/audit/security/security-audit.route";
 import dashboardRouter from "../modules/dashboard/dashboard.route";
 import accountRouter  from "../modules/account/account.route";
+import blogRouter from "../modules/blog/blog.route";
 import {
   adminNotificationRouter,
   userNotificationRouter,
@@ -41,6 +42,7 @@ router.use("/teachers", teacherRouter);
 router.use("/students", studentRouter);
 router.use("/classes", classRoomRouter);
 router.use("/cart", cartRouter);
+router.use("/blogs", blogRouter);
 
 // dashboard
 router.use("/dashboard", dashboardRouter);

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { clearToken, clearUser } from "@/lib/utils/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useAdminPreferences } from "@/i18n";
 
 function resolveAvatarUrl(avatar?: string | null): string | null {
   if (!avatar) return null;
@@ -16,6 +17,7 @@ function resolveAvatarUrl(avatar?: string | null): string | null {
 export default function AvatarMenu() {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useAdminPreferences();
 
   const { user } = useAuth();
 
@@ -76,9 +78,9 @@ export default function AvatarMenu() {
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className="flex items-center bg-transparent p-0"
-        aria-label="Tài khoản"
+        aria-label={t("common.account")}
         aria-expanded={open}
-        title={safeName || safeEmail || "Tài khoản"}
+        title={safeName || safeEmail || t("common.account")}
       >
         {userAvatar ? (
           <img
@@ -120,10 +122,10 @@ export default function AvatarMenu() {
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-900">
-                {safeName || "Người dùng"}
+                {safeName || t("common.user")}
               </p>
               <p className="truncate text-xs text-slate-500">
-                {safeEmail || "Chưa có email"}
+                {safeEmail || t("common.noEmail")}
               </p>
             </div>
           </div>
@@ -135,7 +137,7 @@ export default function AvatarMenu() {
             onClick={() => setOpen(false)}
             className="block rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
           >
-            Quay về client
+            {t("common.backToClient")}
           </Link>
 
           <button
@@ -145,7 +147,9 @@ export default function AvatarMenu() {
             className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="h-4 w-4" />
-            <span>{loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}</span>
+            <span>
+              {loggingOut ? t("common.loggingOut") : t("common.logout")}
+            </span>
           </button>
         </div>
       </div>

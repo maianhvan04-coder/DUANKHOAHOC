@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  FileText,
   FolderKanban,
   FolderLock,
   GraduationCap,
@@ -30,6 +31,7 @@ import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
 import { authApi, type AuthUser, type Role } from "@/app/api/auth.api";
 import type { PermissionMetaItem, PermissionKey } from "@/app/api/rbac.api";
 import { clearAuth } from "@/lib/utils/storage";
+import { useAdminPreferences, type AdminMessageKey } from "@/i18n";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -37,7 +39,7 @@ function cn(...xs: Array<string | false | null | undefined>) {
 
 type SidebarChildItem = {
   href: string;
-  text: string;
+  textKey: AdminMessageKey;
   icon: LucideIcon;
   requiredGroupKeys?: string[];
   requiredRolesAny?: Role[];
@@ -45,7 +47,7 @@ type SidebarChildItem = {
 
 type SidebarItem = {
   href?: string;
-  text: string;
+  textKey: AdminMessageKey;
   icon: LucideIcon;
   requiredGroupKeys?: string[];
   requiredRolesAny?: Role[];
@@ -53,7 +55,7 @@ type SidebarItem = {
 };
 
 type SidebarGroup = {
-  label: string;
+  labelKey: AdminMessageKey;
   items: SidebarItem[];
 };
 
@@ -74,56 +76,56 @@ const ROLE_LABELS: Record<Role, string> = {
 
 const menuGroups: SidebarGroup[] = [
   {
-    label: "HOME",
+    labelKey: "sidebar.group.home",
     items: [
       {
         href: "/admin/dashboard",
-        text: "Dashboard",
+        textKey: "sidebar.dashboard",
         icon: LayoutDashboard,
         requiredGroupKeys: ["DASHBOARD"],
       },
     ],
   },
   {
-    label: "USER",
+    labelKey: "sidebar.group.user",
     items: [
       {
         href: "/admin/users",
-        text: "Người dùng",
+        textKey: "sidebar.users",
         icon: User,
         requiredGroupKeys: ["USERS"],
       },
       {
         href: "/admin/students",
-        text: "Học viên",
+        textKey: "sidebar.students",
         icon: Users,
         requiredGroupKeys: ["STUDENTS"],
       },
       {
         href: "/admin/teachers",
-        text: "Giảng viên",
+        textKey: "sidebar.teachers",
         icon: GraduationCap,
         requiredGroupKeys: ["TEACHERS"],
       },
     ],
   },
   {
-    label: "GENERAL",
+    labelKey: "sidebar.group.general",
     items: [
       {
-        text: "Khóa học",
+        textKey: "sidebar.courses",
         icon: BookOpen,
         requiredGroupKeys: ["CATEGORIES", "COURSES"],
         children: [
           {
             href: "/admin/category",
-            text: "Danh mục",
+            textKey: "sidebar.categories",
             icon: FolderKanban,
             requiredGroupKeys: ["CATEGORIES"],
           },
           {
             href: "/admin/course",
-            text: "Sản phẩm",
+            textKey: "sidebar.products",
             icon: Package2,
             requiredGroupKeys: ["COURSES"],
           },
@@ -132,28 +134,40 @@ const menuGroups: SidebarGroup[] = [
     ],
   },
   {
-    label: "STUDY",
+    labelKey: "sidebar.group.posts",
+    items: [
+      {
+        href: "/admin/blog",
+        textKey: "sidebar.blog",
+        icon: FileText,
+        requiredGroupKeys: ["BLOGS"],
+        requiredRolesAny: ["ADMIN"],
+      },
+    ],
+  },
+  {
+    labelKey: "sidebar.group.study",
     items: [
       {
         href: "/admin/classes",
-        text: "Lớp học",
+        textKey: "sidebar.classes",
         icon: NotebookPen,
         requiredGroupKeys: ["CLASSROOMS"],
       },
       {
         href: "/admin/schedule",
-        text: "Lịch học",
+        textKey: "sidebar.schedule",
         icon: CalendarDays,
         requiredGroupKeys: ["SCHEDULES"],
       },
     ],
   },
   {
-    label: "NOTIFICATIONS",
+    labelKey: "sidebar.group.notifications",
     items: [
       {
         href: "/admin/notification",
-        text: "Thông báo",
+        textKey: "sidebar.createNotification",
         icon: Bell,
         requiredGroupKeys: ["NOTIFICATIONS"],
         requiredRolesAny: ["ADMIN", "MANAGER", "TEACHER"],
@@ -161,34 +175,41 @@ const menuGroups: SidebarGroup[] = [
     ],
   },
   {
-    label: "AUDIT",
+    labelKey: "sidebar.group.audit",
     items: [
       {
+        href: "/admin/sent-notifications",
+        textKey: "sidebar.notificationHistory",
+        icon: Bell,
+        requiredGroupKeys: ["NOTIFICATIONS"],
+        requiredRolesAny: ["ADMIN", "MANAGER", "TEACHER"],
+      },
+      {
         href: "/admin/payment-audits",
-        text: "Lịch sử thanh toán",
+        textKey: "sidebar.paymentHistory",
         icon: CreditCard,
         requiredGroupKeys: ["AUDIT"],
       },
       {
         href: "/admin/security-audits",
-        text: "Lịch sử bảo mật",
+        textKey: "sidebar.securityHistory",
         icon: FolderLock,
         requiredGroupKeys: ["AUDIT"],
       },
     ],
   },
   {
-    label: "SETTING",
+    labelKey: "sidebar.group.setting",
     items: [
       {
         href: "/admin/rbac",
-        text: "Phân quyền",
+        textKey: "sidebar.rbac",
         icon: ShieldCheck,
         requiredGroupKeys: ["SYSTEM"],
       },
       {
         href: "/admin/setting",
-        text: "Cài đặt",
+        textKey: "sidebar.settings",
         icon: Settings,
         requiredGroupKeys: ["SYSTEM"],
       },
@@ -206,12 +227,13 @@ export default function AdminSidebar({
   const router = useRouter();
   const { collapsed, toggleCollapsed } = useAdminLayout();
   const { theme } = useAdminTheme();
+  const { t } = useAdminPreferences();
   const dark = theme === "dark";
 
   const sidebarRef = useRef<HTMLElement | null>(null);
   const [showToggleButton, setShowToggleButton] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    "Khóa học": false,
+    "sidebar.courses": false,
   });
 
   useEffect(() => {
@@ -299,10 +321,10 @@ export default function AdminSidebar({
       .filter(Boolean) as SidebarGroup[];
   }, [currentRole, grantedGroupKeys]);
 
-  const toggleSubmenu = (text: string) => {
+  const toggleSubmenu = (textKey: AdminMessageKey) => {
     setOpenMenus((prev) => ({
       ...prev,
-      [text]: !prev[text],
+      [textKey]: !prev[textKey],
     }));
   };
 
@@ -339,7 +361,7 @@ export default function AdminSidebar({
     >
       <div className="relative px-4 py-4">
         <div
-          title={currentUser?.name || "Quản trị"}
+          title={currentUser?.name || t("common.admin")}
           className={cn(
             "flex items-center rounded-[28px] transition-all duration-300",
             collapsed
@@ -397,7 +419,9 @@ export default function AdminSidebar({
               ? "bg-[#e9edf3] text-slate-700 shadow-[0_10px_24px_rgba(2,6,23,0.22)] hover:bg-white"
               : "bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.16)] hover:bg-slate-50"
           )}
-          aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+          aria-label={
+            collapsed ? t("common.openSidebar") : t("common.closeSidebar")
+          }
         >
           {collapsed ? (
             <ChevronRight className="h-5 w-5" />
@@ -410,7 +434,7 @@ export default function AdminSidebar({
       <div className="flex-1 overflow-y-auto px-4 py-5">
         <nav className="space-y-6">
           {visibleMenuGroups.map((group) => (
-            <div key={group.label}>
+            <div key={group.labelKey}>
               {!collapsed && (
                 <div
                   className={cn(
@@ -418,7 +442,7 @@ export default function AdminSidebar({
                     dark ? "text-slate-500" : "text-slate-400"
                   )}
                 >
-                  {group.label}
+                  {t(group.labelKey)}
                 </div>
               )}
 
@@ -427,18 +451,18 @@ export default function AdminSidebar({
                   const Icon = item.icon;
 
                   if (item.children?.length) {
-                    const isOpen = !!openMenus[item.text];
+                    const isOpen = !!openMenus[item.textKey];
                     const childActive = item.children.some((child) =>
                       pathname.startsWith(child.href)
                     );
 
                     return (
-                      <div key={item.text}>
+                      <div key={item.textKey}>
                         <button
                           type="button"
                           onClick={() => {
                             if (collapsed) toggleCollapsed();
-                            toggleSubmenu(item.text);
+                            toggleSubmenu(item.textKey);
                           }}
                           className={cn(
                             "flex w-full items-center rounded-2xl transition-all duration-200",
@@ -477,7 +501,7 @@ export default function AdminSidebar({
 
                             {!collapsed && (
                               <span className="text-[15px] font-medium">
-                                {item.text}
+                                {t(item.textKey)}
                               </span>
                             )}
                           </div>
@@ -515,7 +539,7 @@ export default function AdminSidebar({
                                 >
                                   <ChildIcon className="h-4 w-4 shrink-0" />
                                   <span className="text-[14px] font-medium">
-                                    {child.text}
+                                    {t(child.textKey)}
                                   </span>
                                 </Link>
                               );
@@ -565,7 +589,7 @@ export default function AdminSidebar({
 
                       {!collapsed && (
                         <span className="text-[15px] font-medium">
-                          {item.text}
+                          {t(item.textKey)}
                         </span>
                       )}
                     </Link>
@@ -599,7 +623,9 @@ export default function AdminSidebar({
           </span>
 
           {!collapsed && (
-            <span className="text-[15px] font-medium">Đăng xuất</span>
+            <span className="text-[15px] font-medium">
+              {t("common.logout")}
+            </span>
           )}
         </button>
       </div>

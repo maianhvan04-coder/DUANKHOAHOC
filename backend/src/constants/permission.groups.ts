@@ -9,6 +9,7 @@ export const PERMISSION_GROUPS = Object.freeze({
   ENROLLMENTS: { key: "ENROLLMENTS", label: "Đăng ký học", icon: "clipboard-list", order: 60 },
   SCHEDULES: { key: "SCHEDULES", label: "Lịch học", icon: "calendar-days", order: 70 },
   NOTIFICATIONS: { key: "NOTIFICATIONS", label: "Thông báo", icon: "bell", order: 75 },
+  BLOGS: { key: "BLOGS", label: "Bài viết", icon: "file-text", order: 78 },
   AUDIT: { key: "AUDIT", label: "Audit", icon: "clipboard-check", order: 80 },
   SYSTEM: { key: "SYSTEM", label: "Hệ thống", icon: "shield", order: 99 },
 });

@@ -167,7 +167,7 @@ function getClassRoomName(item: StudentStudyItem) {
 }
 
 function getModeLabel(mode?: StudyMode) {
-  return mode === "OFFLINE" ? "Offline" : "Online";
+  return mode === "OFFLINE" ? "Trực tiếp" : "Trực tuyến";
 }
 
 function getScheduleText(item: StudentStudyItem) {
@@ -274,7 +274,7 @@ function StudyForm({
 
       if (mode === "edit" && initialData?._id) {
         await studentStudyApi.update(initialData._id, payload);
-        toast.success("Cập nhật study thành công");
+        toast.success("Cập nhật hồ sơ học tập thành công");
       } else {
         await studentStudyApi.create(studentId, payload);
         toast.success("Gán học viên vào lớp thành công");
@@ -282,7 +282,7 @@ function StudyForm({
 
       await onDone();
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Lưu study thất bại"));
+      toast.error(getErrorMessage(error, "Lưu hồ sơ học tập thất bại"));
     } finally {
       setSubmitting(false);
     }
@@ -422,7 +422,7 @@ function StudyForm({
           onChange={(e) => setField("isActive", e.target.checked)}
           className="h-4 w-4 rounded border-slate-300"
         />
-        Study đang hoạt động
+        Hồ sơ học tập đang hoạt động
       </label>
 
       <div className="flex flex-wrap gap-3 pt-1">
@@ -434,7 +434,7 @@ function StudyForm({
           {saving || submitting
             ? "Đang lưu..."
             : mode === "edit"
-              ? "Cập nhật study"
+              ? "Cập nhật hồ sơ học tập"
               : "Gán vào lớp"}
         </button>
 
@@ -479,7 +479,7 @@ export default function StudentStudyModal({
       setItems(studyItems);
       setClassRooms(classRoomItems.filter((item) => item.isDeleted !== true));
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Không tải được study"));
+      toast.error(getErrorMessage(error, "Không tải được hồ sơ học tập"));
     } finally {
       setLoading(false);
     }
@@ -506,17 +506,17 @@ export default function StudentStudyModal({
 
   async function handleDelete(item: StudentStudyItem) {
     const title = getCourseTitle(item);
-    const ok = window.confirm(`Xóa study "${title}"?`);
+    const ok = window.confirm(`Xóa hồ sơ học tập "${title}"?`);
     if (!ok) return;
 
     try {
       await studentStudyApi.remove(item._id);
-      toast.success("Xóa study thành công");
+      toast.success("Xóa hồ sơ học tập thành công");
       await loadData();
       setFormMode("create");
       setEditingItem(null);
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Xóa study thất bại"));
+      toast.error(getErrorMessage(error, "Xóa hồ sơ học tập thất bại"));
     }
   }
 
@@ -539,7 +539,7 @@ export default function StudentStudyModal({
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
           <div>
             <h2 className="text-[30px] font-bold tracking-[-0.02em] text-slate-900">
-              Student Study
+              Hồ sơ học tập
             </h2>
             <p className="mt-1 text-base text-slate-500">{studentName}</p>
           </div>
@@ -585,7 +585,7 @@ export default function StudentStudyModal({
                   <BookOpen className="h-7 w-7 text-slate-400" />
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-slate-800">
-                  Chưa có study nào
+                  Chưa có hồ sơ học tập nào
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
                   Bấm “Gán vào lớp” để thêm lớp học cho học viên.
@@ -767,10 +767,10 @@ export default function StudentStudyModal({
                 Ghi chú hệ thống
               </h4>
               <div className="mt-3 space-y-2 text-sm text-slate-600">
-                <p>- Admin chỉ gán học viên vào lớp học.</p>
+                <p>- Quản trị viên chỉ gán học viên vào lớp học.</p>
                 <p>- Giáo viên, lịch học, phòng học được lấy theo lớp.</p>
                 <p>- Điểm, tiến độ, điểm danh và vinh danh sẽ cập nhật ở màn quản lý lớp.</p>
-                <p>- Nếu bật hiển thị vinh danh thì bên user sẽ thấy.</p>
+                <p>- Nếu bật hiển thị vinh danh thì bên người dùng sẽ thấy.</p>
               </div>
             </div>
           </div>

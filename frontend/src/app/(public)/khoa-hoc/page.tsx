@@ -1,47 +1,116 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-  Heart,
-  Star,
-  Users,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { BookOpen, Heart, Search, Star, Users, X } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
+import { cartApi } from "@/app/api/cart.api";
 import {
   productApi,
   type ProductItem,
-  type ProductStatus,
+  type ProductLevel,
   type ProductMode,
+  type ProductStatus,
 } from "@/app/api/course.api";
+import { paymentApi } from "@/app/api/payment.api";
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+      checkoutUrl?: string;
+    };
+  };
+  message?: string;
+};
+
+type CheckoutResponse = {
+  data?: {
+    checkoutUrl?: string;
+    data?: {
+      checkoutUrl?: string;
+    };
+    item?: {
+      checkoutUrl?: string;
+    };
+  };
+};
+
+const FAVORITE_STORAGE_KEY = "favorite_course_ids";
+const FAVORITE_EVENT = "favorite-courses-change";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === "object" && error !== null) {
+    const apiError = error as ApiError;
+    return (
+      apiError.response?.data?.message ||
+      apiError.response?.data?.error ||
+      apiError.message ||
+      fallback
+    );
+  }
+
+  return fallback;
+}
+
+function getCheckoutUrl(response: CheckoutResponse) {
+  return (
+    response.data?.checkoutUrl ||
+    response.data?.data?.checkoutUrl ||
+    response.data?.item?.checkoutUrl ||
+    ""
+  );
+}
+
+function readFavoriteCourseIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(FAVORITE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return new Set(
+      Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : []
+    );
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function writeFavoriteCourseIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(FAVORITE_STORAGE_KEY, JSON.stringify([...ids]));
+  window.dispatchEvent(new Event(FAVORITE_EVENT));
 }
 
 function formatPrice(value?: number) {
   return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 }
 
-function formatNumber(value?: number) {
-  return Number(value || 0).toLocaleString("vi-VN");
-}
-
 function getCategoryId(category: string | CategoryItem) {
   return typeof category === "string" ? category : category?._id || "";
 }
 
+function getCategoryName(category: string | CategoryItem, categories: CategoryItem[]) {
+  if (typeof category !== "string") return category?.name || "Danh mục";
+
+  return categories.find((item) => item._id === category)?.name || "Danh mục";
+}
+
 function getTeacherDisplayName(item: ProductItem) {
   if (item.teacher && typeof item.teacher !== "string") {
-    return item.teacher.user?.name || item.teacherName || "Đang cập nhật giảng viên";
+    return item.teacher.user?.name || item.teacherName || "Đang cập nhật";
   }
 
-  return item.teacherName || "Đang cập nhật giảng viên";
+  return item.teacherName || "Đang cập nhật";
 }
 
 function getStatusLabel(status: ProductStatus) {
@@ -50,16 +119,22 @@ function getStatusLabel(status: ProductStatus) {
   return "Đã đầy";
 }
 
+function getStatusButtonLabel(status: ProductStatus) {
+  if (status === "OPEN") return "Đăng ký";
+  if (status === "COMING") return "Sắp mở";
+  return "Đã đầy";
+}
+
 function getStatusClass(status: ProductStatus) {
   if (status === "OPEN") {
-    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
   if (status === "COMING") {
-    return "bg-amber-50 text-amber-700 border-amber-200";
+    return "border-amber-200 bg-amber-50 text-amber-700";
   }
 
-  return "bg-rose-50 text-rose-700 border-rose-200";
+  return "border-rose-200 bg-rose-50 text-rose-700";
 }
 
 function getModeLabel(modes?: ProductMode[]) {
@@ -73,259 +148,352 @@ function getModeLabel(modes?: ProductMode[]) {
   return modes.map((mode) => modeMap[mode]).join(" / ");
 }
 
-function ProductCard({ item }: { item: ProductItem }) {
-  const router = useRouter();
+function ProductCard({
+  item,
+  categories,
+  onViewDetails,
+}: {
+  item: ProductItem;
+  categories: CategoryItem[];
+  onViewDetails: (item: ProductItem) => void;
+}) {
   const [isFavorite, setIsFavorite] = useState(false);
-
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
   const canRegister = item.status === "OPEN" && item.isActive !== false;
 
-  const handleRegister = () => {
-    if (!canRegister) return;
-    router.push(`/courses/${item.slug || item._id}`);
-  };
+  useEffect(() => {
+    setIsFavorite(readFavoriteCourseIds().has(item._id));
+  }, [item._id]);
+
+  function toggleFavorite() {
+    const ids = readFavoriteCourseIds();
+    const next = !ids.has(item._id);
+
+    if (next) {
+      ids.add(item._id);
+    } else {
+      ids.delete(item._id);
+    }
+
+    writeFavoriteCourseIds(ids);
+    setIsFavorite(next);
+  }
+
+  async function handleCheckoutNow() {
+    if (!canRegister || checkingOut) return;
+
+    try {
+      setCheckingOut(true);
+      setCheckoutError("");
+
+      await cartApi.selectAll({ selected: false });
+      await cartApi.addItem({ courseId: item._id, quantity: 1 });
+      await cartApi.updateItemQuantity(item._id, { quantity: 1 });
+      await cartApi.toggleItemSelected(item._id, { selected: true });
+
+      const response = await paymentApi.createSession();
+      const checkoutUrl = getCheckoutUrl(response);
+
+      if (!checkoutUrl) {
+        throw new Error("Không tạo được link thanh toán");
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error: unknown) {
+      setCheckoutError(getErrorMessage(error, "Không thể khởi tạo thanh toán"));
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   return (
-    <article className="group w-[280px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
-      <div className="relative h-[160px] overflow-hidden bg-slate-100">
+    <article className="grid min-h-[154px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:border-[#0D56A6]/40 hover:shadow-md sm:grid-cols-[42%_minmax(0,1fr)]">
+      <div className="relative min-h-[154px] bg-slate-100">
         {item.image ? (
           <img
             src={item.image}
             alt={item.title}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full items-center justify-center">
+          <div className="flex h-full min-h-[154px] items-center justify-center">
             <BookOpen size={32} className="text-slate-400" />
           </div>
         )}
 
-        <div className="absolute left-3 top-3 flex items-center gap-2">
+        <div className="absolute left-2 top-2 flex items-center gap-1.5">
           <span
             className={cn(
-              "rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+              "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold shadow-sm",
               getStatusClass(item.status)
             )}
           >
             {getStatusLabel(item.status)}
           </span>
+
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+            className={cn(
+              "inline-flex h-7 w-7 items-center justify-center rounded-full border bg-white/95 shadow-sm transition hover:bg-rose-50",
+              isFavorite
+                ? "border-rose-200 text-rose-600"
+                : "border-slate-200 text-slate-500 hover:text-rose-500"
+            )}
+          >
+            <Heart
+              className={cn("h-3.5 w-3.5", isFavorite && "fill-current")}
+              strokeWidth={2}
+            />
+          </button>
         </div>
       </div>
 
-      <div className="p-4">
-        <h3 className="line-clamp-2 min-h-[48px] text-[16px] font-semibold leading-6 text-slate-900">
-          {item.title}
-        </h3>
-
-        <p className="mt-1 line-clamp-1 text-[13px] text-slate-500">
-          {getTeacherDisplayName(item)}
+      <div className="flex min-w-0 flex-col p-3">
+        <p className="mb-1 line-clamp-1 text-[11px] font-semibold text-[#0D56A6]">
+          {getCategoryName(item.category, categories)}
         </p>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-slate-500">
-          <span className="flex items-center gap-1">
-            <Star size={13} className="text-amber-500" />
-            <span>{item.rating || 0}</span>
-          </span>
+        <h2 className="line-clamp-2 text-[17px] font-black leading-5 text-slate-950">
+          {item.title}
+        </h2>
 
-          <span className="flex items-center gap-1">
-            <Users size={13} />
-            <span>{formatNumber(item.studentCount)}</span>
-          </span>
-
-          <span className="flex items-center gap-1">
-            <Clock3 size={13} />
-            <span>{item.durationText || "--"}</span>
-          </span>
-        </div>
-
-        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-[13px] text-slate-600">
-          <p>
-            <span className="font-medium text-slate-900">Hình thức:</span>{" "}
-            {getModeLabel(item.modes)}
+        <div className="mt-2 space-y-0.5 text-[12px] leading-5 text-slate-800">
+          <p className="line-clamp-1">
+            <span className="font-bold text-slate-950">Giảng viên:</span>{" "}
+            {getTeacherDisplayName(item)}
           </p>
-
           <p>
-            <span className="font-medium text-slate-900">Trình độ:</span>{" "}
+            <span className="font-bold text-slate-950">Thời lượng:</span>{" "}
+            {item.durationText || "Đang cập nhật"}
+          </p>
+          <p>
+            <span className="font-bold text-slate-950">Trình độ:</span>{" "}
             {item.level || "Đang cập nhật"}
           </p>
-
           <p>
-            <span className="font-medium text-slate-900">Học phí:</span>{" "}
+            <span className="font-bold text-slate-950">Hình thức:</span>{" "}
+            {getModeLabel(item.modes)}
+          </p>
+          <p>
+            <span className="font-bold text-slate-950">Học phí:</span>{" "}
             {typeof item.price === "number" ? formatPrice(item.price) : "Liên hệ"}
           </p>
         </div>
 
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-auto flex gap-2 pt-3">
           <button
             type="button"
-            onClick={() => setIsFavorite((prev) => !prev)}
-            aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
-            className={cn(
-              "inline-flex h-11 w-11 items-center justify-center rounded-xl transition",
-              isFavorite
-                ? "bg-rose-50 text-rose-600 ring-1 ring-rose-200"
-                : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-100 hover:text-rose-500"
-            )}
+            onClick={() => onViewDetails(item)}
+            className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-[#0D56A6] bg-white px-3 text-[12px] font-bold text-[#0D56A6] transition hover:bg-[#F0F7FF]"
           >
-            <Heart
-              className={cn("h-4.5 w-4.5", isFavorite ? "fill-current" : "")}
-              strokeWidth={2}
-            />
+            Xem chi tiết
           </button>
 
           <button
             type="button"
-            onClick={handleRegister}
-            disabled={!canRegister}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-slate-900 px-4 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            onClick={() => void handleCheckoutNow()}
+            disabled={!canRegister || checkingOut}
+            className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-[#0D56A6] px-3 text-[12px] font-bold text-white transition hover:bg-[#0B4A8E] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {item.status === "OPEN"
-              ? "Đăng ký khóa học"
-              : item.status === "COMING"
-              ? "Sắp mở"
-              : "Đã đầy"}
+            {checkingOut ? "Đang chuyển..." : getStatusButtonLabel(item.status)}
           </button>
         </div>
+
+        {checkoutError ? (
+          <p className="mt-2 line-clamp-2 text-[11px] font-semibold text-rose-600">
+            {checkoutError}
+          </p>
+        ) : null}
       </div>
     </article>
   );
 }
 
-function CategorySection({
-  category,
-  items,
-  sectionId,
-}: {
-  category: CategoryItem;
-  items: ProductItem[];
-  sectionId: string;
-}) {
-  const rowRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollState = () => {
-    const el = rowRef.current;
-    if (!el) return;
-
-    setCanScrollLeft(el.scrollLeft > 8);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
-  };
-
-  useEffect(() => {
-    updateScrollState();
-
-    const el = rowRef.current;
-    if (!el) return;
-
-    const onScroll = () => updateScrollState();
-    const onResize = () => updateScrollState();
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      el.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onResize);
-    };
-  }, [items.length]);
-
-  const scrollRow = (direction: "left" | "right") => {
-    if (!rowRef.current) return;
-
-    rowRef.current.scrollBy({
-      left: direction === "left" ? -620 : 620,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <section
-      id={sectionId}
-      className="scroll-mt-28 rounded-3xl border border-slate-200 bg-white p-5 md:p-6"
-    >
-      <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[12px] font-medium text-slate-600">
-            {items.length} khóa học
-          </div>
-
-          <h2 className="text-[24px] font-bold leading-tight text-slate-900 md:text-[28px]">
-            {category.name}
-          </h2>
-
-          <p className="mt-1 text-[14px] text-slate-500">
-            {category.description || "Danh sách khóa học trong danh mục này"}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => scrollRow("left")}
-            disabled={!canScrollLeft}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronLeft size={18} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => scrollRow("right")}
-            disabled={!canScrollRight}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
-
-      <div
-        ref={rowRef}
-        className="flex gap-4 overflow-x-auto pb-2 scroll-smooth [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {items.map((item) => (
-          <ProductCard key={item._id} item={item} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function ProductsSkeleton() {
   return (
-    <div className="space-y-8">
-      {Array.from({ length: 3 }).map((_, i) => (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 9 }).map((_, index) => (
         <div
-          key={i}
-          className="rounded-3xl border border-slate-200 bg-white p-5 md:p-6"
+          key={index}
+          className="grid min-h-[154px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm sm:grid-cols-[42%_minmax(0,1fr)]"
         >
-          <div className="h-6 w-24 animate-pulse rounded-full bg-slate-100" />
-          <div className="mt-3 h-8 w-64 animate-pulse rounded-lg bg-slate-200" />
-          <div className="mt-2 h-4 w-80 animate-pulse rounded bg-slate-100" />
-
-          <div className="mt-6 flex gap-4 overflow-hidden">
-            {Array.from({ length: 4 }).map((__, j) => (
-              <div
-                key={j}
-                className="w-[280px] shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white"
-              >
-                <div className="h-[160px] animate-pulse bg-slate-200" />
-                <div className="p-4">
-                  <div className="h-5 animate-pulse rounded bg-slate-200" />
-                  <div className="mt-2 h-5 w-3/4 animate-pulse rounded bg-slate-100" />
-                  <div className="mt-4 h-4 w-1/2 animate-pulse rounded bg-slate-100" />
-                  <div className="mt-5 h-10 animate-pulse rounded bg-slate-100" />
-                  <div className="mt-4 h-8 w-24 animate-pulse rounded bg-slate-200" />
-                </div>
-              </div>
-            ))}
+          <div className="min-h-[154px] animate-pulse bg-slate-200" />
+          <div className="p-3">
+            <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
+            <div className="mt-2 h-5 animate-pulse rounded bg-slate-200" />
+            <div className="mt-1 h-5 w-2/3 animate-pulse rounded bg-slate-100" />
+            <div className="mt-4 space-y-2">
+              <div className="h-3 animate-pulse rounded bg-slate-100" />
+              <div className="h-3 w-4/5 animate-pulse rounded bg-slate-100" />
+              <div className="h-3 w-3/5 animate-pulse rounded bg-slate-100" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="h-9 animate-pulse rounded bg-slate-100" />
+              <div className="h-9 animate-pulse rounded bg-slate-200" />
+            </div>
           </div>
         </div>
       ))}
     </div>
   );
 }
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function CourseDetailModal({
+  item,
+  categories,
+  onClose,
+}: {
+  item: ProductItem;
+  categories: CategoryItem[];
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Thông tin khóa học ${item.title}`}
+      onMouseDown={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.24)]"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-5 py-4">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0D56A6]">
+              {getCategoryName(item.category, categories)}
+            </p>
+            <h2 className="mt-1 line-clamp-1 text-xl font-black text-slate-950">
+              {item.title}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+            aria-label="Đóng"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="grid max-h-[calc(90vh-73px)] overflow-y-auto lg:grid-cols-[42%_minmax(0,1fr)]">
+          <div className="relative min-h-[260px] bg-slate-100">
+            {item.image ? (
+              <img
+                src={item.image}
+                alt={item.title}
+                className="h-full min-h-[260px] w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full min-h-[260px] items-center justify-center">
+                <BookOpen className="h-12 w-12 text-slate-400" />
+              </div>
+            )}
+
+            <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex rounded-full border px-3 py-1 text-xs font-bold shadow-sm",
+                  getStatusClass(item.status)
+                )}
+              >
+                {getStatusLabel(item.status)}
+              </span>
+            </div>
+          </div>
+
+          <div className="p-5 md:p-6">
+            <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 font-bold text-amber-700">
+                <Star className="h-4 w-4 fill-current" />
+                {Number(item.rating || 0).toFixed(1)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 font-bold text-[#0D56A6]">
+                <Users className="h-4 w-4" />
+                {Number(item.studentCount || 0).toLocaleString("vi-VN")} học viên
+              </span>
+            </div>
+
+            <p className="mt-5 text-sm leading-7 text-slate-600">
+              {item.shortDescription ||
+                "Khóa học đang được cập nhật mô tả chi tiết. Bạn có thể xem các thông tin chính về giảng viên, thời lượng, trình độ và hình thức học bên dưới."}
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <DetailRow label="Giảng viên" value={getTeacherDisplayName(item)} />
+              <DetailRow label="Thời lượng" value={item.durationText || "Đang cập nhật"} />
+              <DetailRow label="Trình độ" value={item.level || "Đang cập nhật"} />
+              <DetailRow label="Hình thức" value={getModeLabel(item.modes)} />
+              <DetailRow
+                label="Học phí"
+                value={
+                  typeof item.price === "number"
+                    ? formatPrice(item.price)
+                    : "Liên hệ"
+                }
+              />
+              <DetailRow label="Trạng thái" value={getStatusLabel(item.status)} />
+            </div>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+              <p className="text-sm font-bold text-slate-950">Thông tin đăng ký</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Nhấn nút `Đăng ký` trên card khóa học để chuyển trực tiếp sang
+                thanh toán online qua VNPAY.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const levelOptions: Array<{ value: "" | ProductLevel; label: string }> = [
+  { value: "", label: "Trình độ (Tất cả)" },
+  { value: "Cơ bản", label: "Cơ bản" },
+  { value: "Trung cấp", label: "Trung cấp" },
+  { value: "Nâng cao", label: "Nâng cao" },
+];
+
+const modeOptions: Array<{ value: "" | ProductMode; label: string }> = [
+  { value: "", label: "Hình thức (Tất cả)" },
+  { value: "ONLINE", label: "Online" },
+  { value: "OFFLINE", label: "Trực tiếp" },
+];
+
+const statusOptions: Array<{ value: "" | ProductStatus; label: string }> = [
+  { value: "", label: "Trạng thái (Tất cả)" },
+  { value: "OPEN", label: "Đang mở" },
+  { value: "COMING", label: "Sắp mở" },
+  { value: "FULL", label: "Đã đầy" },
+];
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
@@ -334,7 +502,16 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategoryId, setActiveCategoryId] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState(selectedCategoryId);
+  const [levelFilter, setLevelFilter] = useState<"" | ProductLevel>("");
+  const [modeFilter, setModeFilter] = useState<"" | ProductMode>("");
+  const [statusFilter, setStatusFilter] = useState<"" | ProductStatus>("");
+  const [selectedCourse, setSelectedCourse] = useState<ProductItem | null>(null);
+
+  useEffect(() => {
+    setCategoryFilter(selectedCategoryId);
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -360,135 +537,124 @@ export default function ProductsPage() {
     void loadData();
   }, []);
 
-  const sections = useMemo(() => {
-    const grouped = new Map<string, ProductItem[]>();
+  const filteredProducts = useMemo(() => {
+    const query = searchValue.trim().toLowerCase();
 
-    for (const product of products) {
-      const categoryId = getCategoryId(product.category);
-      if (!categoryId) continue;
+    return products.filter((item) => {
+      const categoryId = getCategoryId(item.category);
 
-      if (!grouped.has(categoryId)) {
-        grouped.set(categoryId, []);
-      }
+      if (categoryFilter && categoryId !== categoryFilter) return false;
+      if (levelFilter && item.level !== levelFilter) return false;
+      if (modeFilter && !item.modes?.includes(modeFilter)) return false;
+      if (statusFilter && item.status !== statusFilter) return false;
 
-      grouped.get(categoryId)?.push(product);
-    }
+      if (!query) return true;
 
-    return categories
-      .map((category) => ({
-        category,
-        items: grouped.get(category._id) || [],
-      }))
-      .filter((section) => section.items.length > 0);
-  }, [categories, products]);
+      const searchableText = [
+        item.title,
+        item.shortDescription,
+        getTeacherDisplayName(item),
+        getCategoryName(item.category, categories),
+        item.level,
+        item.durationText,
+        getModeLabel(item.modes),
+        getStatusLabel(item.status),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-  const totalStudents = useMemo(() => {
-    return products.reduce(
-      (sum, item) => sum + Number(item.studentCount || 0),
-      0
-    );
-  }, [products]);
-
-  const scrollToCategory = (categoryId: string) => {
-    const el = document.getElementById(`category-${categoryId}`);
-    if (!el) return;
-
-    setActiveCategoryId(categoryId);
-
-    el.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
+      return searchableText.includes(query);
     });
-  };
-
-  useEffect(() => {
-    if (loading) return;
-    if (!selectedCategoryId) return;
-
-    const timer = window.setTimeout(() => {
-      scrollToCategory(selectedCategoryId);
-    }, 150);
-
-    return () => window.clearTimeout(timer);
-  }, [loading, selectedCategoryId]);
+  }, [
+    categories,
+    categoryFilter,
+    levelFilter,
+    modeFilter,
+    products,
+    searchValue,
+    statusFilter,
+  ]);
 
   return (
     <main className="min-h-screen bg-[#F8FAFC]">
-      <section className="mx-auto max-w-[1280px] px-4 py-8 md:px-6 md:py-10">
-        <div className="mb-8 rounded-3xl border border-slate-200 bg-white p-6 md:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-[760px]">
-              <p className="text-[13px] font-medium uppercase tracking-[0.12em] text-slate-500">
-                Danh sách khóa học
-              </p>
-
-              <h1 className="mt-2 text-[30px] font-bold leading-tight text-slate-900 md:text-[40px]">
-                Chọn khóa học phù hợp với mục tiêu của bạn
-              </h1>
-
-              <p className="mt-3 text-[15px] leading-7 text-slate-600">
-                Tổng hợp các khóa học theo từng danh mục, hiển thị rõ giảng viên,
-                hình thức học, thời lượng, số lượng học viên và học phí để học viên
-                dễ tra cứu và đăng ký.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 sm:min-w-[360px]">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-[12px] text-slate-500">Danh mục</p>
-                <p className="mt-1 text-[24px] font-bold text-slate-900">
-                  {formatNumber(categories.length)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-[12px] text-slate-500">Khóa học</p>
-                <p className="mt-1 text-[24px] font-bold text-slate-900">
-                  {formatNumber(products.length)}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-[12px] text-slate-500">Học viên</p>
-                <p className="mt-1 text-[24px] font-bold text-slate-900">
-                  {formatNumber(totalStudents)}
-                </p>
-              </div>
-            </div>
+      <section className="mx-auto max-w-[1240px] px-4 py-6 md:px-6">
+        <form
+          onSubmit={(event) => event.preventDefault()}
+          className="mb-5 grid gap-2 lg:grid-cols-[minmax(240px,1fr)_170px_160px_190px_170px]"
+        >
+          <div className="flex h-10 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+            <input
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Tìm kiếm..."
+              className="min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+            />
+            <button
+              type="submit"
+              aria-label="Tìm kiếm"
+              className="inline-flex w-11 items-center justify-center bg-[#0D56A6] text-white transition hover:bg-[#0B4A8E]"
+            >
+              <Search className="h-4 w-4" />
+            </button>
           </div>
 
-          {!loading && sections.length > 0 ? (
-            <div className="mt-6 border-t border-slate-200 pt-6">
-              <p className="mb-3 text-[14px] font-semibold text-slate-900">
-                Danh mục khóa học
-              </p>
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-[#0D56A6]"
+          >
+            <option value="">Danh mục (Tất cả)</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
 
-              <div className="flex flex-wrap gap-3">
-                {sections.map((section) => (
-                  <button
-                    key={section.category._id}
-                    type="button"
-                    onClick={() => scrollToCategory(section.category._id)}
-                    className={cn(
-                      "rounded-2xl border px-4 py-3 text-[14px] font-semibold transition",
-                      activeCategoryId === section.category._id ||
-                        selectedCategoryId === section.category._id
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                    )}
-                  >
-                    {section.category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
+          <select
+            value={levelFilter}
+            onChange={(event) => setLevelFilter(event.target.value as "" | ProductLevel)}
+            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-[#0D56A6]"
+          >
+            {levelOptions.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={modeFilter}
+            onChange={(event) => setModeFilter(event.target.value as "" | ProductMode)}
+            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-[#0D56A6]"
+          >
+            {modeOptions.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as "" | ProductStatus)
+            }
+            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-[#0D56A6]"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value || "all"} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </form>
 
         {loading ? (
           <ProductsSkeleton />
-        ) : sections.length === 0 ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white text-center">
+        ) : filteredProducts.length === 0 ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
               <BookOpen className="text-slate-500" />
             </div>
@@ -496,22 +662,30 @@ export default function ProductsPage() {
               Chưa có khóa học
             </h3>
             <p className="mt-2 text-[15px] text-slate-500">
-              Hiện chưa có dữ liệu để hiển thị.
+              Không tìm thấy khóa học phù hợp với bộ lọc hiện tại.
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {sections.map((section) => (
-              <CategorySection
-                key={section.category._id}
-                category={section.category}
-                items={section.items}
-                sectionId={`category-${section.category._id}`}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredProducts.map((item) => (
+              <ProductCard
+                key={item._id}
+                item={item}
+                categories={categories}
+                onViewDetails={setSelectedCourse}
               />
             ))}
           </div>
         )}
       </section>
+
+      {selectedCourse ? (
+        <CourseDetailModal
+          item={selectedCourse}
+          categories={categories}
+          onClose={() => setSelectedCourse(null)}
+        />
+      ) : null}
     </main>
   );
 }

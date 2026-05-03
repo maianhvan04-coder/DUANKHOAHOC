@@ -162,7 +162,7 @@ function ModalBody({
                 </div>
 
                 <div className="text-[11px] text-black/45">
-                  Nếu nhập mật khẩu mới, hệ thống sẽ cập nhật mật khẩu cho user.
+                  Nếu nhập mật khẩu mới, hệ thống sẽ cập nhật mật khẩu cho người dùng.
                 </div>
               </div>
             )}
@@ -172,7 +172,7 @@ function ModalBody({
           <div className="mt-4 border-t border-black/10 pt-4">
             <div className="flex items-center justify-between">
               <div className="text-[12px] font-semibold text-black/70">Vai trò hệ thống</div>
-              <div className="text-[11px] text-black/40">{options.length ? "" : "Chưa có role"}</div>
+              <div className="text-[11px] text-black/40">{options.length ? "" : "Chưa có vai trò"}</div>
             </div>
 
             {options.length > 0 && (

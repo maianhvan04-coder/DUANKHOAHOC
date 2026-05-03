@@ -165,7 +165,7 @@ export default function AdminPaymentAuditsPage() {
         setTimeline([]);
       }
     } catch (error: unknown) {
-      setError(getErrorMessage(error, "Không tải được payment audit"));
+      setError(getErrorMessage(error, "Không tải được kiểm tra thanh toán"));
     } finally {
       setLoadingList(false);
     }
@@ -181,7 +181,7 @@ export default function AdminPaymentAuditsPage() {
       setTimeline(res.items);
     } catch (error: unknown) {
       setTimeline([]);
-      setError(getErrorMessage(error, "Không tải được timeline"));
+      setError(getErrorMessage(error, "Không tải được dòng thời gian"));
     } finally {
       setLoadingTimeline(false);
     }
@@ -241,9 +241,9 @@ export default function AdminPaymentAuditsPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-transparent">
       <div className="mx-auto max-w-7xl">
         <div className="hidden">
-          <h1 className="text-3xl font-extrabold text-slate-900">Audit thanh toán</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900">Kiểm tra thanh toán</h1>
           <p className="mt-2 text-slate-600">
-            Theo dõi toàn bộ lịch sử thanh toán, IPN, return, đổi trạng thái và ghi chú admin.
+            Theo dõi toàn bộ lịch sử thanh toán, IPN, trả về, đổi trạng thái và ghi chú quản trị.
           </p>
         </div>
 
@@ -252,7 +252,7 @@ export default function AdminPaymentAuditsPage() {
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Tìm note, actor..."
+              placeholder="Tìm ghi chú, người thực hiện..."
               className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
             <input
@@ -266,7 +266,7 @@ export default function AdminPaymentAuditsPage() {
               onChange={(e) => setProvider(e.target.value as "" | "vnpay" | "payos")}
               className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
-              <option value="">Tất cả provider</option>
+              <option value="">Tất cả nhà cung cấp</option>
               <option value="vnpay">vnpay</option>
               <option value="payos">payos</option>
             </select>
@@ -275,7 +275,7 @@ export default function AdminPaymentAuditsPage() {
               onChange={(e) => setAction(e.target.value as "" | PaymentAuditAction)}
               className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
-              <option value="">Tất cả action</option>
+              <option value="">Tất cả thao tác</option>
               {PAYMENT_ACTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -289,7 +289,7 @@ export default function AdminPaymentAuditsPage() {
               }
               className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             >
-              <option value="">Tất cả actor</option>
+              <option value="">Tất cả người thực hiện</option>
               {ACTOR_TYPES.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -309,7 +309,7 @@ export default function AdminPaymentAuditsPage() {
               onClick={resetFilters}
               className="h-11 rounded-xl border border-slate-200 px-5 font-semibold text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
             >
-              Reset
+              Đặt lại
             </button>
             <div className="ml-auto flex items-center text-sm text-slate-500 dark:text-slate-400">
               Tổng: <span className="ml-1 font-semibold text-slate-900 dark:text-slate-100">{total}</span>
@@ -326,8 +326,8 @@ export default function AdminPaymentAuditsPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Danh sách audit</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Bấm vào một paymentCode để xem timeline</p>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Danh sách kiểm tra</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Bấm vào mã thanh toán để xem dòng thời gian</p>
             </div>
 
             {loadingList ? (
@@ -384,10 +384,10 @@ export default function AdminPaymentAuditsPage() {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                        <Mini label="Provider" value={item.provider} />
-                        <Mini label="Actor" value={item.actorType} />
-                        <Mini label="From" value={item.fromStatus || "-"} />
-                        <Mini label="To" value={item.toStatus || "-"} />
+                        <Mini label="Nhà cung cấp" value={item.provider} />
+                        <Mini label="Người thực hiện" value={item.actorType} />
+                        <Mini label="Từ" value={item.fromStatus || "-"} />
+                        <Mini label="Đến" value={item.toStatus || "-"} />
                       </div>
 
                       {item.note ? (
@@ -430,9 +430,9 @@ export default function AdminPaymentAuditsPage() {
 
           <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Timeline</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Dòng thời gian</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Lịch sử chi tiết theo từng paymentCode
+                Lịch sử chi tiết theo từng mã thanh toán
               </p>
             </div>
 
@@ -444,7 +444,7 @@ export default function AdminPaymentAuditsPage() {
               <>
                 <div className="mb-4 rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
                   <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Payment code
+                    Mã thanh toán
                   </div>
                   <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-slate-100">
                     #{selectedPaymentCode}
@@ -459,11 +459,11 @@ export default function AdminPaymentAuditsPage() {
 
                 {loadingTimeline ? (
                   <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                    Đang tải timeline...
+                    Đang tải dòng thời gian...
                   </div>
                 ) : timeline.length === 0 ? (
                   <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                    Chưa có timeline
+                    Chưa có dòng thời gian
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -487,8 +487,8 @@ export default function AdminPaymentAuditsPage() {
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-3">
-                          <Mini label="From" value={item.fromStatus || "-"} />
-                          <Mini label="To" value={item.toStatus || "-"} />
+                          <Mini label="Từ" value={item.fromStatus || "-"} />
+                          <Mini label="Đến" value={item.toStatus || "-"} />
                         </div>
 
                         {item.note ? (
@@ -506,7 +506,7 @@ export default function AdminPaymentAuditsPage() {
                 )}
 
                 <div className="mt-5 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-950">
-                  <div className="mb-2 font-semibold text-slate-900 dark:text-slate-100">Ghi chú admin</div>
+                  <div className="mb-2 font-semibold text-slate-900 dark:text-slate-100">Ghi chú quản trị</div>
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}

@@ -1065,7 +1065,7 @@ export default function AdminTeachersPage() {
           onPageChange: setPage,
           pageSizeOptions: [5, 10, 20],
         }}
-        emptyText="Khong co du lieu phu hop"
+        emptyText="Không có dữ liệu phù hợp"
         tableMinWidthClassName="min-w-[1280px]"
       />
 

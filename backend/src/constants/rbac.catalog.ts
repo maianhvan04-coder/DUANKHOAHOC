@@ -268,6 +268,15 @@ const BASE_PERMISSION_META = Object.freeze({
     PERMISSION_GROUPS.STUDENTS.label,
     510
   ),
+  [PERMISSIONS.STUDENT_PORTAL_ACCESS]: meta(
+    PERMISSIONS.STUDENT_PORTAL_ACCESS,
+    "student_portal",
+    "access",
+    "Truy cập trang học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    515
+  ),
   [PERMISSIONS.STUDENT_CREATE]: meta(
     PERMISSIONS.STUDENT_CREATE,
     "student",
@@ -493,6 +502,62 @@ const BASE_PERMISSION_META = Object.freeze({
     847
   ),
 
+  // BLOG
+  [PERMISSIONS.BLOG_READ]: meta(
+    PERMISSIONS.BLOG_READ,
+    "blog",
+    "read",
+    "Xem bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    848
+  ),
+  [PERMISSIONS.BLOG_CREATE]: meta(
+    PERMISSIONS.BLOG_CREATE,
+    "blog",
+    "create",
+    "Tạo bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    849
+  ),
+  [PERMISSIONS.BLOG_UPDATE]: meta(
+    PERMISSIONS.BLOG_UPDATE,
+    "blog",
+    "update",
+    "Cập nhật bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    850
+  ),
+  [PERMISSIONS.BLOG_DELETE]: meta(
+    PERMISSIONS.BLOG_DELETE,
+    "blog",
+    "delete",
+    "Xóa bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    851
+  ),
+  [PERMISSIONS.BLOG_PUBLISH]: meta(
+    PERMISSIONS.BLOG_PUBLISH,
+    "blog",
+    "publish",
+    "Xuất bản bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    852
+  ),
+  [PERMISSIONS.BLOG_CATEGORY_MANAGE]: meta(
+    PERMISSIONS.BLOG_CATEGORY_MANAGE,
+    "blog_category",
+    "manage",
+    "Quản lý chuyên mục blog",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    853
+  ),
+
   // PAYMENT AUDIT
   [PERMISSIONS.PAYMENT_AUDIT_READ_OWN]: meta(
     PERMISSIONS.PAYMENT_AUDIT_READ_OWN,
@@ -710,6 +775,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
     PERMISSIONS.NOTIFICATION_CREATE,
     PERMISSIONS.NOTIFICATION_DELETE,
 
+    PERMISSIONS.BLOG_READ,
+    PERMISSIONS.BLOG_CREATE,
+    PERMISSIONS.BLOG_UPDATE,
+    PERMISSIONS.BLOG_DELETE,
+    PERMISSIONS.BLOG_PUBLISH,
+    PERMISSIONS.BLOG_CATEGORY_MANAGE,
+
     PERMISSIONS.RBAC_READ,
     PERMISSIONS.RBAC_READ_PERMISSION,
   ],
@@ -732,6 +804,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
 
   [ROLES.STUDENT]: [
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.STUDENT_PORTAL_ACCESS,
     PERMISSIONS.CATEGORY_READ,
     PERMISSIONS.COURSE_READ,
     PERMISSIONS.ENROLLMENT_CREATE,
@@ -966,6 +1039,31 @@ const BASE_ADMIN_SCREENS = Object.freeze({
       view: [PERMISSIONS.NOTIFICATION_READ],
       create: [PERMISSIONS.NOTIFICATION_CREATE],
       delete: [PERMISSIONS.NOTIFICATION_DELETE],
+    },
+  },
+
+  BLOGS: {
+    key: "blogs",
+    group: PERMISSION_GROUPS.BLOGS.key,
+    label: "Bài viết",
+    icon: "file-text",
+    order: 78,
+    routes: ["/admin/blog", "/admin/blog/:id"],
+    accessAny: [
+      PERMISSIONS.BLOG_READ,
+      PERMISSIONS.BLOG_CREATE,
+      PERMISSIONS.BLOG_UPDATE,
+      PERMISSIONS.BLOG_DELETE,
+      PERMISSIONS.BLOG_PUBLISH,
+      PERMISSIONS.BLOG_CATEGORY_MANAGE,
+    ],
+    actions: {
+      view: [PERMISSIONS.BLOG_READ],
+      create: [PERMISSIONS.BLOG_CREATE],
+      update: [PERMISSIONS.BLOG_UPDATE],
+      delete: [PERMISSIONS.BLOG_DELETE],
+      publish: [PERMISSIONS.BLOG_PUBLISH],
+      manageCategory: [PERMISSIONS.BLOG_CATEGORY_MANAGE],
     },
   },
 

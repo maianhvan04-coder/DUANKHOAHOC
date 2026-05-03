@@ -61,6 +61,7 @@ function subscribe(onStoreChange: () => void) {
 function applyToHtml(theme: AdminTheme) {
   if (typeof document === "undefined") return;
   document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.dataset.adminTheme = theme;
 }
 
 export function AdminThemeProvider({
@@ -93,6 +94,11 @@ export function AdminThemeProvider({
 
   useEffect(() => {
     applyToHtml(theme);
+
+    return () => {
+      document.documentElement.classList.remove("dark");
+      delete document.documentElement.dataset.adminTheme;
+    };
   }, [theme]);
 
   const value = useMemo<ThemeCtxValue>(

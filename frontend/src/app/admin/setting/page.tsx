@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   UserCog,
 } from "lucide-react";
+import { useAdminPreferences, type AdminLocale } from "@/i18n";
 
 type SettingTab = "general" | "account" | "security" | "notification";
 
@@ -19,13 +20,13 @@ function cn(...classes: Array<string | false | null | undefined>) {
 }
 
 export default function AdminSettingsPage() {
+  const { locale, setLocale } = useAdminPreferences();
   const [activeTab, setActiveTab] = useState<SettingTab>("general");
 
   const [siteName, setSiteName] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [timezone, setTimezone] = useState("Asia/Ho_Chi_Minh");
-  const [language, setLanguage] = useState("vi");
 
   const [displayName, setDisplayName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -187,8 +188,12 @@ export default function AdminSettingsPage() {
 
                     <SelectField
                       label="Ngôn ngữ mặc định"
-                      value={language}
-                      onChange={setLanguage}
+                      value={locale}
+                      onChange={(value) => {
+                        if (value === "vi" || value === "en") {
+                          setLocale(value as AdminLocale);
+                        }
+                      }}
                       options={[
                         { label: "Tiếng Việt", value: "vi" },
                         { label: "English", value: "en" },
@@ -211,7 +216,7 @@ export default function AdminSettingsPage() {
                     />
                     <ToggleRow
                       title="Tự động làm mới dashboard"
-                      description="Dashboard sẽ tự làm mới dữ liệu theo chu kỳ."
+                      description="Bảng điều khiển sẽ tự làm mới dữ liệu theo chu kỳ."
                       enabled={false}
                       onChange={() => undefined}
                     />
@@ -330,7 +335,7 @@ export default function AdminSettingsPage() {
                       onChange={() => setEmailOrder((prev) => !prev)}
                     />
                     <ToggleRow
-                      title="Email audit thanh toán"
+                      title="Email kiểm tra thanh toán"
                       description="Nhận email khi có thay đổi bất thường ở thanh toán."
                       enabled={emailAudit}
                       onChange={() => setEmailAudit((prev) => !prev)}

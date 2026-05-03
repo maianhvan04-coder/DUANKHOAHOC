@@ -89,6 +89,31 @@ async function getPermissionsByRoleIds(
   return unique(validPermissions.map((item) => item.key as PermissionKey));
 }
 
+async function syncPermissionCatalog() {
+  for (const meta of PERMISSION_META_LIST) {
+    await Permission.updateOne(
+      { key: meta.key },
+      {
+        $set: {
+          resource: meta.resource,
+          action: meta.action,
+          label: meta.label,
+          groupKey: meta.groupKey,
+          groupLabel: meta.groupLabel,
+          order: meta.order ?? 0,
+          isActive: true,
+          isDeleted: false,
+          deletedAt: null,
+        },
+        $setOnInsert: {
+          key: meta.key,
+        },
+      },
+      { upsert: true }
+    );
+  }
+}
+
 export async function setPermissionsForRoleCode(
   roleCode: string,
   permissionKeys: PermissionKey[]
@@ -103,6 +128,8 @@ export async function setPermissionsForRoleCode(
   const normalizedKeys = unique(
     permissionKeys.map((item) => normalizePermissionKey(String(item)))
   );
+
+  await syncPermissionCatalog();
 
   const validPermissions = await Permission.find({
     key: { $in: normalizedKeys },
@@ -168,28 +195,7 @@ export async function setPermissionsForRoleCode(
 }
 
 export async function seedDefaultRbac() {
-  for (const meta of PERMISSION_META_LIST) {
-    await Permission.updateOne(
-      { key: meta.key },
-      {
-        $set: {
-          resource: meta.resource,
-          action: meta.action,
-          label: meta.label,
-          groupKey: meta.groupKey,
-          groupLabel: meta.groupLabel,
-          order: meta.order ?? 0,
-          isActive: true,
-          isDeleted: false,
-          deletedAt: null,
-        },
-        $setOnInsert: {
-          key: meta.key,
-        },
-      },
-      { upsert: true }
-    );
-  }
+  await syncPermissionCatalog();
 
   for (const item of SEED_ROLES) {
     await RoleModel.updateOne(

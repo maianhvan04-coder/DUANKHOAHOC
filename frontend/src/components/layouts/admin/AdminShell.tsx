@@ -11,12 +11,20 @@ import {
   useAdminTheme,
 } from "@/providers/admin/AdminDarkmodeProvider";
 import { AdminLayoutProvider } from "@/components/layouts/admin/admin-layout-context";
+import {
+  AdminAutoTranslator,
+  AdminPreferencesProvider,
+  useAdminPreferences,
+} from "@/i18n";
 
-import { authApi, type AuthUser } from "@/app/api/auth.api";
+import {
+  authApi,
+  type AuthUser,
+  type UserAccess,
+} from "@/app/api/auth.api";
 import {
   rbacApi,
   type PermissionMetaItem,
-  type UserAccess,
 } from "@/app/api/rbac.api";
 
 import { setAccess, setToken, setUser, clearAuth } from "@/lib/utils/storage";
@@ -35,6 +43,7 @@ type AdminBootstrapState = {
 
 function AdminShellFrame({ children }: { children: ReactNode }) {
   const { theme } = useAdminTheme();
+  const { t } = useAdminPreferences();
   const dark = theme === "dark";
   const router = useRouter();
 
@@ -116,18 +125,20 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
           dark ? "bg-[#0b1220] text-white" : "bg-[#f4f7fb] text-[#0f172a]"
         )}
       >
-        Đang tải trang quản trị...
+        {t("common.loadingAdmin")}
       </div>
     );
   }
 
   return (
     <div
+      data-admin-shell
       className={cn(
         "min-h-screen w-full transition-colors duration-300",
         dark ? "bg-[#0b1220]" : "bg-[#f4f7fb]"
       )}
     >
+      <AdminAutoTranslator />
       <div className="flex min-h-screen">
         <AdminSidebar
           currentUser={state.currentUser}
@@ -148,9 +159,11 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
 export default function AdminShell({ children }: { children: ReactNode }) {
   return (
     <AdminThemeProvider>
-      <AdminLayoutProvider>
-        <AdminShellFrame>{children}</AdminShellFrame>
-      </AdminLayoutProvider>
+      <AdminPreferencesProvider>
+        <AdminLayoutProvider>
+          <AdminShellFrame>{children}</AdminShellFrame>
+        </AdminLayoutProvider>
+      </AdminPreferencesProvider>
     </AdminThemeProvider>
   );
 }

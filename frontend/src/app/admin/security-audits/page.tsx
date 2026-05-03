@@ -18,7 +18,7 @@ import {
 } from "@/app/api/security-audit.api";
 
 const ACTION_OPTIONS = [
-  { label: "Tất cả action", value: "" },
+  { label: "Tất cả thao tác", value: "" },
   { label: "LOGIN_SUCCESS", value: "LOGIN_SUCCESS" },
   { label: "LOGIN_FAILED", value: "LOGIN_FAILED" },
   { label: "LOGOUT", value: "LOGOUT" },
@@ -421,7 +421,7 @@ export default function AdminSecurityAuditsPage() {
       setPage(1);
       setTotal(0);
       setTotalPages(1);
-      setError(getErrorMessage(error, "Không tải được audit bảo mật"));
+      setError(getErrorMessage(error, "Không tải được kiểm tra bảo mật"));
     } finally {
       setLoading(false);
     }
@@ -482,7 +482,7 @@ export default function AdminSecurityAuditsPage() {
               </div>
 
               <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-                Audit bảo mật hệ thống
+                Kiểm tra bảo mật hệ thống
               </h1>
 
               <p className="mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 md:text-base">
@@ -551,7 +551,7 @@ export default function AdminSecurityAuditsPage() {
                 Tìm nhanh bản ghi cần kiểm tra
               </div>
               <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Lọc theo email, action, đường dẫn API, IP hoặc trạng thái xử lý.
+                Lọc theo email, thao tác, đường dẫn API, IP hoặc trạng thái xử lý.
               </div>
             </div>
 
@@ -673,8 +673,8 @@ export default function AdminSecurityAuditsPage() {
                 Không có dữ liệu phù hợp
               </div>
               <div className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Hệ thống chưa có audit tương ứng với bộ lọc hiện tại hoặc chưa
-                phát sinh thao tác bảo mật nào để ghi log.
+                Hệ thống chưa có kiểm tra tương ứng với bộ lọc hiện tại hoặc chưa
+                phát sinh thao tác bảo mật nào để ghi nhật ký.
               </div>
             </div>
           ) : (

@@ -19,6 +19,24 @@ export type PaymentHistoryItem = {
   createdAt: string;
 };
 
+export type MyCourseStatus = "pending" | "approved" | "assigned";
+
+export type MyCourseItem = {
+  id: string;
+  source: "study" | "payment";
+  courseId: string;
+  title: string;
+  format: string;
+  desiredSchedule: string;
+  className: string;
+  teacherName: string;
+  actualSchedule: string;
+  status: MyCourseStatus;
+  paymentCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export const accountApi = {
   async getMe() {
     const { data } = await http.get<{ user: AccountUser }>("/api/account/me");
@@ -57,6 +75,13 @@ export const accountApi = {
   async getMyPayments() {
     const { data } = await http.get<{ items: PaymentHistoryItem[] }>(
       "/api/account/me/payments"
+    );
+    return data.items;
+  },
+
+  async getMyCourses() {
+    const { data } = await http.get<{ items: MyCourseItem[] }>(
+      "/api/account/me/courses"
     );
     return data.items;
   },

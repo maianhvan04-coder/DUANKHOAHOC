@@ -7,10 +7,21 @@ import { BookOpen, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "@/app/api/auth.api";
 import { setAccess, setToken, setUser } from "@/lib/utils/storage";
-import { hasRole } from "@/lib/helpers/auth/access";
+import { canAccessStudentPortal, hasRole } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+function getSafeRedirectPath(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+    return null;
+  }
+
+  return redirect;
 }
 
 function Logo() {
@@ -184,8 +195,13 @@ export default function LoginPage() {
 
       const goAdmin =
         hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
+      const goStudent = canAccessStudentPortal(res.access);
+      const redirectPath = getSafeRedirectPath();
 
-      router.push(goAdmin ? "/admin" : "/");
+      router.push(
+        redirectPath ??
+          (goAdmin ? "/admin" : goStudent ? "/student/bang-tin" : "/")
+      );
       router.refresh();
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

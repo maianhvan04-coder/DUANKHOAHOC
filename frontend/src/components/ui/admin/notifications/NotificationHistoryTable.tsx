@@ -449,7 +449,7 @@ export default function NotificationHistoryTable({
               type="button"
               onClick={onReload}
               className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white transition hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-700"
-              title="Lam moi"
+              title="Làm mới"
             >
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </button>

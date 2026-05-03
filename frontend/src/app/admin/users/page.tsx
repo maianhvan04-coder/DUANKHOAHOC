@@ -194,8 +194,8 @@ function StatusPill({
       title={
         clickable
           ? active
-            ? "Click để chuyển INACTIVE"
-            : "Click để chuyển ACTIVE"
+            ? "Bấm để chuyển sang tạm tắt"
+            : "Bấm để chuyển sang hoạt động"
           : undefined
       }
     >
@@ -293,11 +293,11 @@ export default function UsersPage() {
         setServerPagination(data.pagination);
       } catch (error: unknown) {
         if (axios.isAxiosError<ApiErrorBody>(error)) {
-          setErr(error.response?.data?.message || error.message || "Load users failed");
+          setErr(error.response?.data?.message || error.message || "Tải người dùng thất bại");
         } else if (error instanceof Error) {
-          setErr(error.message || "Load users failed");
+          setErr(error.message || "Tải người dùng thất bại");
         } else {
-          setErr("Load users failed");
+          setErr("Tải người dùng thất bại");
         }
       } finally {
         setLoading(false);
@@ -344,7 +344,7 @@ export default function UsersPage() {
     if (tab !== "USERS") return;
 
     const nextActive = !u.active;
-    const msg = nextActive ? "Chuyển sang ACTIVE?" : "Chuyển sang INACTIVE?";
+    const msg = nextActive ? "Chuyển sang hoạt động?" : "Chuyển sang tạm tắt?";
     if (!confirm(msg)) return;
 
     try {
@@ -370,7 +370,7 @@ export default function UsersPage() {
   /** USERS -> soft delete | DELETED -> hard delete */
   const onDelete = async (id: string) => {
     const hard = tab === "DELETED";
-    const msg = hard ? "Xoá vĩnh viễn user này?" : "Chuyển user này vào Deleted? (sẽ INACTIVE)";
+    const msg = hard ? "Xóa vĩnh viễn người dùng này?" : "Chuyển người dùng này vào đã xóa? (sẽ tạm tắt)";
     if (!confirm(msg)) return;
 
     try {
@@ -391,7 +391,7 @@ export default function UsersPage() {
   };
 
   const onRestore = async (id: string) => {
-    if (!confirm("Khôi phục user này? (sẽ ACTIVE)")) return;
+    if (!confirm("Khôi phục người dùng này? (sẽ hoạt động)")) return;
     try {
       await userApi.restore(id);
 
@@ -472,8 +472,8 @@ export default function UsersPage() {
 
     const hard = tab === "DELETED";
     const msg = hard
-      ? `Xoá vĩnh viễn ${selected.size} user đã chọn?`
-      : `Chuyển ${selected.size} user vào Deleted? (sẽ INACTIVE)`;
+      ? `Xóa vĩnh viễn ${selected.size} người dùng đã chọn?`
+      : `Chuyển ${selected.size} người dùng vào đã xóa? (sẽ tạm tắt)`;
     if (!confirm(msg)) return;
 
     try {
@@ -490,7 +490,7 @@ export default function UsersPage() {
 
   const onBulkRestore = async () => {
     if (tab !== "DELETED" || selected.size === 0) return;
-    if (!confirm(`Khôi phục ${selected.size} user đã chọn? (sẽ ACTIVE)`)) return;
+    if (!confirm(`Khôi phục ${selected.size} người dùng đã chọn? (sẽ hoạt động)`)) return;
 
     try {
       const ids = Array.from(selected);
@@ -515,7 +515,7 @@ export default function UsersPage() {
         options: [
           {
             id: "role-all",
-            label: "All Roles",
+            label: "Tất cả vai trò",
             checked: roleFilter === "ALL",
             onToggle: () => {
               setRoleFilter("ALL");
@@ -539,7 +539,7 @@ export default function UsersPage() {
         options: [
           {
             id: "status-all",
-            label: "All Status",
+            label: "Tất cả trạng thái",
             checked: statusFilter === "ALL",
             onToggle: () => {
               setStatusFilter("ALL");
@@ -623,7 +623,7 @@ export default function UsersPage() {
               ))}
             </div>
           ) : (
-            <span className="text-xs text-slate-400">No roles</span>
+            <span className="text-xs text-slate-400">Chưa có vai trò</span>
           ),
       },
       {
@@ -674,7 +674,7 @@ export default function UsersPage() {
                 </AdminActionIconButton>
                 <AdminActionIconButton
                   danger
-                  title="Move to Deleted"
+                  title="Chuyển vào đã xóa"
                   onClick={() => void onDelete(u.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -690,7 +690,7 @@ export default function UsersPage() {
                 </AdminActionIconButton>
                 <AdminActionIconButton
                   danger
-                  title="Delete permanently"
+                  title="Xóa vĩnh viễn"
                   onClick={() => void onDelete(u.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -710,7 +710,7 @@ export default function UsersPage() {
           <section className="rounded-[30px] border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-white/10 dark:bg-slate-950/45">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Selected: <span className="font-extrabold">{selectedCount}</span>
+                Đã chọn: <span className="font-extrabold">{selectedCount}</span>
               </div>
 
               <div className="flex items-center justify-end gap-2">
@@ -720,7 +720,7 @@ export default function UsersPage() {
                     onClick={onBulkRestore}
                     className="h-10 rounded-[16px] bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700"
                   >
-                    Restore selected
+                    Khôi phục mục đã chọn
                   </button>
                 ) : null}
 
@@ -737,7 +737,7 @@ export default function UsersPage() {
                   onClick={onBulkDelete}
                   className="h-10 rounded-[16px] bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700"
                 >
-                  {tab === "DELETED" ? "Delete permanently" : "Move to Deleted"}
+                  {tab === "DELETED" ? "Xóa vĩnh viễn" : "Chuyển vào đã xóa"}
                 </button>
               </div>
             </div>
@@ -805,7 +805,7 @@ export default function UsersPage() {
                 )}
               >
                 <Trash2 className="h-4 w-4" />
-                Deleted
+                Đã xóa
               </button>
             </div>
           }
@@ -832,7 +832,7 @@ export default function UsersPage() {
             onPageChange: setPage,
             pageSizeOptions: [5, 10, 20],
           }}
-          emptyText={err || "Khong co du lieu"}
+          emptyText={err || "Không có dữ liệu"}
           tableMinWidthClassName="min-w-[1040px]"
         />
 
@@ -941,7 +941,7 @@ export default function UsersPage() {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-400 dark:text-slate-500">No roles</span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500">Chưa có vai trò</span>
                           )}
                         </td>
 
@@ -969,7 +969,7 @@ export default function UsersPage() {
                             ) : null}
 
                             <IconBtn
-                              title={tab === "DELETED" ? "Delete permanently" : "Move to Deleted"}
+                              title={tab === "DELETED" ? "Xóa vĩnh viễn" : "Chuyển vào đã xóa"}
                               onClick={() => onDelete(u.id)}
                               className={cn(
                                 "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700",

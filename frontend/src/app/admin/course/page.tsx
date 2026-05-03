@@ -751,8 +751,8 @@ export default function AdminProductsPage() {
             }}
             emptyText={
               viewMode === "active"
-                ? "Khong co khoa hoc nao"
-                : "Khong co du lieu"
+                ? "Không có khóa học nào"
+                : "Không có dữ liệu"
             }
             tableMinWidthClassName="min-w-[1180px]"
           />

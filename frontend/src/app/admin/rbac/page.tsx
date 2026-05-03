@@ -87,7 +87,7 @@ function roleTheme(code: string) {
 }
 
 function getDescription(role: RoleItem) {
-  return role.description?.trim() || "No description provided";
+  return role.description?.trim() || "Không có mô tả";
 }
 
 function getDisplayName(role: RoleItem) {
@@ -177,7 +177,7 @@ function RoleFormModal({
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {mode === "create" ? "Thêm role" : "Sửa role"}
+              {mode === "create" ? "Thêm vai trò" : "Sửa vai trò"}
             </h3>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {mode === "create"
@@ -199,7 +199,7 @@ function RoleFormModal({
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                Mã role
+                Mã vai trò
               </label>
               <input
                 value={form.code}
@@ -227,7 +227,7 @@ function RoleFormModal({
                     name: e.target.value,
                   }))
                 }
-                placeholder="VD: Content Manager"
+                placeholder="VD: Quản lý nội dung"
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
@@ -246,7 +246,7 @@ function RoleFormModal({
                   description: e.target.value,
                 }))
               }
-              placeholder="Nhập mô tả role"
+              placeholder="Nhập mô tả vai trò"
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
             />
           </div>
@@ -263,7 +263,7 @@ function RoleFormModal({
               }
               className="h-4 w-4"
             />
-            <span className="text-sm text-slate-700 dark:text-slate-200">Kích hoạt role</span>
+            <span className="text-sm text-slate-700 dark:text-slate-200">Kích hoạt vai trò</span>
           </label>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -281,7 +281,7 @@ function RoleFormModal({
               className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
-              {mode === "create" ? "Tạo role" : "Lưu thay đổi"}
+              {mode === "create" ? "Tạo vai trò" : "Lưu thay đổi"}
             </button>
           </div>
         </form>
@@ -404,12 +404,12 @@ export default function AdminRbacPage() {
 
   async function handleSubmitRole(values: RoleFormState) {
     if (!values.code.trim()) {
-      alert("Vui lòng nhập mã role");
+      alert("Vui lòng nhập mã vai trò");
       return;
     }
 
     if (!values.name.trim()) {
-      alert("Vui lòng nhập tên role");
+      alert("Vui lòng nhập tên vai trò");
       return;
     }
 
@@ -438,8 +438,8 @@ export default function AdminRbacPage() {
       console.error(error);
       alert(
         roleFormMode === "create"
-          ? "Tạo role thất bại"
-          : "Cập nhật role thất bại"
+          ? "Tạo vai trò thất bại"
+          : "Cập nhật vai trò thất bại"
       );
     } finally {
       setSavingRole(false);
@@ -448,12 +448,12 @@ export default function AdminRbacPage() {
 
   async function handleDelete(role: RoleItem) {
     if (isSystemRole(role.code)) {
-      alert("Không được xóa role hệ thống");
+      alert("Không được xóa vai trò hệ thống");
       return;
     }
 
     const ok = window.confirm(
-      `Bạn có chắc muốn xóa role "${role.code}" không?`
+      `Bạn có chắc muốn xóa vai trò "${role.code}" không?`
     );
     if (!ok) return;
 
@@ -469,7 +469,7 @@ export default function AdminRbacPage() {
       });
     } catch (error) {
       console.error(error);
-      alert("Xóa role thất bại");
+      alert("Xóa vai trò thất bại");
     } finally {
       setDeletingCode(null);
     }
@@ -502,7 +502,7 @@ export default function AdminRbacPage() {
           <div className="mb-4 flex flex-col gap-3 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-end dark:border-white/10 dark:bg-slate-950/60">
             <div className="hidden">
               <h1 className="text-[22px] font-bold text-slate-900">
-                Role & Permissions
+                Vai trò & phân quyền
               </h1>
               <p className="mt-1 text-[13px] text-slate-500">
                 Quản lý vai trò và phân quyền hệ thống
@@ -519,7 +519,7 @@ export default function AdminRbacPage() {
                   size={14}
                   className={cn(refreshing && "animate-spin")}
                 />
-                Refresh
+                Làm mới
               </button>
 
               <button
@@ -528,7 +528,7 @@ export default function AdminRbacPage() {
                 className="inline-flex h-9 items-center gap-2 rounded-[8px] bg-slate-900 px-3 text-[12px] font-semibold text-white hover:bg-slate-800"
               >
                 <Plus size={14} />
-                Thêm role
+                Thêm vai trò
               </button>
             </div>
           </div>
@@ -603,7 +603,7 @@ export default function AdminRbacPage() {
                       </>
                     ) : (
                       <span className="text-[13px] text-slate-400">
-                        No permissions
+                        Chưa có quyền
                       </span>
                     )}
                   </div>
@@ -637,7 +637,7 @@ export default function AdminRbacPage() {
                       type="button"
                       onClick={() => handleOpenPermission(role)}
                       className="text-[#7c4ed8] transition hover:scale-105"
-                      title="Permissions"
+                      title="Phân quyền"
                     >
                       <KeyRound size={18} strokeWidth={1.9} />
                     </button>
@@ -646,7 +646,7 @@ export default function AdminRbacPage() {
                       type="button"
                       onClick={() => handleOpenEdit(role)}
                       className="text-[#3b82f6] transition hover:scale-105"
-                      title="Edit"
+                      title="Sửa"
                     >
                       <Pencil size={18} strokeWidth={1.9} />
                     </button>
@@ -656,7 +656,7 @@ export default function AdminRbacPage() {
                       onClick={() => void handleDelete(role)}
                       disabled={deleting}
                       className="text-[#ef4444] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Delete"
+                      title="Xóa"
                     >
                       {deleting ? (
                         <Loader2 size={18} className="animate-spin" />
@@ -671,7 +671,7 @@ export default function AdminRbacPage() {
 
             {sortedRoles.length === 0 && (
               <div className="px-4 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-                Không có role nào
+                Không có vai trò nào
               </div>
             )}
           </div>

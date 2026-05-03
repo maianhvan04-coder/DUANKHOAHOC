@@ -1,5 +1,7 @@
 import type { Role, UserAccess } from "@/app/api/auth.api";
 
+export const STUDENT_PORTAL_ACCESS_PERMISSION = "student_portal:access";
+
 export function hasRole(
   access: UserAccess | null | undefined,
   role: Role
@@ -29,5 +31,13 @@ export function hasAnyPermission(
   if (!access) return false;
   return permissions.some((permission) =>
     access.permissions.includes(permission)
+  );
+}
+
+export function canAccessStudentPortal(access: UserAccess | null | undefined) {
+  return (
+    access?.primaryRole === "STUDENT" ||
+    hasRole(access, "STUDENT") ||
+    hasPermission(access, STUDENT_PORTAL_ACCESS_PERMISSION)
   );
 }

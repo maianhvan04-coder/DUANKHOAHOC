@@ -60,4 +60,9 @@ export const accountController = {
     const items = await accountService.getMyPayments(getUserId(req));
     res.json({ items });
   }),
+
+  getMyCourses: asyncHandler(async (req: Request, res: Response) => {
+    const items = await accountService.getMyCourses(getUserId(req));
+    res.json({ items });
+  }),
 };

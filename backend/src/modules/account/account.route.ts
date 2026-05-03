@@ -29,4 +29,6 @@ router.patch(
 
 router.get("/me/payments", authGuard, accountController.getMyPayments);
 
+router.get("/me/courses", authGuard, accountController.getMyCourses);
+
 export default router;

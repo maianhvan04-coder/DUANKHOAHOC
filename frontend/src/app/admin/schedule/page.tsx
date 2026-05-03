@@ -94,7 +94,7 @@ function getTeacherName(item: ClassroomItem) {
 }
 
 function getModeLabel(mode: ClassMode) {
-    return mode === "ONLINE" ? "Online" : "Offline";
+    return mode === "ONLINE" ? "Trực tuyến" : "Trực tiếp";
 }
 
 function getDisplayRoom(item: { room?: string; mode?: ClassMode }) {

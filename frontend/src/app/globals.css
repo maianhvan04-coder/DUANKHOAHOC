@@ -24,3 +24,94 @@ body {
   background: rgba(148, 163, 184, 0.45);
   border-radius: 999px;
 }
+
+html.dark [data-student-shell] {
+  color-scheme: dark;
+}
+
+html.dark [data-student-shell] main {
+  background: #020617 !important;
+}
+
+html.dark [data-student-shell] section,
+html.dark [data-student-shell] article,
+html.dark [data-student-shell] table {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+html.dark [data-student-shell] .bg-white,
+html.dark [data-student-shell] .bg-white\/85,
+html.dark [data-student-shell] .bg-white\/95 {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+html.dark [data-student-shell] .bg-slate-50,
+html.dark [data-student-shell] .bg-slate-50\/70,
+html.dark [data-student-shell] .bg-slate-50\/80 {
+  background-color: rgba(15, 23, 42, 0.64) !important;
+}
+
+html.dark [data-student-shell] .bg-\[\#F3F8FF\],
+html.dark [data-student-shell] .bg-\[\#E9F5FF\],
+html.dark [data-student-shell] .bg-\[\#E6F5FF\],
+html.dark [data-student-shell] .bg-\[\#F4FAFF\] {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+}
+
+html.dark [data-student-shell] .text-slate-950,
+html.dark [data-student-shell] .text-slate-900,
+html.dark [data-student-shell] .text-slate-800,
+html.dark [data-student-shell] .text-\[\#0B2C5F\] {
+  color: #f8fafc !important;
+}
+
+html.dark [data-student-shell] .text-slate-700,
+html.dark [data-student-shell] .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark [data-student-shell] .text-slate-500,
+html.dark [data-student-shell] .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark [data-student-shell] .border-slate-200,
+html.dark [data-student-shell] .border-slate-100,
+html.dark [data-student-shell] .border-\[\#cbe7fb\] {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+html.dark [data-student-shell] thead tr,
+html.dark [data-student-shell] th {
+  background-color: rgba(30, 41, 59, 0.94) !important;
+  color: #f8fafc !important;
+}
+
+html.dark [data-student-shell] tbody tr {
+  background-color: rgba(15, 23, 42, 0.72) !important;
+}
+
+html.dark [data-student-shell] tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.94) !important;
+}
+
+.notification-count-badge {
+  animation: notification-count-bump 420ms ease-out;
+}
+
+@keyframes notification-count-bump {
+  0% {
+    transform: scale(0.65) translateY(2px);
+    opacity: 0;
+  }
+
+  55% {
+    transform: scale(1.18) translateY(-1px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}

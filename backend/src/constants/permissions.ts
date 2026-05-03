@@ -33,6 +33,7 @@ export const PERMISSIONS = Object.freeze({
   STUDENT_UPDATE: "student:update",
   STUDENT_DELETE: "student:delete",
   STUDENT_CHANGE_STATUS: "student:status",
+  STUDENT_PORTAL_ACCESS: "student_portal:access",
 
   CLASSROOM_READ: "classroom:read",
   CLASSROOM_CREATE: "classroom:create",
@@ -57,6 +58,13 @@ export const PERMISSIONS = Object.freeze({
   NOTIFICATION_READ: "notification:read",
   NOTIFICATION_CREATE: "notification:create",
   NOTIFICATION_DELETE: "notification:delete",
+
+  BLOG_READ: "blog:read",
+  BLOG_CREATE: "blog:create",
+  BLOG_UPDATE: "blog:update",
+  BLOG_DELETE: "blog:delete",
+  BLOG_PUBLISH: "blog:publish",
+  BLOG_CATEGORY_MANAGE: "blog_category:manage",
 
   PAYMENT_AUDIT_READ_OWN: "payment_audit:read_own",
   PAYMENT_AUDIT_READ_ALL: "payment_audit:read_all",

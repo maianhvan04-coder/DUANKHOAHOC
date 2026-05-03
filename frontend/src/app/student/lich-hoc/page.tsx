@@ -8,7 +8,6 @@ import {
   Clock3,
   MapPin,
   MonitorPlay,
-  Sparkles,
   User2,
 } from "lucide-react";
 import { authApi } from "@/app/api/auth.api";
@@ -20,6 +19,7 @@ import {
   type StudyCourse,
   type StudyClassRoom,
 } from "@/app/api/student-study.api";
+import { canAccessStudentPortal } from "@/lib/helpers/auth/access";
 
 type ScheduleLessonItem = {
   id: string;
@@ -269,14 +269,14 @@ function getModeLabel(mode: StudyMode) {
 
 function getModeBadgeClass(mode: StudyMode) {
   return mode === "ONLINE"
-    ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
-    : "bg-sky-100 text-sky-700 ring-1 ring-sky-200";
+    ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-400/25"
+    : "bg-sky-100 text-sky-700 ring-1 ring-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:ring-sky-400/25";
 }
 
 function getCardClass(mode: StudyMode) {
   return mode === "ONLINE"
-    ? "border-emerald-200/80 bg-emerald-50/70"
-    : "border-sky-200/80 bg-sky-50/70";
+    ? "border-emerald-200/80 bg-emerald-50/70 dark:border-emerald-400/25 dark:bg-emerald-500/10"
+    : "border-sky-200/80 bg-sky-50/70 dark:border-sky-400/25 dark:bg-sky-500/10";
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -478,12 +478,12 @@ function LessonCard({ item }: { item: ScheduleLessonItem }) {
   return (
     <div
       className={cn(
-        "rounded-3xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "rounded-2xl border p-4 shadow-sm transition hover:bg-white dark:hover:bg-slate-900/80",
         getCardClass(item.mode)
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="line-clamp-2 text-[16px] font-bold leading-7 text-slate-900">
+        <h3 className="line-clamp-2 text-[16px] font-bold leading-7 text-slate-900 dark:text-slate-100">
           {item.title}
         </h3>
 
@@ -497,7 +497,7 @@ function LessonCard({ item }: { item: ScheduleLessonItem }) {
         </span>
       </div>
 
-      <div className="mt-4 space-y-2.5 text-[14px] text-slate-600">
+      <div className="mt-4 space-y-2.5 text-[14px] text-slate-600 dark:text-slate-300">
         <div className="flex items-center gap-2">
           <Clock3 className="h-4 w-4 shrink-0" />
           <span>{formatTimeRange(item.startAt, item.endAt)}</span>
@@ -519,8 +519,8 @@ function LessonCard({ item }: { item: ScheduleLessonItem }) {
       </div>
 
       {item.className ? (
-        <div className="mt-4 rounded-2xl bg-white/70 px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-200/70">
-          <span className="font-medium text-slate-600">Lớp:</span>{" "}
+        <div className="mt-4 rounded-xl bg-white px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-200 dark:bg-slate-950/70 dark:text-slate-300 dark:ring-white/10">
+          <span className="font-medium text-slate-600 dark:text-slate-100">Lớp:</span>{" "}
           <span className="line-clamp-1">{item.className}</span>
         </div>
       ) : null}
@@ -544,10 +544,10 @@ function DayColumn({
     <div className="min-w-[245px] xl:min-w-0">
       <div
         className={cn(
-          "h-full rounded-[28px] border p-4",
+          "h-full rounded-2xl border p-4",
           isToday
-            ? "border-sky-200 bg-sky-50/60"
-            : "border-slate-200 bg-slate-50/70"
+            ? "border-[#0D56A6] bg-[#F4FAFF] dark:border-sky-500/60 dark:bg-sky-500/10"
+            : "border-[#cbe7fb] bg-white dark:border-white/10 dark:bg-slate-900/40"
         )}
       >
         <div className="mb-4 text-center">
@@ -555,17 +555,14 @@ function DayColumn({
             <p
               className={cn(
                 "text-[18px] font-bold",
-                isToday ? "text-sky-700" : "text-slate-700"
+                isToday
+                  ? "text-sky-700 dark:text-sky-300"
+                  : "text-slate-700 dark:text-slate-100"
               )}
             >
               {label}
             </p>
 
-            {isToday ? (
-              <span className="rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-200">
-                Hôm nay
-              </span>
-            ) : null}
           </div>
 
           <div className="mt-3 flex justify-center">
@@ -573,8 +570,8 @@ function DayColumn({
               className={cn(
                 "flex h-11 w-11 items-center justify-center rounded-full text-[18px] font-bold",
                 isToday
-                  ? "bg-sky-700 text-white shadow-sm"
-                  : "bg-white text-slate-700 ring-1 ring-slate-200"
+                  ? "bg-[#0D56A6] text-white shadow-sm dark:bg-sky-500"
+                  : "bg-[#F4FAFF] text-slate-700 ring-1 ring-[#cbe7fb] dark:bg-slate-950/60 dark:text-slate-100 dark:ring-white/15"
               )}
             >
               {date.getDate()}
@@ -583,13 +580,13 @@ function DayColumn({
         </div>
 
         {items.length === 0 ? (
-          <div className="flex min-h-[280px] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/60 px-4 text-center">
+          <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-[#cbe7fb] bg-[#F8FCFF] px-4 text-center dark:border-white/10 dark:bg-slate-950/50">
             <div>
-              <p className="text-sm font-semibold text-slate-600">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-200">
                 Không có lịch
               </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Hôm nay không có buổi học nào
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-400">
+                Không có buổi học nào
               </p>
             </div>
           </div>
@@ -623,19 +620,10 @@ export default function StudentWeeklySchedulePage() {
 
         const me = await authApi.me();
 
-        const response = me as {
-          access?: { roles?: string[]; primaryRole?: string };
-          user?: { id?: string };
-        };
+        const userId = me.user?.id;
 
-        const roles = Array.isArray(response.access?.roles)
-          ? response.access.roles
-          : [];
-        const primaryRole = response.access?.primaryRole;
-        const userId = response.user?.id;
-
-        if (primaryRole !== "STUDENT" && !roles.includes("STUDENT")) {
-          throw new Error("Tài khoản hiện tại không phải học viên");
+        if (!canAccessStudentPortal(me.access)) {
+          throw new Error("Tài khoản hiện tại không có quyền vào trang học viên");
         }
 
         if (!userId) {
@@ -713,73 +701,61 @@ export default function StudentWeeklySchedulePage() {
     setCurrentWeekStart((prev) => addDays(prev, 7));
   }
 
-  function goToday() {
-    setCurrentWeekStart(startOfWeekMonday(new Date()));
-  }
-
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#f1f5f9_100%)] p-4 md:p-6">
-      <section className="mx-auto max-w-[1600px] rounded-[32px] border border-slate-200/80 bg-white/85 p-5 shadow-[0_10px_40px_rgba(15,23,42,0.06)] backdrop-blur md:p-7">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sky-700">
-              <Sparkles className="h-5 w-5" />
-              <span className="text-sm font-semibold">Thời khóa biểu học viên</span>
+    <main className="p-4 md:p-6">
+      <section className="border border-[#cbe7fb] bg-white shadow-sm dark:border-white/10 dark:bg-slate-950/50">
+        <div className="border-b border-[#cbe7fb] bg-[#0D56A6] px-5 py-4 text-white md:px-7 dark:border-white/10">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-lg font-bold">Lịch học tuần</h2>
+              <p className="mt-1 text-sm text-white/80">
+                Thời khóa biểu học viên theo từng ngày trong tuần.
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/80">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 ring-1 ring-white/20">
+                  <CalendarDays className="h-4 w-4" />
+                  {formatWeekRange(currentWeekStart)}
+                </span>
+
+                <span className="inline-flex rounded-full bg-white/12 px-3 py-1.5 text-white ring-1 ring-white/20">
+                  {totalLessons} buổi trong tuần
+                </span>
+              </div>
             </div>
 
-            <h1 className="mt-2 text-[26px] font-bold tracking-tight text-slate-900">
-              Lịch học tuần
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={goPrevWeek}
+                className="inline-flex h-11 w-11 items-center justify-center border border-white/20 bg-white/10 text-white transition hover:bg-white/15"
+                aria-label="Tuần trước"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5">
-                <CalendarDays className="h-4 w-4" />
-                {formatWeekRange(currentWeekStart)}
-              </span>
-
-              <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700 ring-1 ring-emerald-200">
-                {totalLessons} buổi trong tuần
-              </span>
+              <button
+                type="button"
+                onClick={goNextWeek}
+                className="inline-flex h-11 w-11 items-center justify-center border border-white/20 bg-white/10 text-white transition hover:bg-white/15"
+                aria-label="Tuần sau"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={goPrevWeek}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-
-            <button
-              type="button"
-              onClick={goToday}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-sky-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-800"
-            >
-              Hôm nay
-            </button>
-
-            <button
-              type="button"
-              onClick={goNextWeek}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="mt-8 rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-20 text-center text-sm text-slate-500">
+          <div className="px-6 py-16 text-center text-sm font-semibold text-slate-500 dark:text-slate-300">
             Đang tải lịch học...
           </div>
         ) : errorText ? (
-          <div className="mt-8 rounded-[28px] border border-rose-200 bg-rose-50 px-6 py-20 text-center text-sm text-rose-700">
+          <div className="px-6 py-16 text-center text-sm font-semibold text-rose-700 dark:text-rose-300">
             {errorText}
           </div>
         ) : (
-          <div className="mt-8 overflow-x-auto pb-2">
+          <div className="overflow-x-auto p-5 md:p-6">
             <div className="grid min-w-[1760px] grid-cols-7 gap-4 xl:min-w-0">
               {weekDates.map((date, index) => {
                 const key = toDateOnlyKey(date);

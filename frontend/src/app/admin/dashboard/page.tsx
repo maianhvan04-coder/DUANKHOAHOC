@@ -68,7 +68,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 const EMPTY_OVERVIEW: DashboardCard[] = [
   { label: "Khóa học hoạt động", value: "0" },
   { label: "Lớp hôm nay", value: "0" },
-  { label: "Giảng viên online", value: "0" },
+  { label: "Giảng viên trực tuyến", value: "0" },
   { label: "Yêu cầu mới", value: "0" },
 ];
 
@@ -126,7 +126,7 @@ const EMPTY_ROWS: DashboardQuickRow[] = [];
 const EMPTY_QUICK_STATS: DashboardCard[] = [
   { label: "Lớp đang chạy", value: "0" },
   { label: "Yêu cầu mới", value: "0" },
-  { label: "Giảng viên online", value: "0" },
+  { label: "Giảng viên trực tuyến", value: "0" },
   { label: "Học phí chờ", value: "₫ 0" },
 ];
 
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                 dark ? "text-white" : "text-[#0f172a]"
               )}
             >
-              Dashboard quản trị
+              Bảng điều khiển quản trị
             </h1>
 
             <p

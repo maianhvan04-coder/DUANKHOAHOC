@@ -802,7 +802,7 @@ function StudentEditModal({
                       }
                       className="h-4 w-4 rounded border-slate-300"
                     />
-                    Hiển thị bên user
+                    Hiển thị bên người dùng
                   </label>
                 </div>
               </div>
