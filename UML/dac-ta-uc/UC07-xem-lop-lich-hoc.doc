@@ -1,0 +1,36 @@
+﻿Bảng 2-8: Bảng đặc tả chức năng "Xem lớp / lịch học"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC07                                                                                   |
+| Tên UseCase      | Xem lớp / lịch học                                                                     |
+| Mô tả            | Học viên xem danh sách lớp, lịch học, phòng học và thông tin giảng viên của các khóa   |
+|                  | học đã đăng ký.                                                                        |
+| Tiền điều kiện   | - Học viên đã đăng nhập.                                                               |
+|                  | - Học viên có lớp học hoặc hồ sơ học tập liên quan.                                    |
+|                  | - Dữ liệu lịch học đã được cập nhật.                                                   |
+| Luồng chính      | 1. Học viên mở màn hình lớp hoặc lịch học.                                             |
+|                  | 2. Frontend gửi yêu cầu lấy lịch học theo tài khoản hiện tại.                          |
+|                  | 3. ScheduleController kiểm tra phiên học viên.                                         |
+|                  | 4. ScheduleService truy vấn các lớp học viên tham gia.                                 |
+|                  | 5. ClassRoomRepo lấy lịch, phòng học, giảng viên và khóa học liên quan.                |
+|                  | 6. Hệ thống sắp xếp lịch học theo thời gian.                                           |
+|                  | 7. Backend trả dữ liệu lớp và lịch học.                                                |
+|                  | 8. Frontend hiển thị lịch học cho học viên.                                            |
+| Luồng phụ        | 4a. Không có lớp học                                                                   |
+|                  | 4a.1. Hệ thống trả danh sách rỗng.                                                     |
+|                  | 4a.2. Frontend hiển thị thông báo học viên chưa được xếp lớp.                          |
+|                  |                                                                                        |
+|                  | 5a. Lịch học chưa được cập nhật                                                        |
+|                  | 5a.1. Hệ thống vẫn hiển thị thông tin lớp.                                             |
+|                  | 5a.2. Frontend thông báo lịch học đang chờ cập nhật.                                   |
+|                  |                                                                                        |
+|                  | 7a. Phiên hết hạn                                                                      |
+|                  | 7a.1. Hệ thống yêu cầu đăng nhập lại.                                                  |
+|                  | 7a.2. Học viên đăng nhập rồi thực hiện lại thao tác.                                   |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

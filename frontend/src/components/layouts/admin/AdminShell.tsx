@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import axios from "axios";
 
 import AdminSidebar from "@/components/layouts/admin/sidebar/AdminSidebar";
@@ -19,21 +20,21 @@ import {
 import { AdminToaster } from "@/components/ui/admin/admin-toast";
 
 import {
-  authApi,
-  type AuthUser,
-  type UserAccess,
-} from "@/app/api/auth.api";
-import {
   rbacApi,
   type PermissionMetaItem,
 } from "@/app/api/rbac.api";
 
-import { setAccess, setToken, setUser, clearAuth } from "@/lib/utils/storage";
+import type { AuthUser, UserAccess } from "@/app/api/auth.api";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { clearAuth } from "@/lib/utils/storage";
 import { hasAnyRole } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
+
+const ADMIN_LOADING_ANIMATION =
+  "https://lottie.host/584935d4-8c45-483b-a01a-bd3576cf3c87/sNTwoeYdhN.lottie";
 
 type AdminBootstrapState = {
   currentUser: AuthUser | null;
@@ -45,6 +46,7 @@ type AdminBootstrapState = {
 function AdminShellFrame({ children }: { children: ReactNode }) {
   const { theme } = useAdminTheme();
   const { t } = useAdminPreferences();
+  const { user, access, hydrated, isLoading } = useAuth();
   const dark = theme === "dark";
   const router = useRouter();
 
@@ -56,34 +58,30 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    if (!hydrated || isLoading) return;
+
+    if (!user || !access) {
+      router.replace("/login");
+      return;
+    }
+
+    const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+
+    if (!allowed) {
+      router.replace("/403");
+      return;
+    }
+
     let mounted = true;
 
     const bootstrap = async () => {
       try {
-        const refreshRes = await authApi.refresh();
-        setToken(refreshRes.accessToken);
-        setAccess(refreshRes.access);
-
-        const meRes = await authApi.me();
-        const currentUser = meRes.user;
-        const access = meRes.access;
-
-        setUser(currentUser);
-        setAccess(access);
-
-        const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
-
-        if (!allowed) {
-          router.replace("/403");
-          return;
-        }
-
         const catalogRes = await rbacApi.getCatalog();
 
         if (!mounted) return;
 
         setState({
-          currentUser,
+          currentUser: user,
           permissionMeta: catalogRes.permissionMeta ?? [],
           userAccess: access,
           ready: true,
@@ -116,17 +114,27 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, [access, hydrated, isLoading, router, user]);
 
   if (!state.ready) {
     return (
       <div
         className={cn(
-          "flex min-h-screen items-center justify-center transition-colors duration-300",
+          "flex min-h-screen items-center justify-center px-4 py-16 text-center transition-colors duration-300",
           dark ? "bg-[#0b1220] text-white" : "bg-[#f4f7fb] text-[#0f172a]"
         )}
       >
-        {t("common.loadingAdmin")}
+        <div className="flex w-full max-w-sm flex-col items-center">
+          <DotLottieReact
+            src={ADMIN_LOADING_ANIMATION}
+            loop
+            autoplay
+            className="h-52 w-52 sm:h-64 sm:w-64"
+          />
+          <p className="mt-4 text-sm font-semibold opacity-80">
+            {t("common.loadingAdmin")}
+          </p>
+        </div>
       </div>
     );
   }

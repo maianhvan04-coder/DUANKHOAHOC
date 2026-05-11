@@ -1,0 +1,36 @@
+﻿Bảng 2-4: Bảng đặc tả chức năng "Cập nhật thông tin tài khoản"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC03                                                                                   |
+| Tên UseCase      | Cập nhật thông tin tài khoản                                                           |
+| Mô tả            | Người dùng cập nhật thông tin cá nhân như họ tên, số điện thoại hoặc ảnh đại diện      |
+|                  | trong khu vực tài khoản.                                                               |
+| Tiền điều kiện   | - Người dùng đã đăng nhập.                                                             |
+|                  | - Tài khoản đang hoạt động.                                                            |
+|                  | - Dữ liệu cập nhật đáp ứng quy tắc nhập liệu của hệ thống.                             |
+| Luồng chính      | 1. Người dùng mở màn hình tài khoản cá nhân.                                           |
+|                  | 2. Frontend tải thông tin hồ sơ hiện tại.                                              |
+|                  | 3. Người dùng chỉnh sửa thông tin cần cập nhật.                                        |
+|                  | 4. Frontend gửi dữ liệu đến AccountController.                                         |
+|                  | 5. AccountController kiểm tra phiên và validate dữ liệu.                               |
+|                  | 6. AccountService cập nhật thông tin User tương ứng.                                   |
+|                  | 7. Hệ thống lưu thay đổi và ghi nhận audit nếu cần.                                    |
+|                  | 8. Frontend hiển thị thông tin tài khoản mới nhất.                                     |
+| Luồng phụ        | 5a. Dữ liệu không hợp lệ                                                               |
+|                  | 5a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 5a.2. Người dùng chỉnh sửa lại thông tin.                                              |
+|                  |                                                                                        |
+|                  | 6a. Không tìm thấy tài khoản                                                           |
+|                  | 6a.1. Hệ thống từ chối cập nhật.                                                       |
+|                  | 6a.2. Frontend yêu cầu người dùng đăng nhập lại.                                       |
+|                  |                                                                                        |
+|                  | 7a. Lưu thay đổi thất bại                                                              |
+|                  | 7a.1. Hệ thống giữ nguyên dữ liệu cũ.                                                  |
+|                  | 7a.2. Frontend hiển thị thông báo thử lại sau.                                         |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

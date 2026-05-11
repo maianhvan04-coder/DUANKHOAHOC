@@ -1,0 +1,36 @@
+﻿Bảng 2-21: Bảng đặc tả chức năng "Quản lý khóa học"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC20                                                                                   |
+| Tên UseCase      | Quản lý khóa học                                                                       |
+| Mô tả            | Quản lý hoặc Admin quản lý thông tin khóa học, danh mục, giảng viên phụ trách, giá và  |
+|                  | trạng thái xuất bản.                                                                   |
+| Tiền điều kiện   | - Tác nhân đã đăng nhập.                                                               |
+|                  | - Tác nhân có quyền quản lý khóa học.                                                  |
+|                  | - Danh mục và giảng viên liên quan đã tồn tại nếu cần.                                 |
+| Luồng chính      | 1. Tác nhân mở màn hình quản lý khóa học.                                              |
+|                  | 2. Frontend tải danh sách khóa học.                                                    |
+|                  | 3. Tác nhân chọn thêm, sửa, xóa, khôi phục hoặc xem chi tiết khóa học.                 |
+|                  | 4. Frontend gửi dữ liệu thao tác đến CourseController.                                 |
+|                  | 5. CourseController kiểm tra quyền và validate dữ liệu.                                |
+|                  | 6. CourseService kiểm tra danh mục, giảng viên, slug và dữ liệu ảnh.                   |
+|                  | 7. CourseRepo lưu thay đổi vào cơ sở dữ liệu.                                          |
+|                  | 8. Frontend cập nhật danh sách khóa học theo kết quả trả về.                           |
+| Luồng phụ        | 5a. Dữ liệu khóa học không hợp lệ                                                      |
+|                  | 5a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 5a.2. Tác nhân chỉnh sửa lại thông tin khóa học.                                       |
+|                  |                                                                                        |
+|                  | 6a. Danh mục hoặc giảng viên không tồn tại                                             |
+|                  | 6a.1. Hệ thống không lưu khóa học.                                                     |
+|                  | 6a.2. Frontend hiển thị thông báo dữ liệu liên quan không hợp lệ.                      |
+|                  |                                                                                        |
+|                  | 7a. Khóa học đang có giao dịch hoặc lớp liên quan                                      |
+|                  | 7a.1. Hệ thống giới hạn thao tác xóa cứng.                                             |
+|                  | 7a.2. Tác nhân chọn xóa mềm hoặc xử lý ràng buộc trước.                                |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

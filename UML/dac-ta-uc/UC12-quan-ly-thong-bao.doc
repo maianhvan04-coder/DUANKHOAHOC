@@ -1,0 +1,36 @@
+﻿Bảng 2-13: Bảng đặc tả chức năng "Quản lý thông báo"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC12                                                                                   |
+| Tên UseCase      | Quản lý thông báo                                                                      |
+| Mô tả            | Giảng viên hoặc quản lý tạo, gửi và theo dõi thông báo đến người nhận trong phạm vi    |
+|                  | được phép.                                                                             |
+| Tiền điều kiện   | - Tác nhân đã đăng nhập.                                                               |
+|                  | - Tác nhân có quyền gửi hoặc quản lý thông báo.                                        |
+|                  | - Danh sách người nhận có thể truy vấn.                                                |
+| Luồng chính      | 1. Tác nhân mở màn hình quản lý thông báo.                                             |
+|                  | 2. Frontend tải danh sách người nhận phù hợp.                                          |
+|                  | 3. Tác nhân nhập tiêu đề, nội dung và phạm vi gửi.                                     |
+|                  | 4. Frontend gửi yêu cầu tạo thông báo.                                                 |
+|                  | 5. NotificationController kiểm tra quyền và validate dữ liệu.                          |
+|                  | 6. NotificationService xác định người nhận theo lớp, vai trò hoặc tài khoản.           |
+|                  | 7. Hệ thống lưu Notification cho người nhận.                                           |
+|                  | 8. Frontend hiển thị thông báo gửi thành công và cập nhật lịch sử gửi.                 |
+| Luồng phụ        | 5a. Nội dung thông báo không hợp lệ                                                    |
+|                  | 5a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 5a.2. Tác nhân chỉnh sửa tiêu đề hoặc nội dung.                                        |
+|                  |                                                                                        |
+|                  | 6a. Không có người nhận phù hợp                                                        |
+|                  | 6a.1. Hệ thống không tạo thông báo.                                                    |
+|                  | 6a.2. Frontend hiển thị thông báo không tìm thấy người nhận.                           |
+|                  |                                                                                        |
+|                  | 7a. Lưu thông báo thất bại                                                             |
+|                  | 7a.1. Hệ thống không ghi dữ liệu gửi.                                                  |
+|                  | 7a.2. Tác nhân thực hiện lại thao tác sau.                                             |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

@@ -1,0 +1,35 @@
+﻿Bảng 2-12: Bảng đặc tả chức năng "Quản lý học viên"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC11                                                                                   |
+| Tên UseCase      | Quản lý học viên                                                                       |
+| Mô tả            | Giảng viên hoặc quản lý xem và quản lý thông tin học viên theo phạm vi quyền được cấp. |
+| Tiền điều kiện   | - Tác nhân đã đăng nhập.                                                               |
+|                  | - Tác nhân có quyền quản lý học viên.                                                  |
+|                  | - Dữ liệu học viên và lớp học có thể truy vấn.                                         |
+| Luồng chính      | 1. Tác nhân mở màn hình quản lý học viên.                                              |
+|                  | 2. Frontend gửi yêu cầu lấy danh sách học viên.                                        |
+|                  | 3. StudentController kiểm tra quyền và phạm vi dữ liệu.                                |
+|                  | 4. StudentService truy vấn học viên theo bộ lọc.                                       |
+|                  | 5. Tác nhân chọn xem chi tiết, thêm, cập nhật, đổi trạng thái hoặc xóa học viên.       |
+|                  | 6. Frontend gửi dữ liệu thao tác đến backend.                                          |
+|                  | 7. StudentService validate dữ liệu và cập nhật User hoặc StudentStudy.                 |
+|                  | 8. Backend trả kết quả để frontend làm mới danh sách.                                  |
+| Luồng phụ        | 3a. Không đủ quyền quản lý học viên                                                    |
+|                  | 3a.1. Hệ thống từ chối thao tác.                                                       |
+|                  | 3a.2. Frontend hiển thị thông báo không có quyền.                                      |
+|                  |                                                                                        |
+|                  | 7a. Thông tin học viên không hợp lệ                                                    |
+|                  | 7a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 7a.2. Tác nhân chỉnh sửa lại dữ liệu.                                                  |
+|                  |                                                                                        |
+|                  | 7b. Học viên không tồn tại                                                             |
+|                  | 7b.1. Hệ thống không thực hiện cập nhật.                                               |
+|                  | 7b.2. Frontend tải lại danh sách mới nhất.                                             |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

@@ -1,0 +1,36 @@
+﻿Bảng 2-6: Bảng đặc tả chức năng "Đổi mật khẩu"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC05                                                                                   |
+| Tên UseCase      | Đổi mật khẩu                                                                           |
+| Mô tả            | Người dùng đổi mật khẩu tài khoản sau khi xác thực mật khẩu hiện tại và đáp ứng chính  |
+|                  | sách mật khẩu.                                                                         |
+| Tiền điều kiện   | - Người dùng đã đăng nhập.                                                             |
+|                  | - Tài khoản đang hoạt động.                                                            |
+|                  | - Người dùng biết mật khẩu hiện tại.                                                   |
+| Luồng chính      | 1. Người dùng mở chức năng đổi mật khẩu.                                               |
+|                  | 2. Người dùng nhập mật khẩu hiện tại, mật khẩu mới và xác nhận mật khẩu mới.           |
+|                  | 3. Frontend gửi yêu cầu đổi mật khẩu đến AccountController.                            |
+|                  | 4. AccountController kiểm tra phiên và validate dữ liệu.                               |
+|                  | 5. AccountService xác minh mật khẩu hiện tại.                                          |
+|                  | 6. Hệ thống kiểm tra chính sách độ mạnh của mật khẩu mới.                              |
+|                  | 7. UserRepository cập nhật mật khẩu đã băm.                                            |
+|                  | 8. Hệ thống ghi audit và thông báo đổi mật khẩu thành công.                            |
+| Luồng phụ        | 4a. Thông tin nhập không hợp lệ                                                        |
+|                  | 4a.1. Hệ thống hiển thị lỗi validate.                                                  |
+|                  | 4a.2. Người dùng nhập lại mật khẩu.                                                    |
+|                  |                                                                                        |
+|                  | 5a. Mật khẩu hiện tại không đúng                                                       |
+|                  | 5a.1. Hệ thống từ chối đổi mật khẩu.                                                   |
+|                  | 5a.2. Hệ thống ghi audit đổi mật khẩu thất bại.                                        |
+|                  |                                                                                        |
+|                  | 6a. Mật khẩu mới không đạt chính sách                                                  |
+|                  | 6a.1. Hệ thống hiển thị quy tắc mật khẩu.                                              |
+|                  | 6a.2. Người dùng chọn mật khẩu mới khác.                                               |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

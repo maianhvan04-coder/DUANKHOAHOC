@@ -1,0 +1,35 @@
+﻿Bảng 2-19: Bảng đặc tả chức năng "Xem audit thanh toán"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC18                                                                                   |
+| Tên UseCase      | Xem audit thanh toán                                                                   |
+| Mô tả            | Quản lý hoặc Admin xem và đối chiếu toàn bộ lịch sử thanh toán của hệ thống.           |
+| Tiền điều kiện   | - Tác nhân đã đăng nhập.                                                               |
+|                  | - Tác nhân có quyền xem audit thanh toán.                                              |
+|                  | - Dữ liệu thanh toán đã được ghi nhận trong hệ thống.                                  |
+| Luồng chính      | 1. Tác nhân mở màn hình audit thanh toán.                                              |
+|                  | 2. Frontend gửi yêu cầu lấy danh sách giao dịch.                                       |
+|                  | 3. PaymentAuditController kiểm tra quyền truy cập.                                     |
+|                  | 4. Tác nhân nhập bộ lọc provider, trạng thái hoặc mã thanh toán nếu cần.               |
+|                  | 5. PaymentAuditService chuẩn hóa bộ lọc và phân trang.                                 |
+|                  | 6. PaymentOrderRepo truy vấn các giao dịch phù hợp.                                    |
+|                  | 7. Backend trả danh sách giao dịch và chi tiết liên quan.                              |
+|                  | 8. Frontend hiển thị audit thanh toán cho tác nhân.                                    |
+| Luồng phụ        | 3a. Không có quyền xem audit thanh toán                                                |
+|                  | 3a.1. Hệ thống từ chối truy cập.                                                       |
+|                  | 3a.2. Frontend hiển thị thông báo không có quyền.                                      |
+|                  |                                                                                        |
+|                  | 4a. Tham số lọc không hợp lệ                                                           |
+|                  | 4a.1. Hệ thống trả lỗi tham số.                                                        |
+|                  | 4a.2. Tác nhân nhập lại bộ lọc.                                                        |
+|                  |                                                                                        |
+|                  | 6a. Không có giao dịch phù hợp                                                         |
+|                  | 6a.1. Hệ thống trả danh sách rỗng.                                                     |
+|                  | 6a.2. Frontend hiển thị trạng thái không có dữ liệu.                                   |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

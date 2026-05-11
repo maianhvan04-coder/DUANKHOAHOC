@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>23 chức năng UseCase UML</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f2f2f2; color: #111; }
+    header { padding: 24px 32px; background: #fff; border-bottom: 1px solid #d8d8d8; }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    p { margin: 0; color: #555; }
+    main { display: grid; gap: 28px; padding: 28px; }
+    section { background: #fff; border: 1px solid #d8d8d8; padding: 18px; }
+    h2 { margin: 0 0 14px; font-size: 19px; }
+    h3 { margin: 0 0 10px; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+    img { display: block; width: 100%; height: auto; border: 1px solid #bbb; background: #fff; }
+    @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>23 chức năng UseCase của hệ thống</h1>
+    <p>Mỗi chức năng có sơ đồ hoạt động, sơ đồ lớp và sơ đồ trình tự.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Tổng hợp</h2>
+      <img src="tong-hop-chuc-nang.svg" alt="Tổng hợp 23 chức năng UseCase" />
+    </section>
+    <section>
+  <h2>UC01. Xem nội dung công khai</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="01-xem-noi-dung-cong-khai/hoat-dong.svg" alt="Hoạt động Xem nội dung công khai" /></article>
+    <article><h3>Lớp</h3><img src="01-xem-noi-dung-cong-khai/lop.svg" alt="Lớp Xem nội dung công khai" /></article>
+    <article><h3>Trình tự</h3><img src="01-xem-noi-dung-cong-khai/trinh-tu.svg" alt="Trình tự Xem nội dung công khai" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC02. Thanh toán khóa học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="02-thanh-toan-khoa-hoc/hoat-dong.svg" alt="Hoạt động Thanh toán khóa học" /></article>
+    <article><h3>Lớp</h3><img src="02-thanh-toan-khoa-hoc/lop.svg" alt="Lớp Thanh toán khóa học" /></article>
+    <article><h3>Trình tự</h3><img src="02-thanh-toan-khoa-hoc/trinh-tu.svg" alt="Trình tự Thanh toán khóa học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC03. Cập nhật thông tin tài khoản</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="03-cap-nhat-thong-tin-tai-khoan/hoat-dong.svg" alt="Hoạt động Cập nhật thông tin tài khoản" /></article>
+    <article><h3>Lớp</h3><img src="03-cap-nhat-thong-tin-tai-khoan/lop.svg" alt="Lớp Cập nhật thông tin tài khoản" /></article>
+    <article><h3>Trình tự</h3><img src="03-cap-nhat-thong-tin-tai-khoan/trinh-tu.svg" alt="Trình tự Cập nhật thông tin tài khoản" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC04. Xem lịch sử thanh toán</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="04-xem-lich-su-thanh-toan/hoat-dong.svg" alt="Hoạt động Xem lịch sử thanh toán" /></article>
+    <article><h3>Lớp</h3><img src="04-xem-lich-su-thanh-toan/lop.svg" alt="Lớp Xem lịch sử thanh toán" /></article>
+    <article><h3>Trình tự</h3><img src="04-xem-lich-su-thanh-toan/trinh-tu.svg" alt="Trình tự Xem lịch sử thanh toán" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC05. Đổi mật khẩu</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="05-doi-mat-khau/hoat-dong.svg" alt="Hoạt động Đổi mật khẩu" /></article>
+    <article><h3>Lớp</h3><img src="05-doi-mat-khau/lop.svg" alt="Lớp Đổi mật khẩu" /></article>
+    <article><h3>Trình tự</h3><img src="05-doi-mat-khau/trinh-tu.svg" alt="Trình tự Đổi mật khẩu" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC06. Xem điểm</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="06-xem-diem/hoat-dong.svg" alt="Hoạt động Xem điểm" /></article>
+    <article><h3>Lớp</h3><img src="06-xem-diem/lop.svg" alt="Lớp Xem điểm" /></article>
+    <article><h3>Trình tự</h3><img src="06-xem-diem/trinh-tu.svg" alt="Trình tự Xem điểm" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC07. Xem lớp / lịch học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="07-xem-lop-lich-hoc/hoat-dong.svg" alt="Hoạt động Xem lớp / lịch học" /></article>
+    <article><h3>Lớp</h3><img src="07-xem-lop-lich-hoc/lop.svg" alt="Lớp Xem lớp / lịch học" /></article>
+    <article><h3>Trình tự</h3><img src="07-xem-lop-lich-hoc/trinh-tu.svg" alt="Trình tự Xem lớp / lịch học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC08. Xem thông báo</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="08-xem-thong-bao/hoat-dong.svg" alt="Hoạt động Xem thông báo" /></article>
+    <article><h3>Lớp</h3><img src="08-xem-thong-bao/lop.svg" alt="Lớp Xem thông báo" /></article>
+    <article><h3>Trình tự</h3><img src="08-xem-thong-bao/trinh-tu.svg" alt="Trình tự Xem thông báo" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC09. Quản lý lớp học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="09-quan-ly-lop-hoc/hoat-dong.svg" alt="Hoạt động Quản lý lớp học" /></article>
+    <article><h3>Lớp</h3><img src="09-quan-ly-lop-hoc/lop.svg" alt="Lớp Quản lý lớp học" /></article>
+    <article><h3>Trình tự</h3><img src="09-quan-ly-lop-hoc/trinh-tu.svg" alt="Trình tự Quản lý lớp học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC10. Quản lý lịch học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="10-quan-ly-lich-hoc/hoat-dong.svg" alt="Hoạt động Quản lý lịch học" /></article>
+    <article><h3>Lớp</h3><img src="10-quan-ly-lich-hoc/lop.svg" alt="Lớp Quản lý lịch học" /></article>
+    <article><h3>Trình tự</h3><img src="10-quan-ly-lich-hoc/trinh-tu.svg" alt="Trình tự Quản lý lịch học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC11. Quản lý học viên</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="11-quan-ly-hoc-vien/hoat-dong.svg" alt="Hoạt động Quản lý học viên" /></article>
+    <article><h3>Lớp</h3><img src="11-quan-ly-hoc-vien/lop.svg" alt="Lớp Quản lý học viên" /></article>
+    <article><h3>Trình tự</h3><img src="11-quan-ly-hoc-vien/trinh-tu.svg" alt="Trình tự Quản lý học viên" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC12. Quản lý thông báo</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="12-quan-ly-thong-bao/hoat-dong.svg" alt="Hoạt động Quản lý thông báo" /></article>
+    <article><h3>Lớp</h3><img src="12-quan-ly-thong-bao/lop.svg" alt="Lớp Quản lý thông báo" /></article>
+    <article><h3>Trình tự</h3><img src="12-quan-ly-thong-bao/trinh-tu.svg" alt="Trình tự Quản lý thông báo" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC13. Đăng ký, đăng nhập</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="13-dang-ky-dang-nhap/hoat-dong.svg" alt="Hoạt động Đăng ký, đăng nhập" /></article>
+    <article><h3>Lớp</h3><img src="13-dang-ky-dang-nhap/lop.svg" alt="Lớp Đăng ký, đăng nhập" /></article>
+    <article><h3>Trình tự</h3><img src="13-dang-ky-dang-nhap/trinh-tu.svg" alt="Trình tự Đăng ký, đăng nhập" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC14. Dashboard thống kê</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="14-dashboard-thong-ke/hoat-dong.svg" alt="Hoạt động Dashboard thống kê" /></article>
+    <article><h3>Lớp</h3><img src="14-dashboard-thong-ke/lop.svg" alt="Lớp Dashboard thống kê" /></article>
+    <article><h3>Trình tự</h3><img src="14-dashboard-thong-ke/trinh-tu.svg" alt="Trình tự Dashboard thống kê" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC15. Quản lý bài viết</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="15-quan-ly-bai-viet/hoat-dong.svg" alt="Hoạt động Quản lý bài viết" /></article>
+    <article><h3>Lớp</h3><img src="15-quan-ly-bai-viet/lop.svg" alt="Lớp Quản lý bài viết" /></article>
+    <article><h3>Trình tự</h3><img src="15-quan-ly-bai-viet/trinh-tu.svg" alt="Trình tự Quản lý bài viết" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC16. Quản lý danh mục bài viết</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="16-quan-ly-danh-muc-bai-viet/hoat-dong.svg" alt="Hoạt động Quản lý danh mục bài viết" /></article>
+    <article><h3>Lớp</h3><img src="16-quan-ly-danh-muc-bai-viet/lop.svg" alt="Lớp Quản lý danh mục bài viết" /></article>
+    <article><h3>Trình tự</h3><img src="16-quan-ly-danh-muc-bai-viet/trinh-tu.svg" alt="Trình tự Quản lý danh mục bài viết" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC17. Xem audit bảo mật</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="17-xem-audit-bao-mat/hoat-dong.svg" alt="Hoạt động Xem audit bảo mật" /></article>
+    <article><h3>Lớp</h3><img src="17-xem-audit-bao-mat/lop.svg" alt="Lớp Xem audit bảo mật" /></article>
+    <article><h3>Trình tự</h3><img src="17-xem-audit-bao-mat/trinh-tu.svg" alt="Trình tự Xem audit bảo mật" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC18. Xem audit thanh toán</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="18-xem-audit-thanh-toan/hoat-dong.svg" alt="Hoạt động Xem audit thanh toán" /></article>
+    <article><h3>Lớp</h3><img src="18-xem-audit-thanh-toan/lop.svg" alt="Lớp Xem audit thanh toán" /></article>
+    <article><h3>Trình tự</h3><img src="18-xem-audit-thanh-toan/trinh-tu.svg" alt="Trình tự Xem audit thanh toán" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC19. Quản lý danh mục khóa học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="19-quan-ly-danh-muc-khoa-hoc/hoat-dong.svg" alt="Hoạt động Quản lý danh mục khóa học" /></article>
+    <article><h3>Lớp</h3><img src="19-quan-ly-danh-muc-khoa-hoc/lop.svg" alt="Lớp Quản lý danh mục khóa học" /></article>
+    <article><h3>Trình tự</h3><img src="19-quan-ly-danh-muc-khoa-hoc/trinh-tu.svg" alt="Trình tự Quản lý danh mục khóa học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC20. Quản lý khóa học</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="20-quan-ly-khoa-hoc/hoat-dong.svg" alt="Hoạt động Quản lý khóa học" /></article>
+    <article><h3>Lớp</h3><img src="20-quan-ly-khoa-hoc/lop.svg" alt="Lớp Quản lý khóa học" /></article>
+    <article><h3>Trình tự</h3><img src="20-quan-ly-khoa-hoc/trinh-tu.svg" alt="Trình tự Quản lý khóa học" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC21. Quản lý giảng viên</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="21-quan-ly-giang-vien/hoat-dong.svg" alt="Hoạt động Quản lý giảng viên" /></article>
+    <article><h3>Lớp</h3><img src="21-quan-ly-giang-vien/lop.svg" alt="Lớp Quản lý giảng viên" /></article>
+    <article><h3>Trình tự</h3><img src="21-quan-ly-giang-vien/trinh-tu.svg" alt="Trình tự Quản lý giảng viên" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC22. Quản lý người dùng</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="22-quan-ly-nguoi-dung/hoat-dong.svg" alt="Hoạt động Quản lý người dùng" /></article>
+    <article><h3>Lớp</h3><img src="22-quan-ly-nguoi-dung/lop.svg" alt="Lớp Quản lý người dùng" /></article>
+    <article><h3>Trình tự</h3><img src="22-quan-ly-nguoi-dung/trinh-tu.svg" alt="Trình tự Quản lý người dùng" /></article>
+  </div>
+</section>
+<section>
+  <h2>UC23. Phân quyền RBAC</h2>
+  <div class="grid">
+    <article><h3>Hoạt động</h3><img src="23-phan-quyen-rbac/hoat-dong.svg" alt="Hoạt động Phân quyền RBAC" /></article>
+    <article><h3>Lớp</h3><img src="23-phan-quyen-rbac/lop.svg" alt="Lớp Phân quyền RBAC" /></article>
+    <article><h3>Trình tự</h3><img src="23-phan-quyen-rbac/trinh-tu.svg" alt="Trình tự Phân quyền RBAC" /></article>
+  </div>
+</section>
+  </main>
+</body>
+</html>

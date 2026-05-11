@@ -1,0 +1,277 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1660" height="1240" viewBox="0 0 1660 1240">
+  <title>Sơ đồ lớp tổng thể toàn hệ thống</title>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#111"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #111; }
+      .title { font-size: 24px; font-weight: 700; }
+      .label { font-size: 14px; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .boundary { fill: #fff; stroke: #111; stroke-width: 1.5; }
+      .usecase { fill: #fff; stroke: #111; stroke-width: 1.3; }
+      .actor { stroke: #111; stroke-width: 1.25; fill: none; }
+      .line { stroke: #111; stroke-width: 1.15; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke: #111; stroke-width: 1; stroke-dasharray: 5 4; fill: none; marker-end: url(#arrow); }
+      .box { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .soft { fill: #f7f7f7; stroke: #111; stroke-width: 1.1; }
+      .decision { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .class { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .classHead { fill: #efefef; stroke: #111; stroke-width: 1.2; }
+      .relation { stroke: #111; stroke-width: 1; fill: none; }
+      .participant { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .lifeline { stroke: #888; stroke-width: 1; stroke-dasharray: 6 5; }
+      .note { fill: #fffbe6; stroke: #111; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#fff"/>
+  <text x="830" y="34" text-anchor="middle" class="title">Sơ đồ lớp tổng thể toàn hệ thống</text>
+<rect class="class" x="60" y="90" width="260" height="160"/>
+<rect class="classHead" x="60" y="90" width="260" height="38"/>
+<text x="190" y="116" text-anchor="middle" class="small"><tspan x="190" y="116">User</tspan></text>
+<text x="72" y="146" class="tiny">+name</text>
+<text x="72" y="163" class="tiny">+email</text>
+<text x="72" y="180" class="tiny">+passwordHash</text>
+<text x="72" y="197" class="tiny">+avatar</text>
+<text x="72" y="214" class="tiny">+role</text>
+<text x="72" y="231" class="tiny">+active</text>
+<rect class="class" x="380" y="90" width="260" height="143"/>
+<rect class="classHead" x="380" y="90" width="260" height="38"/>
+<text x="510" y="116" text-anchor="middle" class="small"><tspan x="510" y="116">Session</tspan></text>
+<text x="392" y="146" class="tiny">+user</text>
+<text x="392" y="163" class="tiny">+refreshTokenHash</text>
+<text x="392" y="180" class="tiny">+expiresAt</text>
+<text x="392" y="197" class="tiny">+revokedAt</text>
+<text x="392" y="214" class="tiny">+lastUsedAt</text>
+<rect class="class" x="700" y="90" width="260" height="160"/>
+<rect class="classHead" x="700" y="90" width="260" height="38"/>
+<text x="830" y="116" text-anchor="middle" class="small"><tspan x="830" y="116">AccessToken</tspan></text>
+<text x="712" y="146" class="tiny">+user</text>
+<text x="712" y="163" class="tiny">+session</text>
+<text x="712" y="180" class="tiny">+jti</text>
+<text x="712" y="197" class="tiny">+tokenHash</text>
+<text x="712" y="214" class="tiny">+expiresAt</text>
+<text x="712" y="231" class="tiny">+revokedAt</text>
+<rect class="class" x="1020" y="90" width="260" height="160"/>
+<rect class="classHead" x="1020" y="90" width="260" height="38"/>
+<text x="1150" y="116" text-anchor="middle" class="small"><tspan x="1150" y="116">Role</tspan></text>
+<text x="1032" y="146" class="tiny">+code</text>
+<text x="1032" y="163" class="tiny">+type</text>
+<text x="1032" y="180" class="tiny">+name</text>
+<text x="1032" y="197" class="tiny">+priority</text>
+<text x="1032" y="214" class="tiny">+isSystem</text>
+<text x="1032" y="231" class="tiny">+isActive</text>
+<rect class="class" x="1340" y="90" width="260" height="160"/>
+<rect class="classHead" x="1340" y="90" width="260" height="38"/>
+<text x="1470" y="116" text-anchor="middle" class="small"><tspan x="1470" y="116">Permission</tspan></text>
+<text x="1352" y="146" class="tiny">+key</text>
+<text x="1352" y="163" class="tiny">+resource</text>
+<text x="1352" y="180" class="tiny">+action</text>
+<text x="1352" y="197" class="tiny">+groupKey</text>
+<text x="1352" y="214" class="tiny">+groupLabel</text>
+<text x="1352" y="231" class="tiny">+order</text>
+<rect class="class" x="60" y="310" width="260" height="160"/>
+<rect class="classHead" x="60" y="310" width="260" height="38"/>
+<text x="190" y="336" text-anchor="middle" class="small"><tspan x="190" y="336">Teacher</tspan></text>
+<text x="72" y="366" class="tiny">+user</text>
+<text x="72" y="383" class="tiny">+specialty</text>
+<text x="72" y="400" class="tiny">+phone</text>
+<text x="72" y="417" class="tiny">+degree</text>
+<text x="72" y="434" class="tiny">+experience</text>
+<text x="72" y="451" class="tiny">+rating</text>
+<rect class="class" x="380" y="310" width="260" height="143"/>
+<rect class="classHead" x="380" y="310" width="260" height="38"/>
+<text x="510" y="336" text-anchor="middle" class="small"><tspan x="510" y="336">Category</tspan></text>
+<text x="392" y="366" class="tiny">+name</text>
+<text x="392" y="383" class="tiny">+slug</text>
+<text x="392" y="400" class="tiny">+description</text>
+<text x="392" y="417" class="tiny">+isActive</text>
+<text x="392" y="434" class="tiny">+isDeleted</text>
+<rect class="class" x="700" y="310" width="260" height="160"/>
+<rect class="classHead" x="700" y="310" width="260" height="38"/>
+<text x="830" y="336" text-anchor="middle" class="small"><tspan x="830" y="336">Product</tspan></text>
+<text x="712" y="366" class="tiny">+title</text>
+<text x="712" y="383" class="tiny">+slug</text>
+<text x="712" y="400" class="tiny">+category</text>
+<text x="712" y="417" class="tiny">+teacher</text>
+<text x="712" y="434" class="tiny">+level</text>
+<text x="712" y="451" class="tiny">+price</text>
+<rect class="class" x="1020" y="310" width="260" height="126"/>
+<rect class="classHead" x="1020" y="310" width="260" height="38"/>
+<text x="1150" y="336" text-anchor="middle" class="small"><tspan x="1150" y="336">UserRole</tspan></text>
+<text x="1032" y="366" class="tiny">+userId</text>
+<text x="1032" y="383" class="tiny">+roleId</text>
+<text x="1032" y="400" class="tiny">+isDeleted</text>
+<text x="1032" y="417" class="tiny">+deletedAt</text>
+<rect class="class" x="1340" y="310" width="260" height="143"/>
+<rect class="classHead" x="1340" y="310" width="260" height="38"/>
+<text x="1470" y="336" text-anchor="middle" class="small"><tspan x="1470" y="336">RolePermission</tspan></text>
+<text x="1352" y="366" class="tiny">+roleId</text>
+<text x="1352" y="383" class="tiny">+permissionKey</text>
+<text x="1352" y="400" class="tiny">+scope</text>
+<text x="1352" y="417" class="tiny">+field</text>
+<text x="1352" y="434" class="tiny">+isDeleted</text>
+<rect class="class" x="60" y="530" width="260" height="160"/>
+<rect class="classHead" x="60" y="530" width="260" height="38"/>
+<text x="190" y="556" text-anchor="middle" class="small"><tspan x="190" y="556">ClassRoom</tspan></text>
+<text x="72" y="586" class="tiny">+course</text>
+<text x="72" y="603" class="tiny">+teacher</text>
+<text x="72" y="620" class="tiny">+className</text>
+<text x="72" y="637" class="tiny">+mode</text>
+<text x="72" y="654" class="tiny">+scheduleText</text>
+<text x="72" y="671" class="tiny">+room</text>
+<rect class="class" x="380" y="530" width="260" height="160"/>
+<rect class="classHead" x="380" y="530" width="260" height="38"/>
+<text x="510" y="556" text-anchor="middle" class="small"><tspan x="510" y="556">StudentStudy</tspan></text>
+<text x="392" y="586" class="tiny">+student</text>
+<text x="392" y="603" class="tiny">+classRoom</text>
+<text x="392" y="620" class="tiny">+course</text>
+<text x="392" y="637" class="tiny">+teacher</text>
+<text x="392" y="654" class="tiny">+status</text>
+<text x="392" y="671" class="tiny">+score</text>
+<rect class="class" x="700" y="530" width="260" height="143"/>
+<rect class="classHead" x="700" y="530" width="260" height="38"/>
+<text x="830" y="556" text-anchor="middle" class="small"><tspan x="830" y="556">StudySession</tspan></text>
+<text x="712" y="586" class="tiny">+sessionNo</text>
+<text x="712" y="603" class="tiny">+date</text>
+<text x="712" y="620" class="tiny">+attendanceStatus</text>
+<text x="712" y="637" class="tiny">+homeworkStatus</text>
+<text x="712" y="654" class="tiny">+progressScore</text>
+<rect class="class" x="1020" y="530" width="260" height="126"/>
+<rect class="classHead" x="1020" y="530" width="260" height="38"/>
+<text x="1150" y="556" text-anchor="middle" class="small"><tspan x="1150" y="556">Cart</tspan></text>
+<text x="1032" y="586" class="tiny">+user</text>
+<text x="1032" y="603" class="tiny">+items</text>
+<text x="1032" y="620" class="tiny">+createdAt</text>
+<text x="1032" y="637" class="tiny">+updatedAt</text>
+<rect class="class" x="1340" y="530" width="260" height="143"/>
+<rect class="classHead" x="1340" y="530" width="260" height="38"/>
+<text x="1470" y="556" text-anchor="middle" class="small"><tspan x="1470" y="556">CartItem</tspan></text>
+<text x="1352" y="586" class="tiny">+course</text>
+<text x="1352" y="603" class="tiny">+quantity</text>
+<text x="1352" y="620" class="tiny">+unitPrice</text>
+<text x="1352" y="637" class="tiny">+originalPrice</text>
+<text x="1352" y="654" class="tiny">+selected</text>
+<rect class="class" x="60" y="750" width="260" height="160"/>
+<rect class="classHead" x="60" y="750" width="260" height="38"/>
+<text x="190" y="776" text-anchor="middle" class="small"><tspan x="190" y="776">PaymentOrder</tspan></text>
+<text x="72" y="806" class="tiny">+user</text>
+<text x="72" y="823" class="tiny">+provider</text>
+<text x="72" y="840" class="tiny">+status</text>
+<text x="72" y="857" class="tiny">+paymentCode</text>
+<text x="72" y="874" class="tiny">+amount</text>
+<text x="72" y="891" class="tiny">+paidAt</text>
+<rect class="class" x="380" y="750" width="260" height="143"/>
+<rect class="classHead" x="380" y="750" width="260" height="38"/>
+<text x="510" y="776" text-anchor="middle" class="small"><tspan x="510" y="776">OrderItemSnapshot</tspan></text>
+<text x="392" y="806" class="tiny">+courseId</text>
+<text x="392" y="823" class="tiny">+title</text>
+<text x="392" y="840" class="tiny">+quantity</text>
+<text x="392" y="857" class="tiny">+unitPrice</text>
+<text x="392" y="874" class="tiny">+subtotal</text>
+<rect class="class" x="700" y="750" width="260" height="143"/>
+<rect class="classHead" x="700" y="750" width="260" height="38"/>
+<text x="830" y="776" text-anchor="middle" class="small"><tspan x="830" y="776">BlogCategory</tspan></text>
+<text x="712" y="806" class="tiny">+name</text>
+<text x="712" y="823" class="tiny">+slug</text>
+<text x="712" y="840" class="tiny">+description</text>
+<text x="712" y="857" class="tiny">+isActive</text>
+<text x="712" y="874" class="tiny">+isDeleted</text>
+<rect class="class" x="1020" y="750" width="260" height="160"/>
+<rect class="classHead" x="1020" y="750" width="260" height="38"/>
+<text x="1150" y="776" text-anchor="middle" class="small"><tspan x="1150" y="776">Blog</tspan></text>
+<text x="1032" y="806" class="tiny">+title</text>
+<text x="1032" y="823" class="tiny">+slug</text>
+<text x="1032" y="840" class="tiny">+category</text>
+<text x="1032" y="857" class="tiny">+tags</text>
+<text x="1032" y="874" class="tiny">+createdBy</text>
+<text x="1032" y="891" class="tiny">+isPublished</text>
+<rect class="class" x="1340" y="750" width="260" height="160"/>
+<rect class="classHead" x="1340" y="750" width="260" height="38"/>
+<text x="1470" y="776" text-anchor="middle" class="small"><tspan x="1470" y="776">Notification</tspan></text>
+<text x="1352" y="806" class="tiny">+userId</text>
+<text x="1352" y="823" class="tiny">+title</text>
+<text x="1352" y="840" class="tiny">+message</text>
+<text x="1352" y="857" class="tiny">+type</text>
+<text x="1352" y="874" class="tiny">+isRead</text>
+<text x="1352" y="891" class="tiny">+createdBy</text>
+<rect class="class" x="60" y="970" width="260" height="160"/>
+<rect class="classHead" x="60" y="970" width="260" height="38"/>
+<text x="190" y="996" text-anchor="middle" class="small"><tspan x="190" y="996">SecurityAudit</tspan></text>
+<text x="72" y="1026" class="tiny">+user</text>
+<text x="72" y="1043" class="tiny">+userEmail</text>
+<text x="72" y="1060" class="tiny">+action</text>
+<text x="72" y="1077" class="tiny">+method</text>
+<text x="72" y="1094" class="tiny">+path</text>
+<text x="72" y="1111" class="tiny">+success</text>
+<rect class="class" x="380" y="970" width="260" height="143"/>
+<rect class="classHead" x="380" y="970" width="260" height="38"/>
+<text x="510" y="996" text-anchor="middle" class="small"><tspan x="510" y="996">DashboardResponse</tspan></text>
+<text x="392" y="1026" class="tiny">+overviewCards</text>
+<text x="392" y="1043" class="tiny">+statCards</text>
+<text x="392" y="1060" class="tiny">+enrollmentData</text>
+<text x="392" y="1077" class="tiny">+revenueData</text>
+<text x="392" y="1094" class="tiny">+quickRows</text>
+<path class="relation" d="M320 170 L380 162"/>
+<text x="350" y="161" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M640 162 L700 170"/>
+<text x="670" y="161" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 170 L700 170"/>
+<text x="510" y="165" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 170 L1020 373"/>
+<text x="670" y="267" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M1150 250 L1150 310"/>
+<text x="1150" y="275" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M1280 170 L1340 382"/>
+<text x="1310" y="271" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M1470 250 L1470 310"/>
+<text x="1470" y="275" text-anchor="middle" class="tiny">1-n key</text>
+<path class="relation" d="M190 250 L190 310"/>
+<text x="190" y="275" text-anchor="middle" class="tiny">1-0..1</text>
+<path class="relation" d="M640 382 L700 390"/>
+<text x="670" y="381" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 390 L700 390"/>
+<text x="510" y="385" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M700 390 L320 610"/>
+<text x="510" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M190 470 L190 530"/>
+<text x="190" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M190 250 L510 530"/>
+<text x="350" y="385" text-anchor="middle" class="tiny">1-n student</text>
+<path class="relation" d="M320 610 L380 610"/>
+<text x="350" y="605" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M700 390 L640 610"/>
+<text x="670" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 390 L380 610"/>
+<text x="350" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M640 610 L700 602"/>
+<text x="670" y="601" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 170 L1020 593"/>
+<text x="670" y="377" text-anchor="middle" class="tiny">1-0..1</text>
+<path class="relation" d="M1280 593 L1340 602"/>
+<text x="1310" y="592" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M960 390 L1340 602"/>
+<text x="1150" y="491" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M190 250 L190 750"/>
+<text x="190" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 830 L380 822"/>
+<text x="350" y="821" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M960 822 L1020 830"/>
+<text x="990" y="821" text-anchor="middle" class="tiny">1-n logical</text>
+<path class="relation" d="M320 170 L1020 830"/>
+<text x="670" y="495" text-anchor="middle" class="tiny">1-n createdBy</text>
+<path class="relation" d="M320 170 L1340 830"/>
+<text x="830" y="495" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M190 250 L190 970"/>
+<text x="190" y="605" text-anchor="middle" class="tiny">1-n</text>
+<path class="relation" d="M320 830 L380 1042"/>
+<text x="350" y="931" text-anchor="middle" class="tiny">aggregate</text>
+<path class="relation" d="M510 690 L510 970"/>
+<text x="510" y="825" text-anchor="middle" class="tiny">aggregate</text>
+<rect class="note" x="700" y="970" width="900" height="105" rx="6"/>
+<text x="722" y="1000" class="small">Ghi chú</text>
+<text x="722" y="1026" class="tiny">- DashboardResponse là DTO tổng hợp cho màn hình thống kê, không phải collection MongoDB.</text>
+<text x="722" y="1048" class="tiny">- Blog.category hiện lưu slug/tên dạng chuỗi; liên kết với BlogCategory là liên kết nghiệp vụ logic.</text>
+</svg>

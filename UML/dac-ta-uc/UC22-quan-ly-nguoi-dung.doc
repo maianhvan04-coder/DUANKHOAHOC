@@ -1,0 +1,37 @@
+﻿Bảng 2-23: Bảng đặc tả chức năng "Quản lý người dùng"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC22                                                                                   |
+| Tên UseCase      | Quản lý người dùng                                                                     |
+| Mô tả            | Admin quản lý tài khoản người dùng trong hệ thống, bao gồm tạo mới, cập nhật, khóa,    |
+|                  | xóa và khôi phục tài khoản.                                                            |
+| Tiền điều kiện   | - Admin đã đăng nhập.                                                                  |
+|                  | - Admin có quyền quản lý người dùng.                                                   |
+|                  | - Dữ liệu người dùng và vai trò có thể truy cập.                                       |
+| Luồng chính      | 1. Admin mở màn hình quản lý người dùng.                                               |
+|                  | 2. Frontend tải danh sách người dùng.                                                  |
+|                  | 3. Admin chọn xem chi tiết, tạo, cập nhật, đổi trạng thái, xóa hoặc khôi phục người    |
+|                  | dùng.                                                                                  |
+|                  | 4. Frontend gửi yêu cầu đến UserController.                                            |
+|                  | 5. UserController kiểm tra quyền Admin và validate dữ liệu.                            |
+|                  | 6. UserService kiểm tra email, vai trò và trạng thái tài khoản.                        |
+|                  | 7. UserRepository lưu thay đổi vào cơ sở dữ liệu.                                      |
+|                  | 8. Hệ thống ghi SecurityAudit và trả kết quả cho frontend.                             |
+| Luồng phụ        | 5a. Dữ liệu người dùng không hợp lệ                                                    |
+|                  | 5a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 5a.2. Admin chỉnh sửa lại thông tin.                                                   |
+|                  |                                                                                        |
+|                  | 6a. Email đã tồn tại hoặc vai trò không hợp lệ                                         |
+|                  | 6a.1. Hệ thống không lưu thay đổi.                                                     |
+|                  | 6a.2. Frontend hiển thị lỗi nghiệp vụ.                                                 |
+|                  |                                                                                        |
+|                  | 7a. Không tìm thấy người dùng                                                          |
+|                  | 7a.1. Hệ thống không thực hiện thao tác.                                               |
+|                  | 7a.2. Frontend tải lại danh sách mới nhất.                                             |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

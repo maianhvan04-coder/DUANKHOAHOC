@@ -1,0 +1,37 @@
+﻿Bảng 2-2: Bảng đặc tả chức năng "Xem nội dung công khai"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC01                                                                                   |
+| Tên UseCase      | Xem nội dung công khai                                                                 |
+| Mô tả            | Người dùng truy cập các trang công khai để xem thông tin khóa học, giảng viên, bài     |
+|                  | viết và nội dung giới thiệu của hệ thống.                                              |
+| Tiền điều kiện   | - Website hoặc ứng dụng đang hoạt động.                                                |
+|                  | - Dữ liệu công khai đã được xuất bản.                                                  |
+|                  | - Người dùng có kết nối mạng ổn định.                                                  |
+| Luồng chính      | 1. Người dùng mở trang chủ hoặc chọn một mục nội dung công khai.                       |
+|                  | 2. Frontend hiển thị màn hình tương ứng và gửi yêu cầu lấy dữ liệu.                    |
+|                  | 3. PublicController nhận yêu cầu và kiểm tra tham số lọc hoặc phân trang.              |
+|                  | 4. PublicService xác định loại nội dung cần hiển thị.                                  |
+|                  | 5. PublicRepository truy vấn dữ liệu Product, Category, Teacher, Blog hoặc             |
+|                  | StudentStudy.                                                                          |
+|                  | 6. Hệ thống chỉ lấy dữ liệu đang hoạt động, đã xuất bản và chưa bị xóa.                |
+|                  | 7. Backend trả danh sách hoặc chi tiết nội dung công khai.                             |
+|                  | 8. Frontend hiển thị nội dung cho người dùng.                                          |
+| Luồng phụ        | 3a. Bộ lọc không hợp lệ                                                                |
+|                  | 3a.1. Hệ thống bỏ qua bộ lọc sai định dạng hoặc trả thông báo lỗi.                     |
+|                  | 3a.2. Người dùng điều chỉnh điều kiện tìm kiếm.                                        |
+|                  |                                                                                        |
+|                  | 5a. Không có dữ liệu phù hợp                                                           |
+|                  | 5a.1. Hệ thống trả danh sách rỗng.                                                     |
+|                  | 5a.2. Frontend hiển thị trạng thái không có nội dung.                                  |
+|                  |                                                                                        |
+|                  | 7a. Không tải được nội dung                                                            |
+|                  | 7a.1. Frontend thông báo lỗi tải dữ liệu.                                              |
+|                  | 7a.2. Người dùng có thể tải lại trang.                                                 |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

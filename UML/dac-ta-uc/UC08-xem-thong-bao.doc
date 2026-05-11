@@ -1,0 +1,36 @@
+﻿Bảng 2-9: Bảng đặc tả chức năng "Xem thông báo"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC08                                                                                   |
+| Tên UseCase      | Xem thông báo                                                                          |
+| Mô tả            | Người dùng hoặc học viên xem các thông báo được gửi đến tài khoản của mình và cập nhật |
+|                  | trạng thái đã đọc.                                                                     |
+| Tiền điều kiện   | - Người dùng đã đăng nhập.                                                             |
+|                  | - Tài khoản có quyền truy cập khu vực thông báo.                                       |
+|                  | - Dịch vụ thông báo đang hoạt động.                                                    |
+| Luồng chính      | 1. Người dùng mở danh sách thông báo.                                                  |
+|                  | 2. Frontend gửi yêu cầu lấy thông báo của tài khoản hiện tại.                          |
+|                  | 3. NotificationController xác thực phiên.                                              |
+|                  | 4. NotificationService truy vấn thông báo theo người nhận.                             |
+|                  | 5. NotificationRepo lấy danh sách thông báo và số lượng chưa đọc.                      |
+|                  | 6. Backend trả danh sách thông báo cho frontend.                                       |
+|                  | 7. Người dùng chọn đánh dấu đã đọc hoặc đọc tất cả nếu cần.                            |
+|                  | 8. Hệ thống cập nhật trạng thái thông báo và làm mới số chưa đọc.                      |
+| Luồng phụ        | 4a. Không có thông báo                                                                 |
+|                  | 4a.1. Hệ thống trả danh sách rỗng.                                                     |
+|                  | 4a.2. Frontend hiển thị trạng thái chưa có thông báo.                                  |
+|                  |                                                                                        |
+|                  | 7a. Thông báo không thuộc người dùng                                                   |
+|                  | 7a.1. Hệ thống từ chối cập nhật trạng thái.                                            |
+|                  | 7a.2. Frontend tải lại danh sách thông báo.                                            |
+|                  |                                                                                        |
+|                  | 8a. Cập nhật trạng thái thất bại                                                       |
+|                  | 8a.1. Hệ thống giữ trạng thái cũ.                                                      |
+|                  | 8a.2. Frontend thông báo người dùng thử lại.                                           |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

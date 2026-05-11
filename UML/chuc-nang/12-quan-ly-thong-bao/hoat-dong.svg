@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="760" viewBox="0 0 980 760">
+  <title>Hoạt động - UC12. Quản lý thông báo</title>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#111"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #111; }
+      .title { font-size: 24px; font-weight: 700; }
+      .label { font-size: 14px; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .boundary { fill: #fff; stroke: #111; stroke-width: 1.5; }
+      .usecase { fill: #fff; stroke: #111; stroke-width: 1.3; }
+      .actor { stroke: #111; stroke-width: 1.25; fill: none; }
+      .line { stroke: #111; stroke-width: 1.15; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke: #111; stroke-width: 1; stroke-dasharray: 5 4; fill: none; marker-end: url(#arrow); }
+      .box { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .soft { fill: #f7f7f7; stroke: #111; stroke-width: 1.1; }
+      .decision { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .class { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .classHead { fill: #efefef; stroke: #111; stroke-width: 1.2; }
+      .relation { stroke: #111; stroke-width: 1; fill: none; }
+      .participant { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .lifeline { stroke: #888; stroke-width: 1; stroke-dasharray: 6 5; }
+      .note { fill: #fffbe6; stroke: #111; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#fff"/>
+  
+<rect class="boundary" x="25" y="18" width="930" height="725" rx="16"/>
+<text x="42" y="43" class="small" font-weight="700">Quản lý thông báo</text>
+<circle cx="105" cy="92" r="12" fill="#111"/>
+<rect x="45" y="135" width="120" height="44" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="105" y="162" text-anchor="middle" class="tiny"><tspan x="105" y="162">Tạo thông báo</tspan></text>
+<path class="line" d="M105 104 L105 135"/>
+<path class="decision" d="M105 205 L135 228 L105 251 L75 228 Z"/>
+<text x="105" y="233" text-anchor="middle" class="tiny"><tspan x="105" y="233"></tspan></text>
+<path class="line" d="M105 179 L105 205"/>
+<rect x="28" y="290" width="94" height="46" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="75" y="318" text-anchor="middle" class="tiny"><tspan x="75" y="318">Lưu</tspan></text>
+<rect x="147" y="290" width="94" height="46" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="194" y="318" text-anchor="middle" class="tiny"><tspan x="194" y="318">Hủy</tspan></text>
+<path class="line" d="M90 251 L75 270 L75 290"/><text x="54" y="268" text-anchor="middle" class="tiny">true</text>
+<path class="line" d="M120 251 L194 270 L194 290"/><text x="174" y="268" text-anchor="middle" class="tiny">false</text>
+<path class="decision" d="M119 385 L146 406 L119 427 L91 406 Z"/>
+<text x="119" y="411" text-anchor="middle" class="tiny"><tspan x="119" y="411"></tspan></text>
+<path class="line" d="M75 336 L75 406 L91 406"/>
+<path class="line" d="M194 336 L194 406 L146 406"/>
+<circle cx="118" cy="477" r="13" fill="#fff" stroke="#111" stroke-width="1.5"/><circle cx="118" cy="477" r="8" fill="#111"/>
+<path class="line" d="M118 427 L118 464"/>
+<rect x="285" y="135" width="210" height="455" rx="14" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text x="299" y="157" class="small" font-weight="700">Xem / xóa</text>
+<circle cx="390" cy="185" r="11" fill="#111"/>
+<rect x="320" y="240" width="140" height="42" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="390" y="260" text-anchor="middle" class="tiny"><tspan x="390" y="260">Lấy danh sách</tspan><tspan x="390" y="272">người nhận</tspan></text>
+<path class="line" d="M390 196 L390 240"/>
+<rect x="320" y="310" width="140" height="42" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="390" y="336" text-anchor="middle" class="tiny"><tspan x="390" y="336">Chọn thông báo</tspan></text>
+<path class="line" d="M390 282 L390 310"/>
+<path class="decision" d="M390 380 L420 403 L390 426 L360 403 Z"/>
+<text x="390" y="408" text-anchor="middle" class="tiny"><tspan x="390" y="408"></tspan></text>
+<path class="line" d="M390 352 L390 380"/>
+<rect x="320" y="455" width="140" height="48" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="390" y="484" text-anchor="middle" class="tiny"><tspan x="390" y="484">Xóa thông báo</tspan></text>
+<path class="line" d="M390 426 L390 455"/><text x="421" y="445" text-anchor="middle" class="tiny">true</text>
+<circle cx="390" cy="543" r="13" fill="#fff" stroke="#111" stroke-width="1.5"/><circle cx="390" cy="543" r="8" fill="#111"/>
+<path class="line" d="M390 503 L390 530"/>
+<rect x="590" y="345" width="300" height="380" rx="14" fill="#fff" stroke="#111" stroke-width="1.2"/>
+<text x="604" y="367" class="small" font-weight="700">Sửa</text>
+<circle cx="740" cy="392" r="11" fill="#111"/>
+<rect x="670" y="432" width="140" height="42" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="740" y="458" text-anchor="middle" class="tiny"><tspan x="740" y="458">Sửa thông báo</tspan></text>
+<path class="line" d="M740 403 L740 432"/>
+<path class="decision" d="M740 500 L770 523 L740 546 L710 523 Z"/>
+<text x="740" y="528" text-anchor="middle" class="tiny"><tspan x="740" y="528"></tspan></text>
+<path class="line" d="M740 474 L740 500"/>
+<rect x="625" y="575" width="110" height="42" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="680" y="601" text-anchor="middle" class="tiny"><tspan x="680" y="601">Lưu thay đổi</tspan></text>
+<rect x="775" y="575" width="90" height="42" rx="10" fill="#aee8ff" stroke="#111" stroke-width="1.2"/>
+<text x="820" y="601" text-anchor="middle" class="tiny"><tspan x="820" y="601">Hủy</tspan></text>
+<path class="line" d="M725 546 L680 565 L680 575"/><text x="681" y="558" text-anchor="middle" class="tiny">true</text>
+<path class="line" d="M755 546 L820 565 L820 575"/><text x="819" y="558" text-anchor="middle" class="tiny">false</text>
+<path class="decision" d="M750 640 L777 661 L750 682 L722 661 Z"/>
+<text x="750" y="666" text-anchor="middle" class="tiny"><tspan x="750" y="666"></tspan></text>
+<path class="line" d="M680 617 L680 661 L722 661"/>
+<path class="line" d="M820 617 L820 661 L777 661"/>
+<circle cx="750" cy="704" r="13" fill="#fff" stroke="#111" stroke-width="1.5"/><circle cx="750" cy="704" r="8" fill="#111"/>
+<path class="line" d="M750 682 L750 691"/>
+<path class="line" d="M135 228 L285 228 L285 185 L390 185"/><text x="230" y="218" text-anchor="middle" class="tiny">xem</text>
+<path class="line" d="M420 403 L590 403 L590 392 L740 392"/><text x="515" y="393" text-anchor="middle" class="tiny">edit</text>
+</svg>

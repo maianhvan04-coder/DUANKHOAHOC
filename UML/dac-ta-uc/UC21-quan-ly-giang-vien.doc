@@ -1,0 +1,36 @@
+﻿Bảng 2-22: Bảng đặc tả chức năng "Quản lý giảng viên"
+
++------------------+----------------------------------------------------------------------------------------+
+| Mã UseCase       | UC21                                                                                   |
+| Tên UseCase      | Quản lý giảng viên                                                                     |
+| Mô tả            | Quản lý hoặc Admin quản lý hồ sơ giảng viên, thông tin chuyên môn, trạng thái và các   |
+|                  | liên kết với khóa học hoặc lớp học.                                                    |
+| Tiền điều kiện   | - Tác nhân đã đăng nhập.                                                               |
+|                  | - Tác nhân có quyền quản lý giảng viên.                                                |
+|                  | - Dữ liệu tài khoản hoặc hồ sơ giảng viên có thể truy vấn.                             |
+| Luồng chính      | 1. Tác nhân mở màn hình quản lý giảng viên.                                            |
+|                  | 2. Frontend tải danh sách giảng viên.                                                  |
+|                  | 3. Tác nhân chọn thêm, sửa, đổi trạng thái, xóa hoặc xem chi tiết giảng viên.          |
+|                  | 4. Frontend gửi dữ liệu thao tác đến TeacherController.                                |
+|                  | 5. TeacherController kiểm tra quyền và validate dữ liệu.                               |
+|                  | 6. TeacherService kiểm tra tài khoản liên quan và ràng buộc lớp/khóa học.              |
+|                  | 7. TeacherRepo lưu thay đổi.                                                           |
+|                  | 8. Frontend cập nhật danh sách giảng viên.                                             |
+| Luồng phụ        | 5a. Thông tin giảng viên không hợp lệ                                                  |
+|                  | 5a.1. Hệ thống trả lỗi validate.                                                       |
+|                  | 5a.2. Tác nhân chỉnh sửa lại dữ liệu.                                                  |
+|                  |                                                                                        |
+|                  | 6a. Giảng viên đang phụ trách lớp hoặc khóa học                                        |
+|                  | 6a.1. Hệ thống hạn chế xóa cứng.                                                       |
+|                  | 6a.2. Tác nhân xử lý ràng buộc hoặc đổi trạng thái.                                    |
+|                  |                                                                                        |
+|                  | 7a. Không tìm thấy giảng viên                                                          |
+|                  | 7a.1. Hệ thống không thực hiện thao tác.                                               |
+|                  | 7a.2. Frontend tải lại danh sách mới nhất.                                             |
+| Ngoại lệ         | - Không thể kết nối đến backend hoặc cơ sở dữ liệu, hệ thống thông báo lỗi kết nối cho |
+|                  | người dùng.                                                                            |
+|                  | - Phiên đăng nhập hết hạn hoặc token không hợp lệ, hệ thống yêu cầu người dùng đăng    |
+|                  | nhập lại.                                                                              |
+|                  | - Hệ thống phát sinh lỗi không xác định, thao tác hiện tại không được lưu và người     |
+|                  | dùng được đề xuất thử lại sau.                                                         |
++------------------+----------------------------------------------------------------------------------------+

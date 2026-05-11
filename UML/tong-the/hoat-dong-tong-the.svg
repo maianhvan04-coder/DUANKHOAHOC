@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="1280" viewBox="0 0 1320 1280">
+  <title>Sơ đồ hoạt động tổng thể toàn hệ thống</title>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#111"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: #111; }
+      .title { font-size: 24px; font-weight: 700; }
+      .label { font-size: 14px; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 10px; }
+      .boundary { fill: #fff; stroke: #111; stroke-width: 1.5; }
+      .usecase { fill: #fff; stroke: #111; stroke-width: 1.3; }
+      .actor { stroke: #111; stroke-width: 1.25; fill: none; }
+      .line { stroke: #111; stroke-width: 1.15; fill: none; marker-end: url(#arrow); }
+      .dashed { stroke: #111; stroke-width: 1; stroke-dasharray: 5 4; fill: none; marker-end: url(#arrow); }
+      .box { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .soft { fill: #f7f7f7; stroke: #111; stroke-width: 1.1; }
+      .decision { fill: #fff; stroke: #111; stroke-width: 1.25; }
+      .class { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .classHead { fill: #efefef; stroke: #111; stroke-width: 1.2; }
+      .relation { stroke: #111; stroke-width: 1; fill: none; }
+      .participant { fill: #fff; stroke: #111; stroke-width: 1.2; }
+      .lifeline { stroke: #888; stroke-width: 1; stroke-dasharray: 6 5; }
+      .note { fill: #fffbe6; stroke: #111; stroke-width: 1; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#fff"/>
+  <text x="660" y="34" text-anchor="middle" class="title">Sơ đồ hoạt động tổng thể toàn hệ thống</text>
+<circle cx="660" cy="80" r="12" fill="#111"/>
+<rect class="box" x="430" y="125" width="460" height="58" rx="8"/>
+<text x="660" y="159" text-anchor="middle" class="small"><tspan x="660" y="159">Tác nhân truy cập hệ thống</tspan></text>
+<path class="line" d="M660 92 L660 125"/>
+<path class="decision" d="M660 220 L800 263 L660 306 L520 263 Z"/>
+<text x="660" y="268" text-anchor="middle" class="tiny"><tspan x="660" y="268">Cần xác thực?</tspan></text>
+<path class="line" d="M660 183 L660 220"/>
+<rect class="soft" x="150" y="245" width="360" height="58" rx="8"/>
+<text x="330" y="279" text-anchor="middle" class="small"><tspan x="330" y="279">UC01. Xem nội dung công khai</tspan></text>
+<rect class="soft" x="810" y="245" width="360" height="58" rx="8"/>
+<text x="990" y="279" text-anchor="middle" class="small"><tspan x="990" y="279">UC13. Đăng ký, đăng nhập</tspan></text>
+<path class="line" d="M520 263 L510 263"/>
+<path class="line" d="M800 263 L810 263"/>
+<rect class="box" x="430" y="360" width="460" height="58" rx="8"/>
+<text x="660" y="394" text-anchor="middle" class="small"><tspan x="660" y="394">Kiểm tra AuthGuard và phân quyền RBAC</tspan></text>
+<path class="line" d="M330 303 L330 330 L660 330 L660 360"/>
+<path class="line" d="M990 303 L990 330 L660 330 L660 360"/>
+<path class="decision" d="M660 455 L800 498 L660 541 L520 498 Z"/>
+<text x="660" y="503" text-anchor="middle" class="tiny"><tspan x="660" y="503">Vai trò / phạm vi?</tspan></text>
+<path class="line" d="M660 418 L660 455"/>
+<rect class="soft" x="42" y="570" width="216" height="150" rx="8"/>
+<text x="150" y="601" text-anchor="middle" class="small"><tspan x="150" y="601">Người dùng</tspan></text>
+<text x="150" y="646" text-anchor="middle" class="tiny"><tspan x="150" y="646">UC02-UC05</tspan><tspan x="150" y="659">UC08</tspan><tspan x="150" y="672">UC13</tspan></text>
+<path class="line" d="M660 541 L150 570"/>
+<rect class="soft" x="297" y="570" width="216" height="150" rx="8"/>
+<text x="405" y="601" text-anchor="middle" class="small"><tspan x="405" y="601">Học viên</tspan></text>
+<text x="405" y="653" text-anchor="middle" class="tiny"><tspan x="405" y="653">UC06-UC08</tspan><tspan x="405" y="666">UC13</tspan></text>
+<path class="line" d="M660 541 L405 570"/>
+<rect class="soft" x="552" y="570" width="216" height="150" rx="8"/>
+<text x="660" y="601" text-anchor="middle" class="small"><tspan x="660" y="601">Giảng viên</tspan></text>
+<text x="660" y="659" text-anchor="middle" class="tiny"><tspan x="660" y="659">UC09-UC13</tspan></text>
+<path class="line" d="M660 541 L660 570"/>
+<rect class="soft" x="807" y="570" width="216" height="150" rx="8"/>
+<text x="915" y="601" text-anchor="middle" class="small"><tspan x="915" y="601">Quản lý</tspan></text>
+<text x="915" y="659" text-anchor="middle" class="tiny"><tspan x="915" y="659">UC11-UC21</tspan></text>
+<path class="line" d="M660 541 L915 570"/>
+<rect class="soft" x="1062" y="570" width="216" height="150" rx="8"/>
+<text x="1170" y="601" text-anchor="middle" class="small"><tspan x="1170" y="601">Admin</tspan></text>
+<text x="1170" y="659" text-anchor="middle" class="tiny"><tspan x="1170" y="659">UC13-UC23</tspan></text>
+<path class="line" d="M660 541 L1170 570"/>
+<rect class="box" x="430" y="835" width="460" height="58" rx="8"/>
+<text x="660" y="869" text-anchor="middle" class="small"><tspan x="660" y="869">Service xử lý nghiệp vụ theo chức năng</tspan></text>
+<path class="line" d="M150 720 L150 780 L660 780 L660 835"/>
+<path class="line" d="M405 720 L405 780 L660 780 L660 835"/>
+<path class="line" d="M660 720 L660 780 L660 780 L660 835"/>
+<path class="line" d="M915 720 L915 780 L660 780 L660 835"/>
+<path class="line" d="M1170 720 L1170 780 L660 780 L660 835"/>
+<rect class="box" x="230" y="955" width="330" height="58" rx="8"/>
+<text x="395" y="989" text-anchor="middle" class="small"><tspan x="395" y="989">MongoDB lưu/truy vấn dữ liệu</tspan></text>
+<rect class="soft" x="760" y="955" width="330" height="58" rx="8"/>
+<text x="925" y="989" text-anchor="middle" class="small"><tspan x="925" y="989">VNPay xử lý thanh toán</tspan></text>
+<path class="line" d="M660 893 L395 955"/>
+<path class="line" d="M660 893 L925 955"/>
+<rect class="box" x="430" y="1080" width="460" height="58" rx="8"/>
+<text x="660" y="1114" text-anchor="middle" class="small"><tspan x="660" y="1114">Trả response và cập nhật giao diện</tspan></text>
+<path class="line" d="M395 1013 L660 1080"/>
+<path class="line" d="M925 1013 L660 1080"/>
+<path class="line" d="M660 1138 L660 1215"/>
+<circle cx="660" cy="1235" r="13" fill="#fff" stroke="#111" stroke-width="1.5"/><circle cx="660" cy="1235" r="8" fill="#111"/>
+</svg>

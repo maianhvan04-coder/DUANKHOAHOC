@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bộ biểu đồ UML</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: #f2f2f2; color: #111; }
+    header { padding: 24px 32px; background: #fff; border-bottom: 1px solid #d8d8d8; }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    p { margin: 0 0 12px; color: #555; }
+    main { display: grid; gap: 28px; padding: 28px; }
+    section { background: #fff; border: 1px solid #d8d8d8; padding: 18px; }
+    h2 { margin: 0 0 14px; font-size: 19px; }
+    a { color: #0f5fcb; font-weight: 600; }
+    img { display: block; width: 100%; height: auto; border: 1px solid #bbb; background: #fff; }
+    .links { columns: 2; margin: 0; padding-left: 20px; }
+    .links li { break-inside: avoid; margin: 4px 0; }
+    @media (max-width: 800px) { .links { columns: 1; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bộ biểu đồ phân tích thiết kế hệ thống</h1>
+    <p>Dữ liệu được căn theo 23 chức năng trong sơ đồ use case tổng quát.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Sơ đồ tổng thể toàn hệ thống</h2>
+      <p><a href="tong-the/index.html">Mở sơ đồ hoạt động, trình tự và lớp tổng thể</a></p>
+    </section>
+    <section>
+      <h2>Biểu đồ triển khai</h2>
+      <p><a href="trien-khai/index.html">Mở biểu đồ triển khai frontend, backend, database và dịch vụ ngoài</a></p>
+    </section>
+    <section><h2>23 chức năng</h2><p><a href="chuc-nang/index.html">Mở bộ sơ đồ hoạt động, lớp và trình tự cho 23 chức năng</a></p></section>
+    <section><h2>Use case tổng quát</h2><img src="usecase-tong-quat/usecase-tong-quat.svg" alt="Use case tổng quát" /></section>
+    <section>
+  <h2>Use case phân rã - Actor Người dùng</h2>
+  <p><a href="usecase-phan-ra/User/index.html">Mở toàn bộ phạm vi chức năng của actor Người dùng</a></p>
+  <ul class="links">
+    <li><a href="usecase-phan-ra/User/01-xem-noi-dung-cong-khai.svg">UC01. Xem nội dung công khai</a></li>
+<li><a href="usecase-phan-ra/User/02-thanh-toan-khoa-hoc.svg">UC02. Thanh toán khóa học</a></li>
+<li><a href="usecase-phan-ra/User/03-cap-nhat-thong-tin-tai-khoan.svg">UC03. Cập nhật thông tin tài khoản</a></li>
+<li><a href="usecase-phan-ra/User/04-xem-lich-su-thanh-toan.svg">UC04. Xem lịch sử thanh toán</a></li>
+<li><a href="usecase-phan-ra/User/05-doi-mat-khau.svg">UC05. Đổi mật khẩu</a></li>
+<li><a href="usecase-phan-ra/User/08-xem-thong-bao.svg">UC08. Xem thông báo</a></li>
+<li><a href="usecase-phan-ra/User/13-dang-ky-dang-nhap.svg">UC13. Đăng ký, đăng nhập</a></li>
+  </ul>
+</section>
+<section>
+  <h2>Use case phân rã - Actor Học viên</h2>
+  <p><a href="usecase-phan-ra/Student/index.html">Mở toàn bộ phạm vi chức năng của actor Học viên</a></p>
+  <ul class="links">
+    <li><a href="usecase-phan-ra/Student/06-xem-diem.svg">UC06. Xem điểm</a></li>
+<li><a href="usecase-phan-ra/Student/07-xem-lop-lich-hoc.svg">UC07. Xem lớp / lịch học</a></li>
+<li><a href="usecase-phan-ra/Student/08-xem-thong-bao.svg">UC08. Xem thông báo</a></li>
+<li><a href="usecase-phan-ra/Student/13-dang-ky-dang-nhap.svg">UC13. Đăng ký, đăng nhập</a></li>
+  </ul>
+</section>
+<section>
+  <h2>Use case phân rã - Actor Giảng viên</h2>
+  <p><a href="usecase-phan-ra/Teacher/index.html">Mở toàn bộ phạm vi chức năng của actor Giảng viên</a></p>
+  <ul class="links">
+    <li><a href="usecase-phan-ra/Teacher/09-quan-ly-lop-hoc.svg">UC09. Quản lý lớp học</a></li>
+<li><a href="usecase-phan-ra/Teacher/10-quan-ly-lich-hoc.svg">UC10. Quản lý lịch học</a></li>
+<li><a href="usecase-phan-ra/Teacher/11-quan-ly-hoc-vien.svg">UC11. Quản lý học viên</a></li>
+<li><a href="usecase-phan-ra/Teacher/12-quan-ly-thong-bao.svg">UC12. Quản lý thông báo</a></li>
+<li><a href="usecase-phan-ra/Teacher/13-dang-ky-dang-nhap.svg">UC13. Đăng ký, đăng nhập</a></li>
+  </ul>
+</section>
+<section>
+  <h2>Use case phân rã - Actor Quản lý</h2>
+  <p><a href="usecase-phan-ra/Manager/index.html">Mở toàn bộ phạm vi chức năng của actor Quản lý</a></p>
+  <ul class="links">
+    <li><a href="usecase-phan-ra/Manager/11-quan-ly-hoc-vien.svg">UC11. Quản lý học viên</a></li>
+<li><a href="usecase-phan-ra/Manager/12-quan-ly-thong-bao.svg">UC12. Quản lý thông báo</a></li>
+<li><a href="usecase-phan-ra/Manager/13-dang-ky-dang-nhap.svg">UC13. Đăng ký, đăng nhập</a></li>
+<li><a href="usecase-phan-ra/Manager/14-dashboard-thong-ke.svg">UC14. Dashboard thống kê</a></li>
+<li><a href="usecase-phan-ra/Manager/15-quan-ly-bai-viet.svg">UC15. Quản lý bài viết</a></li>
+<li><a href="usecase-phan-ra/Manager/16-quan-ly-danh-muc-bai-viet.svg">UC16. Quản lý danh mục bài viết</a></li>
+<li><a href="usecase-phan-ra/Manager/17-xem-audit-bao-mat.svg">UC17. Xem audit bảo mật</a></li>
+<li><a href="usecase-phan-ra/Manager/18-xem-audit-thanh-toan.svg">UC18. Xem audit thanh toán</a></li>
+<li><a href="usecase-phan-ra/Manager/19-quan-ly-danh-muc-khoa-hoc.svg">UC19. Quản lý danh mục khóa học</a></li>
+<li><a href="usecase-phan-ra/Manager/20-quan-ly-khoa-hoc.svg">UC20. Quản lý khóa học</a></li>
+<li><a href="usecase-phan-ra/Manager/21-quan-ly-giang-vien.svg">UC21. Quản lý giảng viên</a></li>
+  </ul>
+</section>
+<section>
+  <h2>Use case phân rã - Actor Admin</h2>
+  <p><a href="usecase-phan-ra/Admin/index.html">Mở toàn bộ phạm vi chức năng của actor Admin</a></p>
+  <ul class="links">
+    <li><a href="usecase-phan-ra/Admin/13-dang-ky-dang-nhap.svg">UC13. Đăng ký, đăng nhập</a></li>
+<li><a href="usecase-phan-ra/Admin/14-dashboard-thong-ke.svg">UC14. Dashboard thống kê</a></li>
+<li><a href="usecase-phan-ra/Admin/15-quan-ly-bai-viet.svg">UC15. Quản lý bài viết</a></li>
+<li><a href="usecase-phan-ra/Admin/16-quan-ly-danh-muc-bai-viet.svg">UC16. Quản lý danh mục bài viết</a></li>
+<li><a href="usecase-phan-ra/Admin/17-xem-audit-bao-mat.svg">UC17. Xem audit bảo mật</a></li>
+<li><a href="usecase-phan-ra/Admin/18-xem-audit-thanh-toan.svg">UC18. Xem audit thanh toán</a></li>
+<li><a href="usecase-phan-ra/Admin/19-quan-ly-danh-muc-khoa-hoc.svg">UC19. Quản lý danh mục khóa học</a></li>
+<li><a href="usecase-phan-ra/Admin/20-quan-ly-khoa-hoc.svg">UC20. Quản lý khóa học</a></li>
+<li><a href="usecase-phan-ra/Admin/21-quan-ly-giang-vien.svg">UC21. Quản lý giảng viên</a></li>
+<li><a href="usecase-phan-ra/Admin/22-quan-ly-nguoi-dung.svg">UC22. Quản lý người dùng</a></li>
+<li><a href="usecase-phan-ra/Admin/23-phan-quyen-rbac.svg">UC23. Phân quyền RBAC</a></li>
+  </ul>
+</section>
+  </main>
+</body>
+</html>

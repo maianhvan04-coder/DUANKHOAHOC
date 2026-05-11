@@ -6,7 +6,7 @@ export function hasRole(
   access: UserAccess | null | undefined,
   role: Role
 ) {
-  return !!access?.roles?.includes(role);
+  return access?.primaryRole === role || !!access?.roles?.includes(role);
 }
 
 export function hasAnyRole(
@@ -14,7 +14,7 @@ export function hasAnyRole(
   roles: Role[]
 ) {
   if (!access) return false;
-  return roles.some((role) => access.roles.includes(role));
+  return roles.some((role) => access.primaryRole === role || access.roles.includes(role));
 }
 
 export function hasPermission(
