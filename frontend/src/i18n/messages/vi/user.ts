@@ -28,7 +28,7 @@ export const userViMessages = {
   "notifications.close": "Đóng",
   "notifications.read": "Đã đọc",
   "notifications.type.info": "Thông tin",
-  "notifications.type.success": "Thành công",
+  "notifications.type.success": "Khen thưởng",
   "notifications.type.warning": "Cảnh báo",
   "notifications.type.error": "Lỗi",
   "favorites.label": "Khóa học yêu thích",

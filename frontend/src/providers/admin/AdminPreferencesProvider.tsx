@@ -13,7 +13,7 @@ import {
   adminMessages,
   type AdminLocale,
   type AdminMessageKey,
-} from "./config";
+} from "../../config/config-i18n";
 
 type AdminPreferencesContextValue = {
   locale: AdminLocale;

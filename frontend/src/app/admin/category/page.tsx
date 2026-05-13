@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   FolderKanban,
+  Lock,
+  LockOpen,
   Pencil,
   Plus,
-  RefreshCw,
-  RotateCcw,
-  Trash2,
   X,
 } from "lucide-react";
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
@@ -19,15 +19,15 @@ import AdminListTable, {
   type AdminTableColumn,
 } from "@/components/ui/admin/admin-list-table";
 import type { SortDirection } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
-type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
 type CategoryStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
-type CategorySortKey = "name" | "description" | "createdAt" | "deletedAt";
+type CategorySortKey = "name" | "description" | "createdAt";
 
 type CategoryFormState = {
   name: string;
@@ -61,7 +61,7 @@ function getCategoryInitials(name?: string) {
 }
 
 function getSortValue(item: CategoryItem, sortKey: CategorySortKey) {
-  if (sortKey === "createdAt" || sortKey === "deletedAt") {
+  if (sortKey === "createdAt") {
     const raw = item[sortKey];
     const date = raw ? new Date(raw).getTime() : 0;
     return Number.isNaN(date) ? 0 : date;
@@ -74,7 +74,6 @@ export default function AdminCategoriesPage() {
   const [items, setItems] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("active");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState<CategoryStatusFilter>("ALL");
@@ -89,31 +88,24 @@ export default function AdminCategoriesPage() {
   const [form, setForm] = useState<CategoryFormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadCategories = useCallback(async (mode: ViewMode) => {
+  const loadCategories = useCallback(async () => {
     try {
       setLoading(true);
 
-      const res =
-        mode === "active"
-          ? await categoryApi.getAll()
-          : await categoryApi.getDeleted();
+      const res = await categoryApi.getAll();
 
       setItems(res.items || []);
     } catch (error) {
       console.error(error);
-      alert(
-        mode === "active"
-          ? "Could not load categories"
-          : "Could not load deleted categories"
-      );
+      toast.error("Could not load categories");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadCategories(viewMode);
-  }, [loadCategories, viewMode]);
+    void loadCategories();
+  }, [loadCategories]);
 
   const filteredItems = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -202,7 +194,7 @@ export default function AdminCategoriesPage() {
   );
 
   const handleRefresh = async () => {
-    await loadCategories(viewMode);
+    await loadCategories();
   };
 
   const openCreateForm = () => {
@@ -234,7 +226,7 @@ export default function AdminCategoriesPage() {
     const description = form.description.trim();
 
     if (!name) {
-      alert("Please enter category name");
+      toast.warning("Please enter category name");
       return;
     }
 
@@ -243,23 +235,22 @@ export default function AdminCategoriesPage() {
 
       if (formMode === "create") {
         await categoryApi.create({ name, description });
-        alert("Category created successfully");
+        toast.success("Category created successfully");
       } else {
         if (!editingItem?._id) return;
 
         await categoryApi.update(editingItem._id, { name, description });
-        alert("Category updated successfully");
+        toast.success("Category updated successfully");
       }
 
       closeForm();
-      setViewMode("active");
       setSortKey("createdAt");
       setSortDirection("desc");
       setPage(1);
-      await loadCategories("active");
+      await loadCategories();
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         formMode === "create"
           ? "Create category failed"
           : "Update category failed"
@@ -269,44 +260,20 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleSoftDelete = async (id: string) => {
-    const ok = window.confirm("Move this category to Deleted?");
-    if (!ok) return;
-
-    try {
-      await categoryApi.remove(id);
-      await loadCategories(viewMode);
-    } catch (error) {
-      console.error(error);
-      alert("Delete category failed");
-    }
-  };
-
-  const handleRestore = async (id: string) => {
-    const ok = window.confirm("Restore this category?");
-    if (!ok) return;
-
-    try {
-      await categoryApi.restore(id);
-      await loadCategories(viewMode);
-    } catch (error) {
-      console.error(error);
-      alert("Restore category failed");
-    }
-  };
-
-  const handleForceDelete = async (id: string) => {
-    const ok = window.confirm(
-      "Delete this category permanently? This action cannot be undone."
+  const handleToggleActive = async (item: CategoryItem) => {
+    const nextActive = item.isActive === false;
+    const ok = await toastConfirm(
+      nextActive ? "Unlock this category?" : "Lock this category?"
     );
     if (!ok) return;
 
     try {
-      await categoryApi.forceRemove(id);
-      await loadCategories(viewMode);
+      await categoryApi.update(item._id, { isActive: nextActive });
+      await loadCategories();
+      toast.success(nextActive ? "Category unlocked" : "Category locked");
     } catch (error) {
       console.error(error);
-      alert("Delete category permanently failed");
+      toast.error("Update category status failed");
     }
   };
 
@@ -325,7 +292,7 @@ export default function AdminCategoriesPage() {
             <FolderKanban
               className={cn(
                 "h-4 w-4",
-                viewMode === "active" ? "text-emerald-700" : "text-rose-700"
+                item.isActive === false ? "text-amber-700" : "text-emerald-700"
               )}
             />
           }
@@ -348,22 +315,11 @@ export default function AdminCategoriesPage() {
       label: "Status",
       widthClassName: "w-[140px]",
       render: (item) => {
-        const label =
-          viewMode === "deleted"
-            ? "DELETED"
-            : item.isActive === false
-            ? "INACTIVE"
-            : "ACTIVE";
+        const label = item.isActive === false ? "LOCKED" : "ACTIVE";
 
         return (
           <AdminStatusBadge
-            tone={
-              label === "ACTIVE"
-                ? "success"
-                : label === "INACTIVE"
-                ? "warning"
-                : "danger"
-            }
+            tone={label === "ACTIVE" ? "success" : "warning"}
           >
             {label}
           </AdminStatusBadge>
@@ -372,13 +328,10 @@ export default function AdminCategoriesPage() {
     },
     {
       id: "date",
-      label: viewMode === "active" ? "Created" : "Deleted",
-      sortKey: viewMode === "active" ? "createdAt" : "deletedAt",
+      label: "Created",
+      sortKey: "createdAt",
       widthClassName: "w-[150px]",
-      render: (item) =>
-        viewMode === "active"
-          ? formatDate(item.createdAt)
-          : formatDate(item.deletedAt),
+      render: (item) => formatDate(item.createdAt),
     },
     {
       id: "actions",
@@ -387,41 +340,23 @@ export default function AdminCategoriesPage() {
       align: "right",
       render: (item) => (
         <div className="flex items-center justify-end gap-2">
-          {viewMode === "active" ? (
-            <>
-              <AdminActionIconButton
-                title="Edit"
-                onClick={() => openEditForm(item)}
-              >
-                <Pencil className="h-4 w-4" />
-              </AdminActionIconButton>
+          <AdminActionIconButton
+            title="Edit"
+            onClick={() => openEditForm(item)}
+          >
+            <Pencil className="h-4 w-4" />
+          </AdminActionIconButton>
 
-              <AdminActionIconButton
-                danger
-                title="Move to Deleted"
-                onClick={() => void handleSoftDelete(item._id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </AdminActionIconButton>
-            </>
-          ) : (
-            <>
-              <AdminActionIconButton
-                title="Restore"
-                onClick={() => void handleRestore(item._id)}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </AdminActionIconButton>
-
-              <AdminActionIconButton
-                danger
-                title="Delete permanently"
-                onClick={() => void handleForceDelete(item._id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </AdminActionIconButton>
-            </>
-          )}
+          <AdminActionIconButton
+            title={item.isActive === false ? "Unlock" : "Lock"}
+            onClick={() => void handleToggleActive(item)}
+          >
+            {item.isActive === false ? (
+              <LockOpen className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+          </AdminActionIconButton>
         </div>
       ),
     },
@@ -430,73 +365,6 @@ export default function AdminCategoriesPage() {
   return (
     <>
       <div className="space-y-6">
-        <section className="hidden rounded-[30px] border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("active");
-                  setSortKey("createdAt");
-                  setSortDirection("desc");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "active"
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "text-slate-700 hover:bg-white"
-                )}
-              >
-                <FolderKanban className="h-4 w-4" />
-                Categories
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("deleted");
-                  setSortKey("deletedAt");
-                  setSortDirection("desc");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "deleted"
-                    ? "bg-rose-100 text-rose-700"
-                    : "text-slate-700 hover:bg-white"
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                Deleted
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={openCreateForm}
-                className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700"
-              >
-                <Plus className="h-4.5 w-4.5" />
-                New Category
-              </button>
-
-              <button
-                type="button"
-                onClick={() => void handleRefresh()}
-                disabled={loading}
-                className="inline-flex h-11 items-center gap-2 rounded-[18px] border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <RefreshCw
-                  className={cn("h-4.5 w-4.5", loading && "animate-spin")}
-                />
-                Refresh
-              </button>
-            </div>
-          </div>
-        </section>
-
         <AdminListTable<CategoryItem, CategorySortKey>
           rows={pagedItems}
           columns={tableColumns}
@@ -524,52 +392,11 @@ export default function AdminCategoriesPage() {
             setPage(1);
           }}
           onReload={() => void handleRefresh()}
-          toolbarStart={
-            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("active");
-                  setSortKey("createdAt");
-                  setSortDirection("desc");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "active"
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <FolderKanban className="h-4 w-4" />
-                Categories
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("deleted");
-                  setSortKey("deletedAt");
-                  setSortDirection("desc");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "deleted"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                Deleted
-              </button>
-            </div>
-          }
           toolbarEnd={
             <button
               type="button"
               onClick={openCreateForm}
-              className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
             >
               <Plus className="h-4.5 w-4.5" />
               New Category
@@ -587,22 +414,20 @@ export default function AdminCategoriesPage() {
             onPageChange: setPage,
             pageSizeOptions: [5, 10, 20],
           }}
-          emptyText={
-            viewMode === "active" ? "No categories found." : "No deleted data."
-          }
-          tableMinWidthClassName="min-w-[1040px]"
+          emptyText="No categories found."
+          tableMinWidthClassName="min-w-[900px]"
         />
       </div>
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4">
-          <div className="w-full max-w-2xl overflow-hidden rounded-[28px] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                   {formMode === "create" ? "New Category" : "Edit Category"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {formMode === "create"
                     ? "Create a new category."
                     : "Update category information."}
@@ -613,15 +438,15 @@ export default function AdminCategoriesPage() {
                 type="button"
                 onClick={closeForm}
                 disabled={submitting}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="space-y-5 p-6">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Category name <span className="text-rose-600">*</span>
                 </label>
                 <input
@@ -630,12 +455,12 @@ export default function AdminCategoriesPage() {
                     setForm((prev) => ({ ...prev, name: event.target.value }))
                   }
                   placeholder="Enter category name"
-                  className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-slate-400"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200">
                   Description
                 </label>
                 <textarea
@@ -648,17 +473,26 @@ export default function AdminCategoriesPage() {
                   }
                   placeholder="Enter category description"
                   rows={4}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 border-t border-slate-200 px-6 py-5">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+              <button
+                type="button"
+                onClick={closeForm}
+                disabled={submitting}
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+              >
+                Đóng
+              </button>
+
               <button
                 type="button"
                 onClick={() => void handleSubmitForm()}
                 disabled={submitting}
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? formMode === "create"
@@ -669,14 +503,6 @@ export default function AdminCategoriesPage() {
                   : "Save Changes"}
               </button>
 
-              <button
-                type="button"
-                onClick={closeForm}
-                disabled={submitting}
-                className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </div>

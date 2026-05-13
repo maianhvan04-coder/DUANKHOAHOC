@@ -65,13 +65,6 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-const EMPTY_OVERVIEW: DashboardCard[] = [
-  { label: "Khóa học hoạt động", value: "0" },
-  { label: "Lớp hôm nay", value: "0" },
-  { label: "Giảng viên trực tuyến", value: "0" },
-  { label: "Yêu cầu mới", value: "0" },
-];
-
 const EMPTY_STATS: DashboardStatCard[] = [
   {
     key: "students",
@@ -137,8 +130,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [overviewCards, setOverviewCards] =
-    useState<DashboardCard[]>(EMPTY_OVERVIEW);
   const [statCards, setStatCards] =
     useState<DashboardStatCard[]>(EMPTY_STATS);
   const [enrollmentData, setEnrollmentData] =
@@ -161,12 +152,6 @@ export default function DashboardPage() {
         const data = await dashboardApi.getOverview(6);
 
         if (!mounted) return;
-
-        setOverviewCards(
-          Array.isArray(data?.overviewCards) && data.overviewCards.length
-            ? data.overviewCards
-            : EMPTY_OVERVIEW
-        );
 
         setStatCards(
           Array.isArray(data?.statCards) && data.statCards.length
@@ -246,79 +231,6 @@ export default function DashboardPage() {
           {error}
         </div>
       ) : null}
-
-      <section
-        className={cn(
-          "rounded-[30px] border p-4 shadow-sm transition-all duration-300 md:p-5",
-          dark
-            ? "border-white/10 bg-[#111827] shadow-black/20"
-            : "border-black/8 bg-white shadow-black/5"
-        )}
-      >
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="hidden">
-            <p
-              className={cn(
-                "text-sm font-medium",
-                dark ? "text-slate-400" : "text-slate-500"
-              )}
-            >
-              Tổng quan hệ thống
-            </p>
-
-            <h1
-              className={cn(
-                "mt-2 text-[28px] font-bold tracking-tight md:text-[34px]",
-                dark ? "text-white" : "text-[#0f172a]"
-              )}
-            >
-              Bảng điều khiển quản trị
-            </h1>
-
-            <p
-              className={cn(
-                "mt-2 max-w-190 text-[15px] leading-6",
-                dark ? "text-slate-400" : "text-slate-500"
-              )}
-            >
-              Theo dõi học viên, giảng viên, khóa học, lớp học và doanh thu trong
-              thời gian thực.
-            </p>
-          </div>
-
-          <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-4">
-            {overviewCards.map((item) => (
-              <div
-                key={item.label}
-                className={cn(
-                  "rounded-2xl border px-4 py-4",
-                  dark
-                    ? "border-white/10 bg-white/3"
-                    : "border-black/8 bg-[#f8fbff]"
-                )}
-              >
-                <div
-                  className={cn(
-                    "text-xs",
-                    dark ? "text-slate-400" : "text-slate-500"
-                  )}
-                >
-                  {item.label}
-                </div>
-
-                <div
-                  className={cn(
-                    "mt-2 text-[22px] font-bold",
-                    dark ? "text-white" : "text-[#0f172a]"
-                  )}
-                >
-                  {loading ? "..." : item.value}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard

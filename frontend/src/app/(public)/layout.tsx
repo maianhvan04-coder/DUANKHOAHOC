@@ -1,5 +1,4 @@
-import Footer from "@/components/layouts/client/footer/Footer";
-import Navbar from "@/components/layouts/client/navbar/Navbar";
+import PublicReloadShell from "@/components/layouts/client/PublicReloadShell";
 import { UserPreferencesProvider } from "@/i18n";
 
 export default function PublicLayout({
@@ -9,9 +8,7 @@ export default function PublicLayout({
 }) {
   return (
     <UserPreferencesProvider>
-      <Navbar />
-      <main>{children}</main>
-      <Footer />
+      <PublicReloadShell>{children}</PublicReloadShell>
     </UserPreferencesProvider>
   );
 }

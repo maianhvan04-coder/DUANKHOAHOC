@@ -7,6 +7,8 @@ export interface Notification {
   title: string;
   message: string;
   type: NotificationType;
+  isSent: boolean;
+  sentAt: Date | null;
   isRead: boolean;
   readAt: Date | null;
   createdBy: Types.ObjectId | null;
@@ -43,6 +45,17 @@ const notificationSchema = new Schema<Notification>(
       default: "INFO",
     },
 
+    isSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    sentAt: {
+      type: Date,
+      default: null,
+    },
+
     isRead: {
       type: Boolean,
       default: false,
@@ -67,6 +80,7 @@ const notificationSchema = new Schema<Notification>(
 
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, isRead: 1 });
+notificationSchema.index({ userId: 1, isSent: 1 });
 
 export const NotificationModel = model<Notification>(
   "Notification",

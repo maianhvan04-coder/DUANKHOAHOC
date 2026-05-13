@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Globe, Moon, Sun } from "lucide-react";
+import { Bell, Globe, Menu, Moon, Sun } from "lucide-react";
 import { notificationApi } from "@/app/api/notification.api";
+import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
 import AvatarMenu from "@/components/layouts/admin/topbar/AvatarMenu";
 import { NOTIFICATION_CHANGED_EVENT } from "@/lib/utils/notification-events";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
@@ -26,10 +27,8 @@ const ADMIN_PAGE_TITLES = [
   { path: "/admin/course", titleKey: "page.course" },
   { path: "/admin/classes", titleKey: "page.classes" },
   { path: "/admin/schedule", titleKey: "page.schedule" },
-  { path: "/admin/category", titleKey: "page.category" },
   { path: "/admin/blog", titleKey: "page.blog" },
   { path: "/admin/notification", titleKey: "page.notification" },
-  { path: "/admin/sent-notifications", titleKey: "page.sentNotifications" },
   { path: "/admin/my-notifications", titleKey: "page.myNotifications" },
   { path: "/admin/rbac", titleKey: "page.rbac" },
   { path: "/admin/payment-audits", titleKey: "page.paymentAudits" },
@@ -161,6 +160,7 @@ function AdminLanguageSwitcher({ dark }: { dark: boolean }) {
 }
 
 export default function AdminTopbar() {
+  const { collapsed, toggleCollapsed } = useAdminLayout();
   const { theme, toggleTheme } = useAdminTheme();
   const { t } = useAdminPreferences();
   const pathname = usePathname();
@@ -200,21 +200,39 @@ export default function AdminTopbar() {
   return (
     <header
       className={cn(
-        "mb-6 rounded-[26px] border px-4 py-4 shadow-sm md:px-5",
+        "sticky top-0 z-40 flex h-16 items-center border-b px-4 shadow-sm md:px-5",
         dark
-          ? "border-white/10 bg-[#111827] shadow-black/20"
-          : "border-black/8 bg-white shadow-black/5"
+          ? "border-white/10 bg-[#111827]/95 shadow-black/20 backdrop-blur"
+          : "border-slate-200 bg-white/95 shadow-black/5 backdrop-blur"
       )}
     >
       <div className="flex w-full items-center justify-between gap-4">
-        <h1
-          className={cn(
-            "min-w-0 truncate text-xl font-bold tracking-tight md:text-2xl",
-            dark ? "text-white" : "text-slate-950"
-          )}
-        >
-          {title}
-        </h1>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className={cn(
+              "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition",
+              dark
+                ? "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            )}
+            aria-label={
+              collapsed ? t("common.openSidebar") : t("common.closeSidebar")
+            }
+          >
+            <Menu className="h-4.5 w-4.5" />
+          </button>
+
+          <h1
+            className={cn(
+              "min-w-0 truncate text-lg font-bold tracking-tight sm:text-xl",
+              dark ? "text-white" : "text-slate-950"
+            )}
+          >
+            {title}
+          </h1>
+        </div>
 
         <div className="flex shrink-0 items-center gap-3">
           <div className="flex items-center gap-2">

@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "@/app/api/auth.api";
-import { setAccess, setToken, setUser } from "@/lib/utils/storage";
+import {
+  markAdminIntroIntent,
+  setAccess,
+  setToken,
+  setUser,
+} from "@/lib/utils/storage";
 import { canAccessStudentPortal, hasRole } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -197,11 +202,15 @@ export default function LoginPage() {
         hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
       const goStudent = canAccessStudentPortal(res.access);
       const redirectPath = getSafeRedirectPath();
-
-      router.push(
+      const nextPath =
         redirectPath ??
-          (goAdmin ? "/admin" : goStudent ? "/student/bang-tin" : "/")
-      );
+        (goAdmin ? "/admin" : goStudent ? "/student/bang-tin" : "/");
+
+      if (nextPath.startsWith("/admin")) {
+        markAdminIntroIntent();
+      }
+
+      router.push(nextPath);
       router.refresh();
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

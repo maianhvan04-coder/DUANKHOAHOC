@@ -26,11 +26,9 @@ import {
   Plus,
   Quote,
   Redo2,
-  RotateCcw,
   Settings,
   Star,
   Strikethrough,
-  Trash2,
   Type,
   Underline,
   Undo2,
@@ -342,7 +340,7 @@ export default function AdminBlogPage() {
   const [statusFilters, setStatusFilters] = useState<BlogStatusFilter[]>([]);
   const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [hotFilters, setHotFilters] = useState<BlogHotFilter[]>([]);
-  const [viewMode, setViewMode] = useState<BlogViewMode>("active");
+  const [viewMode] = useState<BlogViewMode>("active");
 
   const [sortBy, setSortBy] = useState<BlogSortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<BlogSortOrder>("desc");
@@ -526,13 +524,6 @@ export default function AdminBlogPage() {
     setCategoryFilters([]);
     setHotFilters([]);
     setPage(1);
-  }
-
-  function switchViewMode(nextMode: BlogViewMode) {
-    setViewMode(nextMode);
-    setPage(1);
-    setSortBy(nextMode === "deleted" ? "deletedAt" : "createdAt");
-    setSortOrder("desc");
   }
 
   function openCreateForm() {
@@ -829,6 +820,11 @@ export default function AdminBlogPage() {
     });
   }
 
+  void handleDelete;
+  void handleRestore;
+  void handleForceDelete;
+  void handleDeleteCategory;
+
   const filterSections: AdminFilterSection[] = [
     {
       id: "status",
@@ -973,27 +969,7 @@ export default function AdminBlogPage() {
         const isBusy = busyPostId === item._id;
 
         return (
-          <div className="flex items-center justify-end gap-2">
-            {viewMode === "deleted" ? (
-              <>
-                <AdminActionIconButton
-                  title="Restore"
-                  onClick={() => void handleRestore(item)}
-                  disabled={isBusy}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  title="Delete permanently"
-                  danger
-                  onClick={() => void handleForceDelete(item)}
-                  disabled={isBusy}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            ) : (
-              <>
+          <div className="flex items-center justify-end gap-1">
                 <AdminActionIconButton
                   title="Sửa"
                   onClick={() => openEditForm(item)}
@@ -1025,16 +1001,6 @@ export default function AdminBlogPage() {
                     <EyeOff className="h-4 w-4" />
                   )}
                 </AdminActionIconButton>
-                <AdminActionIconButton
-                  title="Xóa"
-                  danger
-                  onClick={() => void handleDelete(item)}
-                  disabled={isBusy}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
           </div>
         );
       },
@@ -1073,44 +1039,12 @@ export default function AdminBlogPage() {
             setPage(1);
           }}
           onReload={() => void loadBlogs()}
-          toolbarStart={
-            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-              <button
-                type="button"
-                onClick={() => switchViewMode("active")}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "active"
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <FileText className="h-4 w-4" />
-                Blog
-              </button>
-
-              <button
-                type="button"
-                onClick={() => switchViewMode("deleted")}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "deleted"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                Deleted
-              </button>
-            </div>
-          }
           toolbarEnd={
-            viewMode === "active" ? (
-              <>
+            <>
               <button
                 type="button"
                 onClick={openCategoryModal}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-[18px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
                 title="Quản lý chuyên mục"
               >
                 <Settings className="h-4 w-4" />
@@ -1119,13 +1053,12 @@ export default function AdminBlogPage() {
               <button
                 type="button"
                 onClick={openCreateForm}
-                className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
               >
                 <Plus className="h-4.5 w-4.5" />
                 Thêm bài viết
               </button>
-              </>
-            ) : null
+            </>
           }
           pagination={{
             currentPage,
@@ -1139,11 +1072,7 @@ export default function AdminBlogPage() {
             onPageChange: setPage,
             pageSizeOptions: PAGE_SIZE_OPTIONS,
           }}
-          emptyText={
-            viewMode === "deleted"
-              ? "Chưa có bài viết đã xóa."
-              : "Chưa có bài viết nào."
-          }
+          emptyText="Chưa có bài viết nào."
           labels={{
             apply: "Áp dụng",
             clear: "Xóa",
@@ -1161,14 +1090,14 @@ export default function AdminBlogPage() {
       </div>
 
       {isCategoryOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                   Chuyên mục blog
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Tạo chuyên mục để chọn khi viết bài Góc kiến thức.
                 </p>
               </div>
@@ -1176,7 +1105,7 @@ export default function AdminBlogPage() {
                 type="button"
                 onClick={() => setIsCategoryOpen(false)}
                 disabled={categorySubmitting}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1310,13 +1239,6 @@ export default function AdminBlogPage() {
                               >
                                 <Pencil className="h-4 w-4" />
                               </AdminActionIconButton>
-                              <AdminActionIconButton
-                                title="Xóa chuyên mục"
-                                danger
-                                onClick={() => void handleDeleteCategory(item)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </AdminActionIconButton>
                             </div>
                           </td>
                         </tr>
@@ -1340,14 +1262,14 @@ export default function AdminBlogPage() {
       ) : null}
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="max-h-[92vh] w-full max-w-[min(74rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="flex max-h-[92vh] w-full max-w-[min(74rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
             <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div>
-                <h2 className="text-xl font-black text-slate-950 dark:text-white">
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                   {formMode === "create" ? "Thêm bài viết" : "Sửa bài viết"}
                 </h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Bài viết đã xuất bản sẽ hiển thị ở Góc kiến thức.
                 </p>
               </div>
@@ -1355,13 +1277,13 @@ export default function AdminBlogPage() {
                 type="button"
                 onClick={() => closeForm()}
                 disabled={submitting}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="max-h-[calc(92vh-154px)] overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
                 <label className="xl:col-span-6">
                   <span className="mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300">
@@ -1511,8 +1433,8 @@ export default function AdminBlogPage() {
                     className={cn(
                       "inline-flex h-9 w-fit items-center gap-2 rounded-xl border px-2.5 text-sm font-semibold transition",
                       form.isFeatured
-                        ? "border-sky-500/40 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-50 dark:text-sky-700"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-300 dark:bg-white dark:text-slate-700 dark:hover:bg-slate-50"
+                        ? "border-sky-500/40 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-200"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
                     )}
                   >
                     <span
@@ -1569,12 +1491,12 @@ export default function AdminBlogPage() {
               ) : null}
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-5 dark:border-white/10">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => closeForm()}
                 disabled={submitting}
-                className="h-10 rounded-md border border-slate-300 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
               >
                 Đóng
               </button>
@@ -1582,7 +1504,7 @@ export default function AdminBlogPage() {
                 type="button"
                 onClick={() => void handleSubmit()}
                 disabled={submitting || !categorySelectOptions.length}
-                className="h-10 rounded-md bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Đang lưu..." : "Lưu"}
               </button>

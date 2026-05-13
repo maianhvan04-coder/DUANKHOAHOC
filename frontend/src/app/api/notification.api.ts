@@ -3,6 +3,7 @@ import { http } from "@/lib/utils/http";
 export type NotificationType = "INFO" | "SUCCESS" | "WARNING" | "ERROR";
 
 export type NotificationReadStatus = boolean | "true" | "false";
+export type NotificationSentStatus = boolean | "true" | "false";
 
 export type NotificationUserItem = {
   _id: string;
@@ -24,6 +25,8 @@ export type NotificationItem = {
   title: string;
   message: string;
   type: NotificationType;
+  isSent?: boolean;
+  sentAt?: string | null;
   isRead: boolean;
   readAt?: string | null;
   createdBy?: string | NotificationUserItem | null;
@@ -41,9 +44,17 @@ export type NotificationPagination = {
 export type GetNotificationsQuery = {
   userId?: string;
   keyword?: string;
+  isSent?: NotificationSentStatus;
   isRead?: NotificationReadStatus;
   type?: NotificationType;
-  sortBy?: "createdAt" | "title" | "type" | "isRead" | "readAt";
+  sortBy?:
+    | "createdAt"
+    | "title"
+    | "type"
+    | "isSent"
+    | "sentAt"
+    | "isRead"
+    | "readAt";
   sortOrder?: "asc" | "desc";
   page?: string | number;
   limit?: string | number;
@@ -53,6 +64,12 @@ export type CreateNotificationBody = {
   userId: string;
   title: string;
   message: string;
+  type?: NotificationType;
+};
+
+export type UpdateNotificationBody = {
+  title?: string;
+  message?: string;
   type?: NotificationType;
 };
 
@@ -110,6 +127,23 @@ export const adminNotificationApi = {
       await http.post<ApiResponse<NotificationItem>>(
         "/api/admin/notifications",
         body
+      )
+    ).data;
+  },
+
+  update: async (id: string, body: UpdateNotificationBody) => {
+    return (
+      await http.patch<ApiResponse<NotificationItem>>(
+        `/api/admin/notifications/${id}`,
+        body
+      )
+    ).data;
+  },
+
+  send: async (id: string) => {
+    return (
+      await http.patch<ApiResponse<NotificationItem>>(
+        `/api/admin/notifications/${id}/send`
       )
     ).data;
   },

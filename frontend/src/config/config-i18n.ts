@@ -1,9 +1,9 @@
-import { studentEnMessages } from "./messages/en/student";
-import { adminEnMessages } from "./messages/en/admin";
-import { userEnMessages } from "./messages/en/user";
-import { studentViMessages } from "./messages/vi/student";
-import { adminViMessages } from "./messages/vi/admin";
-import { userViMessages } from "./messages/vi/user";
+import { studentEnMessages } from "../i18n/messages/en/student";
+import { adminEnMessages } from "../i18n/messages/en/admin";
+import { userEnMessages } from "../i18n/messages/en/user";
+import { studentViMessages } from "../i18n/messages/vi/student";
+import { adminViMessages } from "../i18n/messages/vi/admin";
+import { userViMessages } from "../i18n/messages/vi/user";
 
 export type StudentLocale = "vi" | "en";
 export type StudentTheme = "light" | "dark";

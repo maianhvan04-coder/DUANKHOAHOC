@@ -58,7 +58,7 @@ export const studentViMessages = {
   "notifications.markReadSuccess": "Đã đánh dấu đã đọc",
   "notifications.updateError": "Không cập nhật được thông báo",
   "notifications.type.info": "Thông tin",
-  "notifications.type.success": "Thành công",
+  "notifications.type.success": "Khen thưởng",
   "notifications.type.warning": "Cảnh báo",
   "notifications.type.error": "Lỗi",
 } as const;

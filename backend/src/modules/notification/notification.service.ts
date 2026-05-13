@@ -23,12 +23,26 @@ export type CreateNotificationPayload = {
   createdBy?: string | null;
 };
 
+export type UpdateNotificationPayload = {
+  title?: string;
+  message?: string;
+  type?: NotificationType;
+};
+
 export type NotificationListQuery = {
   userId?: string;
   keyword?: string;
+  isSent?: boolean | "true" | "false";
   isRead?: boolean | "true" | "false";
   type?: NotificationType;
-  sortBy?: "createdAt" | "title" | "type" | "isRead" | "readAt";
+  sortBy?:
+    | "createdAt"
+    | "title"
+    | "type"
+    | "isSent"
+    | "sentAt"
+    | "isRead"
+    | "readAt";
   sortOrder?: "asc" | "desc";
   page?: string;
   limit?: string;
@@ -75,6 +89,14 @@ function buildNotificationSort(
       return sort;
     case "type":
       sort.type = direction;
+      sort.createdAt = -1;
+      return sort;
+    case "isSent":
+      sort.isSent = direction;
+      sort.createdAt = -1;
+      return sort;
+    case "sentAt":
+      sort.sentAt = direction;
       sort.createdAt = -1;
       return sort;
     case "isRead":
@@ -144,6 +166,33 @@ function buildUserKeywordFilter(keyword?: string) {
   };
 }
 
+function buildSentFilter(isSent?: boolean) {
+  if (isSent === false) {
+    return { isSent: false };
+  }
+
+  return {
+    $or: [{ isSent: true }, { isSent: { $exists: false } }],
+  };
+}
+
+function combineFilter(
+  baseFilter: Record<string, unknown>,
+  conditions: Record<string, unknown>[]
+) {
+  if (conditions.length === 0) {
+    return baseFilter;
+  }
+
+  if (Object.keys(baseFilter).length === 0) {
+    return conditions.length === 1 ? conditions[0] : { $and: conditions };
+  }
+
+  return {
+    $and: [baseFilter, ...conditions],
+  };
+}
+
 export async function createNotification(payload: CreateNotificationPayload) {
   if (!Types.ObjectId.isValid(payload.userId)) {
     throw createHttpError("User không hợp lệ", 400);
@@ -154,6 +203,10 @@ export async function createNotification(payload: CreateNotificationPayload) {
     title: payload.title,
     message: payload.message,
     type: payload.type ?? "INFO",
+    isSent: false,
+    sentAt: null,
+    isRead: false,
+    readAt: null,
     createdBy:
       payload.createdBy && Types.ObjectId.isValid(payload.createdBy)
         ? new Types.ObjectId(payload.createdBy)
@@ -170,6 +223,7 @@ export async function getAdminNotifications(query: NotificationListQuery) {
   const sort = buildNotificationSort(query);
 
   const filter: Record<string, unknown> = {};
+  const andConditions: Record<string, unknown>[] = [];
 
   if (query.userId) {
     if (!Types.ObjectId.isValid(query.userId)) {
@@ -184,17 +238,24 @@ export async function getAdminNotifications(query: NotificationListQuery) {
     filter.isRead = isRead;
   }
 
+  const isSent = parseBooleanLike(query.isSent);
+  if (typeof isSent === "boolean") {
+    andConditions.push(buildSentFilter(isSent));
+  }
+
   if (query.type) {
     filter.type = query.type;
   }
 
   const keywordFilter = await buildAdminKeywordFilter(query.keyword);
   if (keywordFilter) {
-    Object.assign(filter, keywordFilter);
+    andConditions.push(keywordFilter);
   }
 
+  const finalFilter = combineFilter(filter, andConditions);
+
   const [items, total] = await Promise.all([
-    NotificationModel.find(filter)
+    NotificationModel.find(finalFilter)
       .populate("userId", "email name")
       .populate("createdBy", "email name")
       .sort(sort)
@@ -202,7 +263,7 @@ export async function getAdminNotifications(query: NotificationListQuery) {
       .limit(limit)
       .lean(),
 
-    NotificationModel.countDocuments(filter),
+    NotificationModel.countDocuments(finalFilter),
   ]);
 
   return {
@@ -232,6 +293,7 @@ export async function getUserNotifications(
   const filter: Record<string, unknown> = {
     userId: new Types.ObjectId(userId),
   };
+  const andConditions: Record<string, unknown>[] = [buildSentFilter(true)];
 
   const isRead = parseBooleanLike(query.isRead);
   if (typeof isRead === "boolean") {
@@ -244,22 +306,29 @@ export async function getUserNotifications(
 
   const keywordFilter = buildUserKeywordFilter(query.keyword);
   if (keywordFilter) {
-    Object.assign(filter, keywordFilter);
+    andConditions.push(keywordFilter);
   }
 
+  const finalFilter = combineFilter(filter, andConditions);
+
   const [items, total, unreadCount] = await Promise.all([
-    NotificationModel.find(filter)
+    NotificationModel.find(finalFilter)
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean(),
 
-    NotificationModel.countDocuments(filter),
+    NotificationModel.countDocuments(finalFilter),
 
-    NotificationModel.countDocuments({
-      userId: new Types.ObjectId(userId),
-      isRead: false,
-    }),
+    NotificationModel.countDocuments(
+      combineFilter(
+        {
+          userId: new Types.ObjectId(userId),
+          isRead: false,
+        },
+        [buildSentFilter(true)]
+      )
+    ),
   ]);
 
   return {
@@ -323,6 +392,65 @@ export async function markAllNotificationsAsRead(userId: string) {
   );
 
   return true;
+}
+
+export async function updateAdminNotification(
+  notificationId: string,
+  payload: UpdateNotificationPayload
+) {
+  if (!Types.ObjectId.isValid(notificationId)) {
+    throw createHttpError("Thông báo không hợp lệ", 400);
+  }
+
+  const updateData: UpdateNotificationPayload = {};
+
+  if (payload.title !== undefined) updateData.title = payload.title;
+  if (payload.message !== undefined) updateData.message = payload.message;
+  if (payload.type !== undefined) updateData.type = payload.type;
+
+  const notification = await NotificationModel.findOneAndUpdate(
+    {
+      _id: new Types.ObjectId(notificationId),
+      isSent: false,
+    },
+    updateData,
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).lean();
+
+  if (!notification) {
+    throw createHttpError("Không tìm thấy thông báo chưa gửi", 404);
+  }
+
+  return notification;
+}
+
+export async function sendAdminNotification(notificationId: string) {
+  if (!Types.ObjectId.isValid(notificationId)) {
+    throw createHttpError("Thông báo không hợp lệ", 400);
+  }
+
+  const notification = await NotificationModel.findOneAndUpdate(
+    {
+      _id: new Types.ObjectId(notificationId),
+      isSent: false,
+    },
+    {
+      isSent: true,
+      sentAt: new Date(),
+    },
+    {
+      new: true,
+    }
+  ).lean();
+
+  if (!notification) {
+    throw createHttpError("Không tìm thấy thông báo chưa gửi", 404);
+  }
+
+  return notification;
 }
 
 export async function deleteAdminNotification(notificationId: string) {

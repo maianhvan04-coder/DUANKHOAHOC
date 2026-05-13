@@ -6,6 +6,7 @@ export const createCategorySchema = z.object({
   body: z.object({
     name: z.string().trim().min(1, "Tên danh mục là bắt buộc"),
     description: z.string().optional().default(""),
+    isActive: z.boolean().optional(),
   }),
 });
 

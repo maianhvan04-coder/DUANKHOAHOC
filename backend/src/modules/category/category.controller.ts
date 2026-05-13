@@ -8,6 +8,7 @@ type CategoryParams = {
 type CreateCategoryBody = {
   name: string;
   description?: string;
+  isActive?: boolean;
 };
 
 type UpdateCategoryBody = {

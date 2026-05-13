@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  FolderKanban,
+  Lock,
+  LockOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -37,6 +41,7 @@ import {
   type PaginationMeta,
   type SortDirection,
 } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -109,7 +114,11 @@ function getTeacherOptionLabel(item: TeacherItem) {
     : item.name || "Giảng viên";
 }
 
-function getStatusClass(status: ProductStatus) {
+function getStatusClass(status: ProductStatus, isActive = true) {
+  if (!isActive) {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
   if (status === "OPEN") {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
@@ -143,6 +152,14 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState<ProductFormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+    isActive: true,
+  });
 
   const objectUrlRef = useRef<string | null>(null);
 
@@ -172,30 +189,20 @@ export default function AdminProductsPage() {
     };
   }, []);
 
-  const loadData = async (mode: ViewMode = viewMode) => {
+  const loadData = async () => {
     try {
       setLoading(true);
 
       const [productRes, categoryRes, teacherRes] = await Promise.all([
-        mode === "active"
-          ? productApi.getAll({
-              q: search,
-              categoryId: categoryFilter,
-              status: statusFilter,
-              sortBy: sortKey,
-              sortOrder: sortDirection,
-              page,
-              limit: pageSize,
-            })
-          : productApi.getDeleted({
-              q: search,
-              categoryId: categoryFilter,
-              status: statusFilter,
-              sortBy: sortKey,
-              sortOrder: sortDirection,
-              page,
-              limit: pageSize,
-            }),
+        productApi.getAll({
+          q: search,
+          categoryId: categoryFilter,
+          status: statusFilter,
+          sortBy: sortKey,
+          sortOrder: sortDirection,
+          page,
+          limit: pageSize,
+        }),
         categoryApi.getAll(),
         teacherApi.list(),
       ]);
@@ -208,18 +215,14 @@ export default function AdminProductsPage() {
       setTeachers(teacherRes || []);
     } catch (error) {
       console.error(error);
-      alert(
-        mode === "active"
-          ? "Không tải được khóa học"
-          : "Không tải được khóa học đã xóa"
-      );
+      toast.error("Không tải được khóa học");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadData(viewMode);
+    void loadData();
   }, [
     categoryFilter,
     page,
@@ -228,7 +231,6 @@ export default function AdminProductsPage() {
     sortDirection,
     sortKey,
     statusFilter,
-    viewMode,
   ]);
 
   const pagedProducts = products;
@@ -282,7 +284,7 @@ export default function AdminProductsPage() {
   };
 
   const handleRefresh = async () => {
-    await loadData(viewMode);
+    await loadData();
   };
 
   const handleSubmitForm = async () => {
@@ -293,32 +295,32 @@ export default function AdminProductsPage() {
     const durationText = form.durationText.trim();
 
     if (!title) {
-      alert("Vui lòng nhập tên khóa học");
+      toast.warning("Vui lòng nhập tên khóa học");
       return;
     }
 
     if (!category) {
-      alert("Vui lòng chọn danh mục");
+      toast.warning("Vui lòng chọn danh mục");
       return;
     }
 
     if (!teacher) {
-      alert("Vui lòng chọn giảng viên mặc định");
+      toast.warning("Vui lòng chọn giảng viên mặc định");
       return;
     }
 
     if (Number(form.price || 0) < 0) {
-      alert("Học phí không được âm");
+      toast.warning("Học phí không được âm");
       return;
     }
 
     if (Number(form.rating || 0) < 0) {
-      alert("Rating không được âm");
+      toast.warning("Rating không được âm");
       return;
     }
 
     if (Number(form.studentCount || 0) < 0) {
-      alert("Số học viên không được âm");
+      toast.warning("Số học viên không được âm");
       return;
     }
 
@@ -340,20 +342,19 @@ export default function AdminProductsPage() {
 
       if (formMode === "create") {
         await productApi.create(payload);
-        alert("Thêm khóa học thành công");
+        toast.success("Thêm khóa học thành công");
       } else {
         if (!editingItem?._id) return;
         await productApi.update(editingItem._id, payload);
-        alert("Cập nhật khóa học thành công");
+        toast.success("Cập nhật khóa học thành công");
       }
 
       resetForm();
-      setViewMode("active");
       setPage(1);
-      await loadData("active");
+      await loadData();
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         formMode === "create"
           ? "Thêm khóa học thất bại"
           : "Cập nhật khóa học thất bại"
@@ -363,44 +364,148 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleToggleActive = async (item: ProductItem) => {
+    const nextActive = item.isActive === false;
+    const ok = await toastConfirm(
+      nextActive ? "Mở khóa khóa học này?" : "Khóa khóa học này?"
+    );
+    if (!ok) return;
+
+    try {
+      await productApi.update(item._id, { isActive: nextActive });
+      await loadData();
+      toast.success(nextActive ? "Đã mở khóa khóa học" : "Đã khóa khóa học");
+    } catch (error) {
+      console.error(error);
+      toast.error("Cập nhật trạng thái khóa học thất bại");
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setEditingCategory(null);
+    setCategoryForm({
+      name: "",
+      description: "",
+      isActive: true,
+    });
+  };
+
+  const openCategoryModal = () => {
+    resetCategoryForm();
+    setIsCategoryOpen(true);
+  };
+
+  const startEditCategory = (item: CategoryItem) => {
+    setEditingCategory(item);
+    setCategoryForm({
+      name: item.name || "",
+      description: item.description || "",
+      isActive: item.isActive !== false,
+    });
+  };
+
+  const handleSubmitCategory = async () => {
+    const name = categoryForm.name.trim();
+    const description = categoryForm.description.trim();
+
+    if (!name) {
+      toast.warning("Vui lòng nhập tên danh mục");
+      return;
+    }
+
+    try {
+      setCategorySubmitting(true);
+
+      if (editingCategory) {
+        await categoryApi.update(editingCategory._id, {
+          name,
+          description,
+          isActive: categoryForm.isActive,
+        });
+        toast.success("Cập nhật danh mục thành công");
+      } else {
+        await categoryApi.create({
+          name,
+          description,
+          isActive: categoryForm.isActive,
+        });
+        toast.success("Tạo danh mục thành công");
+      }
+
+      resetCategoryForm();
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error(editingCategory ? "Cập nhật danh mục thất bại" : "Tạo danh mục thất bại");
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
+  const handleToggleCategoryActive = async (item: CategoryItem) => {
+    const nextActive = item.isActive === false;
+    const ok = await toastConfirm(
+      nextActive ? "Mở khóa danh mục này?" : "Khóa danh mục này?"
+    );
+    if (!ok) return;
+
+    try {
+      setCategorySubmitting(true);
+      await categoryApi.update(item._id, { isActive: nextActive });
+      await loadData();
+      toast.success(nextActive ? "Đã mở khóa danh mục" : "Đã khóa danh mục");
+      if (editingCategory?._id === item._id) {
+        setCategoryForm((prev) => ({ ...prev, isActive: nextActive }));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Cập nhật trạng thái danh mục thất bại");
+    } finally {
+      setCategorySubmitting(false);
+    }
+  };
+
   const handleSoftDelete = async (id: string) => {
-    const ok = window.confirm("Bạn có chắc muốn xóa mềm khóa học này?");
+    const ok = await toastConfirm("Bạn có chắc muốn xóa mềm khóa học này?");
     if (!ok) return;
 
     try {
       await productApi.remove(id);
-      await loadData(viewMode);
+      await loadData();
+      toast.success("Đã xóa mềm khóa học");
     } catch (error) {
       console.error(error);
-      alert("Xóa mềm khóa học thất bại");
+      toast.error("Xóa mềm khóa học thất bại");
     }
   };
 
   const handleRestore = async (id: string) => {
-    const ok = window.confirm("Bạn có chắc muốn khôi phục khóa học này?");
+    const ok = await toastConfirm("Bạn có chắc muốn khôi phục khóa học này?");
     if (!ok) return;
 
     try {
       await productApi.restore(id);
-      await loadData(viewMode);
+      await loadData();
+      toast.success("Đã khôi phục khóa học");
     } catch (error) {
       console.error(error);
-      alert("Khôi phục khóa học thất bại");
+      toast.error("Khôi phục khóa học thất bại");
     }
   };
 
   const handleForceDelete = async (id: string) => {
-    const ok = window.confirm(
+    const ok = await toastConfirm(
       "Bạn có chắc muốn xóa cứng khóa học này? Hành động này không thể hoàn tác."
     );
     if (!ok) return;
 
     try {
       await productApi.forceRemove(id);
-      await loadData(viewMode);
+      await loadData();
+      toast.success("Đã xóa cứng khóa học");
     } catch (error) {
       console.error(error);
-      alert("Xóa cứng khóa học thất bại");
+      toast.error("Xóa cứng khóa học thất bại");
     }
   };
 
@@ -484,7 +589,7 @@ export default function AdminProductsPage() {
         id: "course",
         label: "Course",
         sortKey: "title",
-        widthClassName: "w-[330px]",
+        widthClassName: "w-[25%]",
         render: (item) => (
           <AdminEntityCell
             title={item.title || "--"}
@@ -498,7 +603,7 @@ export default function AdminProductsPage() {
         id: "category",
         label: "Category",
         sortKey: "category",
-        widthClassName: "w-[170px]",
+        widthClassName: "w-[13%]",
         render: (item) => (
           <div className="truncate">{getCategoryName(item.category)}</div>
         ),
@@ -507,7 +612,7 @@ export default function AdminProductsPage() {
         id: "teacher",
         label: "Teacher",
         sortKey: "teacher",
-        widthClassName: "w-[190px]",
+        widthClassName: "w-[16%]",
         render: (item) => (
           <div className="truncate">{getTeacherDisplayName(item)}</div>
         ),
@@ -516,18 +621,20 @@ export default function AdminProductsPage() {
         id: "status",
         label: "Status",
         sortKey: "status",
-        widthClassName: "w-[130px]",
+        widthClassName: "w-[14%]",
         render: (item) => (
           <AdminStatusBadge
             tone={
-              item.status === "OPEN"
+              item.isActive === false
+                ? "warning"
+                : item.status === "OPEN"
                 ? "success"
                 : item.status === "COMING"
                   ? "warning"
                   : "danger"
             }
           >
-            {item.status}
+            {item.isActive === false ? "LOCKED" : item.status}
           </AdminStatusBadge>
         ),
       },
@@ -535,7 +642,7 @@ export default function AdminProductsPage() {
         id: "tuition",
         label: "Tuition",
         sortKey: "price",
-        widthClassName: "w-[140px]",
+        widthClassName: "w-[11%]",
         render: (item) => (
           <span className="font-semibold text-slate-900 dark:text-slate-100">
             {formatPrice(item.price)}
@@ -544,51 +651,34 @@ export default function AdminProductsPage() {
       },
       {
         id: "created",
-        label: viewMode === "active" ? "Created" : "Deleted",
+        label: "Created",
         sortKey: "createdAt",
-        widthClassName: "w-[140px]",
+        widthClassName: "w-[11%]",
         render: (item) => {
-          const value = viewMode === "active" ? item.createdAt : item.deletedAt;
+          const value = item.createdAt;
           return value ? new Date(value).toLocaleDateString("vi-VN") : "--";
         },
       },
       {
         id: "actions",
         label: <div className="text-right">Actions</div>,
-        widthClassName: "w-[120px]",
+        widthClassName: "w-[10%]",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-2">
-            {viewMode === "active" ? (
-              <>
-                <AdminActionIconButton title="Edit" onClick={() => openEditForm(item)}>
-                  <Pencil className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete"
-                  onClick={() => void handleSoftDelete(item._id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
+          <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton title="Edit" onClick={() => openEditForm(item)}>
+              <Pencil className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton
+              title={item.isActive === false ? "Unlock" : "Lock"}
+              onClick={() => void handleToggleActive(item)}
+            >
+              {item.isActive === false ? (
+                <LockOpen className="h-4 w-4" />
             ) : (
-              <>
-                <AdminActionIconButton
-                  title="Restore"
-                  onClick={() => void handleRestore(item._id)}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete permanently"
-                  onClick={() => void handleForceDelete(item._id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
+                <Lock className="h-4 w-4" />
+              )}
+            </AdminActionIconButton>
           </div>
         ),
       },
@@ -596,7 +686,7 @@ export default function AdminProductsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 p-3 md:p-4 dark:bg-transparent">
+      <div className="space-y-6">
         <div className="space-y-4">
           <section className="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -688,54 +778,26 @@ export default function AdminProductsPage() {
               setPage(1);
             }}
             onReload={() => void handleRefresh()}
-            toolbarStart={
-              <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode("active");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                    viewMode === "active"
-                      ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                      : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                  )}
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Courses
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewMode("deleted");
-                    setPage(1);
-                  }}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                    viewMode === "deleted"
-                      ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                      : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                  )}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Deleted
-                </button>
-              </div>
-            }
             toolbarEnd={
-              viewMode === "active" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={openCategoryModal}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                  title="Quản lý danh mục"
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  Danh mục
+                </button>
                 <button
                   type="button"
                   onClick={openCreateForm}
-                  className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
                 >
                   <Plus className="h-4 w-4" />
                   New Course
                 </button>
-              ) : null
+              </>
             }
             pagination={{
               currentPage,
@@ -749,12 +811,8 @@ export default function AdminProductsPage() {
               onPageChange: setPage,
               pageSizeOptions: [5, 10, 20],
             }}
-            emptyText={
-              viewMode === "active"
-                ? "Không có khóa học nào"
-                : "Không có dữ liệu"
-            }
-            tableMinWidthClassName="min-w-[1180px]"
+            emptyText="Không có khóa học nào"
+            tableMinWidthClassName="min-w-full"
           />
 
           <section className="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1045,15 +1103,190 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {isFormOpen ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-3 dark:bg-slate-950/70">
-          <div className="w-full max-w-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
-            <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+      {isCategoryOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+                  Danh mục khóa học
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  Tạo danh mục để chọn khi thêm hoặc sửa khóa học.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(false)}
+                disabled={categorySubmitting}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[calc(92vh-154px)] overflow-y-auto p-6">
+              <div className="rounded-2xl border border-slate-200 p-4 dark:border-white/10">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+                      Tên danh mục <span className="text-rose-600">*</span>
+                    </span>
+                    <input
+                      value={categoryForm.name}
+                      onChange={(event) =>
+                        setCategoryForm((prev) => ({
+                          ...prev,
+                          name: event.target.value,
+                        }))
+                      }
+                      className="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      placeholder="IELTS"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-bold text-slate-700 dark:text-slate-200">
+                      Mô tả
+                    </span>
+                    <input
+                      value={categoryForm.description}
+                      onChange={(event) =>
+                        setCategoryForm((prev) => ({
+                          ...prev,
+                          description: event.target.value,
+                        }))
+                      }
+                      className="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                      placeholder="Mô tả ngắn"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={categoryForm.isActive}
+                      onChange={(event) =>
+                        setCategoryForm((prev) => ({
+                          ...prev,
+                          isActive: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    Hoạt động
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void handleSubmitCategory()}
+                    disabled={categorySubmitting}
+                    className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-4 text-sm font-bold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {categorySubmitting
+                      ? "Đang lưu..."
+                      : editingCategory
+                      ? "Lưu danh mục"
+                      : "Tạo danh mục"}
+                  </button>
+                  {editingCategory ? (
+                    <button
+                      type="button"
+                      onClick={resetCategoryForm}
+                      disabled={categorySubmitting}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                    >
+                      Hủy sửa
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                <table className="w-full min-w-[640px] text-left">
+                  <thead className="bg-slate-50 text-xs font-black uppercase tracking-[0.08em] text-slate-500 dark:bg-white/5">
+                    <tr>
+                      <th className="px-4 py-3">Danh mục</th>
+                      <th className="px-4 py-3">Trạng thái</th>
+                      <th className="px-4 py-3 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/10">
+                    {categories.length ? (
+                      categories.map((item) => (
+                        <tr key={item._id}>
+                          <td className="px-4 py-3">
+                            <p className="font-bold text-slate-900 dark:text-white">
+                              {item.name}
+                            </p>
+                            <p className="mt-1 line-clamp-1 text-sm text-slate-500">
+                              {item.description || item.slug || "--"}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full px-3 py-1 text-xs font-black",
+                                item.isActive === false
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                              )}
+                            >
+                              {item.isActive === false ? "Khóa" : "Hoạt động"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-2">
+                              <AdminActionIconButton
+                                title="Sửa danh mục"
+                                onClick={() => startEditCategory(item)}
+                                disabled={categorySubmitting}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </AdminActionIconButton>
+                              <AdminActionIconButton
+                                title={item.isActive === false ? "Mở khóa" : "Khóa"}
+                                onClick={() => void handleToggleCategoryActive(item)}
+                                disabled={categorySubmitting}
+                              >
+                                {item.isActive === false ? (
+                                  <LockOpen className="h-4 w-4" />
+                                ) : (
+                                  <Lock className="h-4 w-4" />
+                                )}
+                              </AdminActionIconButton>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-8 text-center text-sm font-semibold text-slate-500"
+                        >
+                          Chưa có danh mục khóa học.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isFormOpen ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                   {formMode === "create" ? "New Course" : "Edit Course"}
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {formMode === "create"
                     ? "Tạo khóa học mới."
                     : "Cập nhật thông tin khóa học."}
@@ -1064,14 +1297,14 @@ export default function AdminProductsPage() {
                 type="button"
                 disabled={submitting}
                 onClick={resetForm}
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-white/10"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto px-4 py-4">
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Tên khóa học <span className="text-rose-600">*</span>
@@ -1082,7 +1315,7 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, title: e.target.value }))
                     }
                     placeholder="Nhập tên khóa học"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1095,7 +1328,7 @@ export default function AdminProductsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, teacher: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="">Chọn giảng viên</option>
                     {teachers.map((item) => (
@@ -1115,10 +1348,12 @@ export default function AdminProductsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, category: e.target.value }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">Chọn danh mục</option>
-                    {categories.map((item) => (
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                    >
+                      <option value="">Chọn danh mục</option>
+                    {categories
+                      .filter((item) => item.isActive !== false || item._id === form.category)
+                      .map((item) => (
                       <option key={item._id} value={item._id}>
                         {item.name}
                       </option>
@@ -1138,7 +1373,7 @@ export default function AdminProductsPage() {
                         status: e.target.value as ProductStatus,
                       }))
                     }
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="OPEN">OPEN</option>
                     <option value="COMING">COMING</option>
@@ -1156,7 +1391,7 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, durationText: e.target.value }))
                     }
                     placeholder="Ví dụ: 3 tháng"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1189,7 +1424,7 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, price: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1206,7 +1441,7 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, rating: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1222,7 +1457,7 @@ export default function AdminProductsPage() {
                       setForm((prev) => ({ ...prev, studentCount: e.target.value }))
                     }
                     placeholder="0"
-                    className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1240,7 +1475,7 @@ export default function AdminProductsPage() {
                     }
                     rows={3}
                     placeholder="Nhập mô tả ngắn"
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-emerald-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
 
@@ -1249,7 +1484,7 @@ export default function AdminProductsPage() {
                     <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                       Preview
                     </label>
-                    <div className="h-[120px] w-full overflow-hidden rounded-md border border-slate-300 bg-slate-100 dark:border-white/10 dark:bg-slate-900">
+                    <div className="h-[120px] w-full overflow-hidden rounded-xl border border-slate-300 bg-slate-100 dark:border-white/10 dark:bg-slate-900">
                       <img
                         src={imagePreview}
                         alt="Preview"
@@ -1261,21 +1496,21 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 border-t border-slate-200 px-4 py-3 dark:border-white/10">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
               <button
                 type="button"
                 onClick={resetForm}
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
               >
-                Cancel
+                Đóng
               </button>
 
               <button
                 type="button"
                 onClick={() => void handleSubmitForm()}
                 disabled={submitting}
-                className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-700 px-4 text-sm font-medium text-white transition hover:bg-emerald-800 disabled:opacity-50"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting
                   ? formMode === "create"

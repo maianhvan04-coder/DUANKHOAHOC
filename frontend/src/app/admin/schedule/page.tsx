@@ -203,10 +203,9 @@ function ScheduleEditorModal({
     const previewStudents = impactedStudents.slice(0, 6);
 
     return (
-        <div className="fixed inset-0 z-[120] bg-slate-950/45 p-3 md:p-5">
-            <div className="flex h-full items-center justify-center">
-                <div className="flex h-[92vh] w-full max-w-[880px] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl">
-                    <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+                <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                    <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
                         <div className="pr-4">
                             <div className="flex items-center gap-2 text-sky-700">
                                 <CalendarDays className="h-5 w-5" />
@@ -215,11 +214,11 @@ function ScheduleEditorModal({
                                 </span>
                             </div>
 
-                            <h2 className="mt-2 text-[22px] font-bold text-slate-900">
+                            <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">
                                 {item.className}
                             </h2>
 
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                 Lưu thay đổi tại đây sẽ đồng bộ sang toàn bộ học viên thuộc lớp
                                 này.
                             </p>
@@ -229,56 +228,56 @@ function ScheduleEditorModal({
                             type="button"
                             disabled={saving}
                             onClick={onClose}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
                         >
                             <X className="h-5 w-5" />
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-5 py-5">
+                    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
                         <section className="grid gap-3 md:grid-cols-3">
-                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                                     <BookOpen className="h-4 w-4" />
                                     Khóa học
                                 </div>
-                                <p className="mt-2 text-base font-semibold text-slate-900">
+                                <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
                                     {getCourseTitle(item)}
                                 </p>
                             </div>
 
-                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                                     <User2 className="h-4 w-4" />
                                     Giảng viên
                                 </div>
-                                <p className="mt-2 text-base font-semibold text-slate-900">
+                                <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
                                     {getTeacherName(item)}
                                 </p>
                             </div>
 
-                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400">
                                     <Users className="h-4 w-4" />
                                     Học viên chịu ảnh hưởng
                                 </div>
-                                <p className="mt-2 text-base font-semibold text-slate-900">
+                                <p className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
                                     {studentsLoading
                                         ? "Đang tải..."
                                         : `${impactedStudents.length} học viên`}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                     Trạng thái đang xem lịch: ghi danh, đang học, tạm dừng.
                                 </p>
                             </div>
                         </section>
 
-                        <section className="mt-5 rounded-[28px] border border-slate-200 bg-white p-5">
+                        <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
                             <div className="mb-4">
-                                <h3 className="text-base font-semibold text-slate-900">
+                                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
                                     Thông tin lịch học
                                 </h3>
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                     Cập nhật khung giờ, hình thức học và khoảng thời gian áp dụng
                                     cho lớp.
                                 </p>
@@ -286,7 +285,7 @@ function ScheduleEditorModal({
 
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Hình thức
                                     </label>
                                     <select
@@ -294,7 +293,7 @@ function ScheduleEditorModal({
                                         onChange={(event) =>
                                             onChange({ mode: event.target.value as ClassMode })
                                         }
-                                        className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500"
+                                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
                                     >
                                         <option value="ONLINE">Online</option>
                                         <option value="OFFLINE">Offline</option>
@@ -302,7 +301,7 @@ function ScheduleEditorModal({
                                 </div>
 
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Phòng học / Link học
                                     </label>
                                     <input
@@ -313,12 +312,12 @@ function ScheduleEditorModal({
                                                 ? "Google Meet / Zoom"
                                                 : "Phòng 203"
                                         }
-                                        className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500"
+                                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
                                     />
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Lịch học
                                     </label>
                                     <input
@@ -327,12 +326,12 @@ function ScheduleEditorModal({
                                             onChange({ scheduleText: event.target.value })
                                         }
                                         placeholder="Ví dụ: T2 - T4 - T6 | 18:30 - 20:00"
-                                        className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500"
+                                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Ngày bắt đầu
                                     </label>
                                     <input
@@ -341,12 +340,12 @@ function ScheduleEditorModal({
                                         onChange={(event) =>
                                             onChange({ startedAt: event.target.value })
                                         }
-                                        className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500"
+                                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         Ngày kết thúc
                                     </label>
                                     <input
@@ -355,30 +354,30 @@ function ScheduleEditorModal({
                                         onChange={(event) =>
                                             onChange({ endedAt: event.target.value })
                                         }
-                                        className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-sky-500"
+                                        className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
                                     />
                                 </div>
                             </div>
                         </section>
 
-                        <section className="mt-5 rounded-[28px] border border-sky-100 bg-sky-50/70 p-5">
+                        <section className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/70 p-5 dark:border-sky-500/20 dark:bg-sky-500/10">
                             <div className="flex items-center gap-2 text-sky-700">
                                 <Sparkles className="h-5 w-5" />
                                 <h3 className="text-base font-semibold">Phạm vi đồng bộ</h3>
                             </div>
 
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                                 Sau khi lưu, lịch mới sẽ ghi đè vào hồ sơ học tập của học viên
                                 trong lớp này. Trang `/lich-hoc` của học viên sẽ đọc lịch mới
                                 ngay từ dữ liệu lớp và snapshot đã được đồng bộ.
                             </p>
 
                             {studentsLoading ? (
-                                <div className="mt-4 rounded-2xl border border-dashed border-sky-200 bg-white px-4 py-5 text-sm text-slate-500">
+                                <div className="mt-4 rounded-2xl border border-dashed border-sky-200 bg-white px-4 py-5 text-sm text-slate-500 dark:border-sky-500/25 dark:bg-slate-950 dark:text-slate-400">
                                     Đang tải danh sách học viên...
                                 </div>
                             ) : impactedStudents.length === 0 ? (
-                                <div className="mt-4 rounded-2xl border border-dashed border-sky-200 bg-white px-4 py-5 text-sm text-slate-500">
+                                <div className="mt-4 rounded-2xl border border-dashed border-sky-200 bg-white px-4 py-5 text-sm text-slate-500 dark:border-sky-500/25 dark:bg-slate-950 dark:text-slate-400">
                                     Chưa có học viên đang theo lớp này.
                                 </div>
                             ) : (
@@ -386,13 +385,13 @@ function ScheduleEditorModal({
                                     {previewStudents.map((student) => (
                                         <div
                                             key={student._id}
-                                            className="flex items-center justify-between gap-3 rounded-2xl border border-white bg-white px-4 py-3"
+                                            className="flex items-center justify-between gap-3 rounded-2xl border border-white bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-950"
                                         >
                                             <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold text-slate-900">
+                                                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                                                     {getStudentName(student)}
                                                 </p>
-                                                <p className="truncate text-xs text-slate-500">
+                                                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                                                     {typeof student.student === "object" &&
                                                         student.student?.email
                                                         ? student.student.email
@@ -400,14 +399,14 @@ function ScheduleEditorModal({
                                                 </p>
                                             </div>
 
-                                            <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                            <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-white/10 dark:text-slate-300">
                                                 {STUDY_STATUS_LABELS[student.status]}
                                             </span>
                                         </div>
                                     ))}
 
                                     {impactedStudents.length > previewStudents.length ? (
-                                        <p className="text-xs text-slate-500">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
                                             Và còn {impactedStudents.length - previewStudents.length}{" "}
                                             học viên khác sẽ nhận lịch mới.
                                         </p>
@@ -417,27 +416,26 @@ function ScheduleEditorModal({
                         </section>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
+                    <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
                         <button
                             type="button"
                             disabled={saving}
                             onClick={onClose}
-                            className="h-11 rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
                         >
-                            Hủy
+                            Đóng
                         </button>
 
                         <button
                             type="button"
                             disabled={saving}
                             onClick={onSubmit}
-                            className="inline-flex h-11 items-center justify-center rounded-2xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {saving ? "Đang lưu..." : "Lưu và đồng bộ cho lớp"}
                         </button>
                     </div>
                 </div>
-            </div>
         </div>
     );
 }
@@ -742,7 +740,7 @@ export default function AdminSchedulePage() {
             id: "class",
             label: "Lớp học",
             sortKey: "className",
-            widthClassName: "w-[300px]",
+            widthClassName: "w-[26%]",
             render: (item) => (
                 <AdminEntityCell
                     title={item.className || "--"}
@@ -756,10 +754,10 @@ export default function AdminSchedulePage() {
             id: "schedule",
             label: "Lịch học",
             sortKey: "schedule",
-            widthClassName: "w-[270px]",
+            widthClassName: "w-[24%]",
             render: (item) => (
-                <div className="space-y-2">
-                    <div className="font-semibold text-slate-900">
+                <div className="min-w-0 space-y-2">
+                    <div className="whitespace-normal break-words font-semibold text-slate-900">
                         {item.scheduleText || "Chưa thiết lập lịch"}
                     </div>
                     <span
@@ -779,9 +777,9 @@ export default function AdminSchedulePage() {
             id: "room",
             label: "Địa điểm",
             sortKey: "room",
-            widthClassName: "w-[210px]",
+            widthClassName: "w-[14%]",
             render: (item) => (
-                <div className="flex items-center gap-2 text-slate-700">
+                <div className="flex min-w-0 items-center gap-2 text-slate-700">
                     {item.mode === "ONLINE" ? (
                         <MonitorPlay className="h-4 w-4 shrink-0 text-slate-400" />
                     ) : (
@@ -794,12 +792,14 @@ export default function AdminSchedulePage() {
         {
             id: "period",
             label: "Áp dụng",
-            widthClassName: "w-[170px]",
+            widthClassName: "w-[18%]",
             render: (item) => (
-                <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-slate-700">
+                <div className="min-w-0 space-y-1">
+                    <div className="flex min-w-0 items-center gap-2 text-slate-700">
                         <Clock3 className="h-4 w-4 shrink-0 text-slate-400" />
-                        <span>{formatDateRange(item.startedAt, item.endedAt)}</span>
+                        <span className="whitespace-normal break-words">
+                            {formatDateRange(item.startedAt, item.endedAt)}
+                        </span>
                     </div>
                 </div>
             ),
@@ -808,9 +808,12 @@ export default function AdminSchedulePage() {
             id: "status",
             label: "Trạng thái",
             sortKey: "status",
-            widthClassName: "w-[140px]",
+            widthClassName: "w-[10%]",
             render: (item) => (
-                <AdminStatusBadge tone={item.isActive ? "success" : "neutral"}>
+                <AdminStatusBadge
+                    tone={item.isActive ? "success" : "neutral"}
+                    className="min-w-[88px] px-2"
+                >
                     {item.isActive ? "ACTIVE" : "TẠM TẮT"}
                 </AdminStatusBadge>
             ),
@@ -818,10 +821,10 @@ export default function AdminSchedulePage() {
         {
             id: "actions",
             label: <div className="text-right">Thao tác</div>,
-            widthClassName: "w-[110px]",
+            widthClassName: "w-[8%]",
             align: "right",
             render: (item) => (
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-1">
                     <AdminActionIconButton
                         title="Chỉnh lịch"
                         onClick={() => openEditor(item)}
@@ -890,7 +893,7 @@ export default function AdminSchedulePage() {
                     search: "Tìm kiếm",
                     showing: "Hiển thị",
                 }}
-                tableMinWidthClassName="min-w-[1200px]"
+                tableMinWidthClassName="min-w-full"
             />
 
             <ScheduleEditorModal

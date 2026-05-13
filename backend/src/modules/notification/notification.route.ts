@@ -8,11 +8,14 @@ import {
   getMyNotificationsController,
   markAllMyNotificationsAsReadController,
   markMyNotificationAsReadController,
+  sendAdminNotificationController,
+  updateAdminNotificationController,
 } from "./notification.controller";
 import {
   createNotificationSchema,
   getNotificationsQuerySchema,
   notificationIdSchema,
+  updateNotificationSchema,
 } from "./notification.validation";
 
 export const adminNotificationRouter = Router();
@@ -37,6 +40,18 @@ adminNotificationRouter.get(
 adminNotificationRouter.get(
   "/recipients",
   getNotificationRecipientsController
+);
+
+adminNotificationRouter.patch(
+  "/:id",
+  validate(updateNotificationSchema),
+  updateAdminNotificationController
+);
+
+adminNotificationRouter.patch(
+  "/:id/send",
+  validate(notificationIdSchema),
+  sendAdminNotificationController
 );
 
 adminNotificationRouter.delete(

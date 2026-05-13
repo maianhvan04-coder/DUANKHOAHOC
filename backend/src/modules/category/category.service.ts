@@ -11,7 +11,7 @@ export const categoryService = {
     return categoryRepository.findAllDeleted();
   },
 
-  async create(payload: { name: string; description?: string }) {
+  async create(payload: { name: string; description?: string; isActive?: boolean }) {
     const slug = slugify(payload.name);
 
     const exists = await categoryRepository.findBySlug(slug);
@@ -23,6 +23,7 @@ export const categoryService = {
       name: payload.name.trim(),
       slug,
       description: payload.description || "",
+      isActive: payload.isActive ?? true,
     });
   },
 

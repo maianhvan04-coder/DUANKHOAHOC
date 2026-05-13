@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { PaymentOrderModel, type PaymentOrderDocument } from "../../payment/payment.model";
+import { UserModel } from "../../user/user.model";
 import type {
   PaymentHistoryItem,
   PaymentHistoryListQuery,
@@ -45,7 +46,23 @@ function mapItem(doc: any): PaymentHistoryItem {
   };
 }
 
-function buildFilter(
+async function findUserIdsByKeyword(keyword?: string) {
+  const normalized = keyword?.trim();
+  if (!normalized) return [];
+
+  const regex = new RegExp(escapeRegex(normalized), "i");
+  const users = await UserModel.find({
+    deletedAt: null,
+    $or: [{ name: regex }, { email: regex }],
+  })
+    .select("_id")
+    .limit(200)
+    .lean();
+
+  return users.map((user) => user._id);
+}
+
+async function buildFilter(
   query: Partial<PaymentHistoryListQuery>,
   scopeUserId?: string
 ) {
@@ -84,6 +101,11 @@ function buildFilter(
     filter.$or = ors;
   }
 
+  if (!scopeUserId && query.userKeyword?.trim()) {
+    const userIds = await findUserIdsByKeyword(query.userKeyword);
+    filter.user = { $in: userIds };
+  }
+
   return filter;
 }
 
@@ -92,7 +114,7 @@ export async function getMyPaymentHistoryRepo(
   query: PaymentHistoryListQuery
 ): Promise<PaymentHistoryListResult> {
   const skip = (query.page - 1) * query.limit;
-  const filter = buildFilter(query, userId);
+  const filter = await buildFilter(query, userId);
 
   const [docs, total] = await Promise.all([
     PaymentOrderModel.find(filter)
@@ -130,7 +152,7 @@ export async function getAdminPaymentHistoryRepo(
   query: PaymentHistoryListQuery
 ): Promise<PaymentHistoryListResult> {
   const skip = (query.page - 1) * query.limit;
-  const filter = buildFilter(query);
+  const filter = await buildFilter(query);
 
   const [docs, total] = await Promise.all([
     PaymentOrderModel.find(filter)

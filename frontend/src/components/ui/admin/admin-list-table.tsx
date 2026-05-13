@@ -131,7 +131,7 @@ export function AdminActionIconButton({
       onClick={onClick}
       title={title}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-full bg-transparent transition disabled:pointer-events-none disabled:opacity-45",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-transparent transition disabled:pointer-events-none disabled:opacity-45",
         danger
           ? "text-rose-500 hover:bg-rose-500/10"
           : "text-slate-600 hover:bg-sky-500/10 hover:text-sky-600 dark:text-slate-200 dark:hover:text-sky-300"
@@ -240,6 +240,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
 }: AdminListTableProps<TItem, TSortKey>) {
   const labels = { ...DEFAULT_LABELS, ...labelOverrides };
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [hasUserSorted, setHasUserSorted] = useState(false);
   const filterPopoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -258,6 +259,8 @@ export default function AdminListTable<TItem, TSortKey extends string>({
 
   const handleSortClick = useCallback(
     (nextSortBy: TSortKey) => {
+      setHasUserSorted(true);
+
       if (sortBy === nextSortBy) {
         onSortChange(nextSortBy, sortOrder === "asc" ? "desc" : "asc");
         return;
@@ -439,7 +442,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
                         title={typeof column.label === "string" ? column.label : undefined}
                       >
                         <span>{column.label}</span>
-                        {sortBy === column.sortKey ? (
+                        {hasUserSorted && sortBy === column.sortKey ? (
                           sortOrder === "asc" ? (
                             <ChevronUp className="h-3.5 w-3.5" />
                           ) : (

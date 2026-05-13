@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, X } from "lucide-react";
+import { toast } from "sonner";
 import type {
   PermissionKey,
   PermissionMetaItem,
@@ -99,10 +100,11 @@ export default function RolePermissionModal({
       const res = await rbacApi.setRolePermissions(role.code, orderedKeys);
 
       onSaved(role.code, res.permissionKeys);
+      toast.success("Lưu phân quyền thành công");
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Lưu phân quyền thất bại");
+      toast.error("Lưu phân quyền thất bại");
     } finally {
       setSaving(false);
     }
@@ -111,32 +113,32 @@ export default function RolePermissionModal({
   if (!open || !role) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/25 dark:bg-slate-950/75">
-      <div className="mx-auto mt-6 flex max-h-[94vh] w-[min(980px,96vw)] flex-col overflow-hidden rounded-[8px] border border-slate-300 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] dark:border-white/10 dark:bg-slate-950 dark:shadow-black/30">
-        <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-[12px] font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                 Manage Permissions
               </h2>
               <span className="rounded-[4px] border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200">
                 {role.code}
               </span>
             </div>
-            <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               Chọn quyền cho vai trò này
             </p>
           </div>
 
           <button
             onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
           >
-            <X size={14} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-3">
             {groups.map((group) => {
               const keys = group.items.map((item) => item.key);
@@ -200,8 +202,8 @@ export default function RolePermissionModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-white/10">
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="text-sm text-slate-500 dark:text-slate-400">
             Đã chọn <span className="font-semibold text-slate-900 dark:text-slate-100">{selected.length}</span>{" "}
             quyền
           </div>
@@ -209,14 +211,14 @@ export default function RolePermissionModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="h-8 rounded-[6px] border border-slate-300 px-3 text-[11px] font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Hủy
+              Đóng
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-sky-600 px-3 text-[11px] font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : null}
               Lưu

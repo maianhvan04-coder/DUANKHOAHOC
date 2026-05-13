@@ -14,7 +14,7 @@ import {
   type StudentLocale,
   type StudentMessageKey,
   type StudentTheme,
-} from "./config";
+} from "../../config/config-i18n";
 
 type StudentPreferencesContextValue = {
   locale: StudentLocale;

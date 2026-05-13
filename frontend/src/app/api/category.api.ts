@@ -15,6 +15,7 @@ export type CategoryItem = {
 export type CreateCategoryBody = {
   name: string;
   description?: string;
+  isActive?: boolean;
 };
 
 export type UpdateCategoryBody = {

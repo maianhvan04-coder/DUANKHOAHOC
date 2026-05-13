@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  LockOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -37,6 +39,7 @@ import {
   type PaginationMeta,
   type SortDirection,
 } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -183,15 +186,14 @@ function TeacherModal({
   const displayAvatar = previewUrl || currentAvatar || "";
 
   return (
-    <div className="fixed inset-0 z-200 bg-slate-950/40 p-3 md:p-5">
-      <div className="flex h-full items-center justify-center">
-        <div className="flex h-[92vh] w-full max-w-215 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-4 md:px-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+          <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
             <div className="pr-3">
-              <h2 className="text-[18px] font-bold text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                 {mode === "create" ? "Thêm giảng viên" : "Cập nhật giảng viên"}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {mode === "create"
                   ? "Tạo hồ sơ giảng viên mới."
                   : "Chỉnh sửa thông tin giảng viên."}
@@ -201,28 +203,28 @@ function TeacherModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Họ tên
                 </label>
                 <input
                   value={value.name}
                   onChange={(e) => onChange({ name: e.target.value })}
                   placeholder="Nhập tên giảng viên"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Email
                 </label>
                 <input
@@ -231,21 +233,21 @@ function TeacherModal({
                   disabled={mode === "edit"}
                   placeholder="teacher@email.com"
                   className={cn(
-                    "h-11 w-full rounded-2xl border px-4 text-sm outline-none transition",
+                    "h-11 w-full rounded-2xl border px-4 text-sm outline-none transition dark:border-white/10 dark:bg-slate-900 dark:text-slate-100",
                     mode === "edit"
-                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500"
+                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-500"
                       : "border-slate-200 bg-white focus:border-emerald-500"
                   )}
                 />
                 {mode === "edit" && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Email không được thay đổi sau khi tạo.
                   </p>
                 )}
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   {mode === "create" ? "Mật khẩu" : "Mật khẩu mới"}
                 </label>
                 <input
@@ -253,36 +255,36 @@ function TeacherModal({
                   value={value.password}
                   onChange={(e) => onChange({ password: e.target.value })}
                   placeholder="******"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Chuyên môn
                 </label>
                 <input
                   value={value.specialty}
                   onChange={(e) => onChange({ specialty: e.target.value })}
                   placeholder="IELTS, Web, Marketing..."
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Điện thoại
                 </label>
                 <input
                   value={value.phone}
                   onChange={(e) => onChange({ phone: e.target.value })}
                   placeholder="09xxxxxxxx"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Bằng cấp
                 </label>
                 <textarea
@@ -290,12 +292,12 @@ function TeacherModal({
                   value={value.degree}
                   onChange={(e) => onChange({ degree: e.target.value })}
                   placeholder="Ví dụ: Cử nhân CNTT"
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Đánh giá
                 </label>
                 <input
@@ -307,21 +309,21 @@ function TeacherModal({
                   onChange={(e) =>
                     onChange({ rating: e.target.value.replace(",", ".") })
                   }
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Ảnh đại diện
                 </label>
 
-                <div className="rounded-2xl border border-slate-200 p-3">
+                <div className="rounded-2xl border border-slate-200 p-3 dark:border-white/10">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => onPickAvatar(e.target.files?.[0] ?? null)}
-                    className="block w-full text-sm text-slate-600
+                    className="block w-full text-sm text-slate-600 dark:text-slate-300
                       file:mr-3 file:rounded-xl file:border-0
                       file:bg-emerald-50 file:px-3.5 file:py-2
                       file:font-semibold file:text-emerald-700
@@ -329,7 +331,7 @@ function TeacherModal({
                   />
 
                   {avatarFile && (
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                       Đã chọn:{" "}
                       <span className="font-medium">{avatarFile.name}</span>
                     </p>
@@ -342,10 +344,10 @@ function TeacherModal({
                         <img
                           src={displayAvatar}
                           alt="Teacher preview"
-                          className="h-24 w-24 rounded-2xl border border-slate-200 object-cover"
+                          className="h-24 w-24 rounded-2xl border border-slate-200 object-cover dark:border-white/10"
                         />
                       ) : (
-                        <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-slate-200">
+                        <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
                           <Image
                             src={displayAvatar}
                             alt="Teacher preview"
@@ -357,7 +359,7 @@ function TeacherModal({
                       )}
 
                       <div className="flex-1">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           Xem trước ảnh đại diện
                         </p>
 
@@ -365,7 +367,7 @@ function TeacherModal({
                           <button
                             type="button"
                             onClick={() => onPickAvatar(null)}
-                            className="mt-2 inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                            className="mt-2 inline-flex h-9 items-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
                           >
                             Bỏ ảnh mới chọn
                           </button>
@@ -377,7 +379,7 @@ function TeacherModal({
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Kinh nghiệm
                 </label>
                 <textarea
@@ -385,12 +387,12 @@ function TeacherModal({
                   value={value.experience}
                   onChange={(e) => onChange({ experience: e.target.value })}
                   placeholder="Mỗi dòng là một ý kinh nghiệm..."
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <Award className="h-4 w-4" />
                   Thành tích
                 </label>
@@ -399,11 +401,11 @@ function TeacherModal({
                   value={value.achievement}
                   onChange={(e) => onChange({ achievement: e.target.value })}
                   placeholder="Ví dụ: Top giảng viên xuất sắc, đào tạo hơn 1000 học viên..."
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
-              <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700 md:col-span-2">
+              <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300 md:col-span-2">
                 <input
                   type="checkbox"
                   checked={value.active}
@@ -415,19 +417,19 @@ function TeacherModal({
             </div>
           </div>
 
-          <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-4 py-4 md:px-5">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Hủy
+              Đóng
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={onSubmit}
-              className="inline-flex h-10 items-center rounded-2xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
                 ? "Đang lưu..."
@@ -436,7 +438,6 @@ function TeacherModal({
                   : "Lưu thay đổi"}
             </button>
           </div>
-        </div>
       </div>
     </div>
   );
@@ -651,7 +652,7 @@ export default function AdminTeachersPage() {
   }
 
   async function handleSoftDelete(item: TeacherItem) {
-    if (!window.confirm(`Xóa mềm giảng viên "${item.name}"?`)) return;
+    if (!(await toastConfirm(`Xóa mềm giảng viên "${item.name}"?`))) return;
 
     try {
       await teacherApi.softDelete(item._id);
@@ -675,7 +676,7 @@ export default function AdminTeachersPage() {
   }
 
   async function handleHardDelete(item: TeacherItem) {
-    if (!window.confirm(`Xóa cứng "${item.name}"?`)) return;
+    if (!(await toastConfirm(`Xóa cứng "${item.name}"?`))) return;
 
     try {
       await teacherApi.hardDelete(item._id);
@@ -764,7 +765,7 @@ export default function AdminTeachersPage() {
           },
           {
             id: "status-inactive",
-            label: "INACTIVE",
+            label: "LOCKED",
             checked: statusFilter === "inactive",
             onToggle: () => {
               setStatusFilter("inactive");
@@ -778,26 +779,6 @@ export default function AdminTeachersPage() {
   );
 
   const tableColumns: AdminTableColumn<TeacherItem, TeacherSortKey>[] = [
-      {
-        id: "select",
-        label: (
-          <input
-            type="checkbox"
-            checked={allPageSelected}
-            onChange={toggleSelectPage}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-        ),
-        widthClassName: "w-[56px]",
-        render: (item) => (
-          <input
-            type="checkbox"
-            checked={selectedIds.includes(item._id)}
-            onChange={() => toggleSelectOne(item._id)}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-        ),
-      },
       {
         id: "teacher",
         label: "Teacher",
@@ -843,21 +824,13 @@ export default function AdminTeachersPage() {
         ),
       },
       {
-        id: "rating",
-        label: "Rating",
-        sortKey: "rating",
-        widthClassName: "w-[100px]",
-        align: "center",
-        render: (item) => item.rating.toFixed(1),
-      },
-      {
         id: "status",
         label: "Status",
         widthClassName: "w-[130px]",
         align: "center",
         render: (item) => (
           <AdminStatusBadge tone={item.active ? "success" : "neutral"}>
-            {item.active ? "ACTIVE" : "INACTIVE"}
+            {item.active ? "ACTIVE" : "LOCKED"}
           </AdminStatusBadge>
         ),
       },
@@ -875,34 +848,20 @@ export default function AdminTeachersPage() {
         widthClassName: "w-[130px]",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-2">
-            {viewMode === "active" ? (
-              <>
-                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
-                  <Pencil className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete"
-                  onClick={() => handleSoftDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            ) : (
-              <>
-                <AdminActionIconButton title="Restore" onClick={() => handleRestore(item)}>
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete permanently"
-                  onClick={() => handleHardDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
+          <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+              <Pencil className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton
+              title={item.active ? "Lock" : "Unlock"}
+              onClick={() => handleToggleStatus(item)}
+            >
+              {item.active ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <LockOpen className="h-4 w-4" />
+              )}
+            </AdminActionIconButton>
           </div>
         ),
       },
@@ -1003,50 +962,11 @@ export default function AdminTeachersPage() {
           setPage(1);
         }}
         onReload={loadData}
-        toolbarStart={
-          <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("active");
-                setSelectedIds([]);
-                setPage(1);
-              }}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                viewMode === "active"
-                  ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-              )}
-            >
-              <Users className="h-4 w-4" />
-              Teachers
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("deleted");
-                setSelectedIds([]);
-                setPage(1);
-              }}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                viewMode === "deleted"
-                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-              Deleted
-            </button>
-          </div>
-        }
         toolbarEnd={
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
           >
             <Plus className="h-4 w-4" />
             New Teacher
@@ -1065,7 +985,7 @@ export default function AdminTeachersPage() {
           pageSizeOptions: [5, 10, 20],
         }}
         emptyText="Không có dữ liệu phù hợp"
-        tableMinWidthClassName="min-w-[1280px]"
+        tableMinWidthClassName="min-w-[1124px]"
       />
 
       <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

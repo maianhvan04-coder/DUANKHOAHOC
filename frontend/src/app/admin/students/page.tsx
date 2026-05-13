@@ -34,6 +34,7 @@ import {
   type PaginationMeta,
   type SortDirection,
 } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -306,14 +307,14 @@ function StudentFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4">
-      <div className="w-full max-w-2xl rounded-[28px] bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div>
-            <h3 className="text-xl font-bold text-slate-900">
+            <h3 className="text-xl font-semibold text-slate-950 dark:text-white">
               {mode === "create" ? "Thêm học viên" : "Cập nhật học viên"}
             </h3>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {mode === "create"
                 ? "Tạo tài khoản học viên mới"
                 : "Chỉnh sửa thông tin học viên"}
@@ -323,16 +324,16 @@ function StudentFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-6">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Họ tên
               </label>
               <input
@@ -341,12 +342,12 @@ function StudentFormModal({
                   setForm((prev) => ({ ...prev, name: e.target.value }))
                 }
                 placeholder="Nhập họ tên học viên"
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-slate-400"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Email
               </label>
               <input
@@ -356,14 +357,14 @@ function StudentFormModal({
                   setForm((prev) => ({ ...prev, email: e.target.value }))
                 }
                 placeholder="Nhập email"
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-slate-400"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
+              <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {mode === "create" ? "Mật khẩu" : "Mật khẩu mới"}
               </label>
               <input
@@ -377,16 +378,24 @@ function StudentFormModal({
                     ? "Nhập mật khẩu"
                     : "Bỏ trống nếu không đổi"
                 }
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-slate-400"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="-mx-6 mt-6 flex items-center justify-end gap-3 border-t border-slate-200 px-6 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            >
+              Đóng
+            </button>
+
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
                 ? "Đang lưu..."
@@ -395,13 +404,6 @@ function StudentFormModal({
                 : "Lưu thay đổi"}
             </button>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Hủy
-            </button>
           </div>
         </form>
       </div>
@@ -533,7 +535,7 @@ export default function AdminStudentsPage() {
 
   async function handleToggleActive(item: StudentItem) {
     const nextActive = !item.active;
-    const ok = window.confirm(
+    const ok = await toastConfirm(
       nextActive
         ? `Mở hoạt động cho "${item.name}"?`
         : `Khóa hoạt động của "${item.name}"?`
@@ -551,7 +553,7 @@ export default function AdminStudentsPage() {
   }
 
   async function handleSoftDelete(item: StudentItem) {
-    const ok = window.confirm(`Xóa mềm học viên "${item.name}"?`);
+    const ok = await toastConfirm(`Xóa mềm học viên "${item.name}"?`);
     if (!ok) return;
 
     try {
@@ -564,7 +566,7 @@ export default function AdminStudentsPage() {
   }
 
   async function handleRestore(item: StudentItem) {
-    const ok = window.confirm(`Khôi phục học viên "${item.name}"?`);
+    const ok = await toastConfirm(`Khôi phục học viên "${item.name}"?`);
     if (!ok) return;
 
     try {
@@ -577,8 +579,8 @@ export default function AdminStudentsPage() {
   }
 
   async function handleForceDelete(item: StudentItem) {
-    const ok = window.confirm(
-      `Xóa cứng học viên "${item.name}"?\nHành động này không thể hoàn tác.`
+    const ok = await toastConfirm(
+      `Xóa cứng học viên "${item.name}"? Hành động này không thể hoàn tác.`
     );
     if (!ok) return;
 
@@ -626,15 +628,6 @@ export default function AdminStudentsPage() {
               setPage(1);
             },
           },
-          {
-            id: "status-deleted",
-            label: "DELETED",
-            checked: statusFilter === "DELETED",
-            onToggle: () => {
-              setStatusFilter("DELETED");
-              setPage(1);
-            },
-          },
         ],
       },
     ],
@@ -646,7 +639,7 @@ export default function AdminStudentsPage() {
         id: "student",
         label: "Student",
         sortKey: "name",
-        widthClassName: "w-[320px]",
+        widthClassName: "w-[31%]",
         render: (item) => (
           <AdminEntityCell
             title={item.name || "--"}
@@ -658,7 +651,7 @@ export default function AdminStudentsPage() {
       {
         id: "role",
         label: "Role",
-        widthClassName: "w-[130px]",
+        widthClassName: "w-[13%]",
         render: (item) => (
           <AdminStatusBadge tone="neutral" className="min-w-[92px]">
             {item.role || "STUDENT"}
@@ -669,7 +662,7 @@ export default function AdminStudentsPage() {
         id: "status",
         label: "Status",
         sortKey: "status",
-        widthClassName: "w-[140px]",
+        widthClassName: "w-[14%]",
         render: (item) => {
           const label = getStatusLabel(item, viewMode);
           return (
@@ -690,7 +683,7 @@ export default function AdminStudentsPage() {
       {
         id: "study",
         label: "Học tập",
-        widthClassName: "w-[120px]",
+        widthClassName: "w-[13%]",
         render: (item) => (
           <button
             type="button"
@@ -711,56 +704,29 @@ export default function AdminStudentsPage() {
         id: "created",
         label: "Created",
         sortKey: "createdAt",
-        widthClassName: "w-[140px]",
+        widthClassName: "w-[13%]",
         render: (item) => formatDate(item.createdAt),
       },
       {
         id: "actions",
         label: <div className="text-right">Actions</div>,
-        widthClassName: "w-[150px]",
+        widthClassName: "w-[16%]",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-2">
-            {viewMode === "active" ? (
-              <>
-                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
-                  <Pencil className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  title={item.active ? "Lock" : "Unlock"}
-                  onClick={() => void handleToggleActive(item)}
-                >
-                  {item.active ? (
-                    <Lock className="h-4 w-4" />
-                  ) : (
-                    <LockOpen className="h-4 w-4" />
-                  )}
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete"
-                  onClick={() => void handleSoftDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            ) : (
-              <>
-                <AdminActionIconButton
-                  title="Restore"
-                  onClick={() => void handleRestore(item)}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete permanently"
-                  onClick={() => void handleForceDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
+          <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+              <Pencil className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton
+              title={item.active ? "Lock" : "Unlock"}
+              onClick={() => void handleToggleActive(item)}
+            >
+              {item.active ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <LockOpen className="h-4 w-4" />
+              )}
+            </AdminActionIconButton>
           </div>
         ),
       },
@@ -899,48 +865,11 @@ export default function AdminStudentsPage() {
             setPage(1);
           }}
           onReload={() => void loadData()}
-          toolbarStart={
-            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("active");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "active"
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <UserRound className="h-4 w-4" />
-                Students
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setViewMode("deleted");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  viewMode === "deleted"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                Deleted
-              </button>
-            </div>
-          }
           toolbarEnd={
             <button
               type="button"
               onClick={openCreate}
-              className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
             >
               <Plus className="h-4.5 w-4.5" />
               New Student
@@ -959,7 +888,7 @@ export default function AdminStudentsPage() {
             pageSizeOptions: [5, 10, 20],
           }}
           emptyText="Không có học viên phù hợp."
-          tableMinWidthClassName="min-w-[1040px]"
+          tableMinWidthClassName="min-w-full"
         />
 
         <section className="hidden rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm">

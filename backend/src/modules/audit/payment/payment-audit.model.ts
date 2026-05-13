@@ -11,6 +11,7 @@ export type PaymentHistoryListQuery = {
   status?: PaymentHistoryStatus;
   userId?: string;
   keyword?: string;
+  userKeyword?: string;
 };
 
 export type PaymentHistoryUser = {

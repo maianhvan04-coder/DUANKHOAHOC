@@ -1,5 +1,6 @@
 // src/lib/utils/storage.ts
 export const AUTH_CHANGE_EVENT = "auth:change";
+const ADMIN_INTRO_INTENT_KEY = "admin:intro-intent";
 
 let _token: string | null = null;
 let _userJson: string | null = null;
@@ -77,4 +78,19 @@ export function clearAuth(): void {
   _userJson = null;
   _accessJson = null;
   notifyAuthChange();
+}
+
+export function markAdminIntroIntent(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(ADMIN_INTRO_INTENT_KEY, "1");
+}
+
+export function takeAdminIntroIntent(): boolean {
+  if (typeof window === "undefined") return false;
+
+  const shouldPlayIntro =
+    window.sessionStorage.getItem(ADMIN_INTRO_INTENT_KEY) === "1";
+  window.sessionStorage.removeItem(ADMIN_INTRO_INTENT_KEY);
+
+  return shouldPlayIntro;
 }

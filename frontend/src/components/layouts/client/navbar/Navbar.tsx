@@ -21,7 +21,11 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
-import { clearToken, clearUser } from "@/lib/utils/storage";
+import {
+  clearToken,
+  clearUser,
+  markAdminIntroIntent,
+} from "@/lib/utils/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
   canAccessStudentPortal,
@@ -750,7 +754,10 @@ export default function Navbar() {
                           {canAccessAdmin && (
                             <Link
                               href="/admin"
-                              onClick={() => setOpenProfileMenu(false)}
+                              onClick={() => {
+                                markAdminIntroIntent();
+                                setOpenProfileMenu(false);
+                              }}
                               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
                             >
                               <BrickWallShield className="h-4 w-4" />

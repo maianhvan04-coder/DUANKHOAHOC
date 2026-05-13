@@ -32,6 +32,11 @@ const listQuerySchema = z.object({
     emptyToUndefined,
     z.string().trim().max(100).optional()
   ),
+
+  userKeyword: z.preprocess(
+    emptyToUndefined,
+    z.string().trim().max(100).optional()
+  ),
 });
 
 export const getMyPaymentHistorySchema = z.object({

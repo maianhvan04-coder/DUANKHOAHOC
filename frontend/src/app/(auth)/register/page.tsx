@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "@/app/api/auth.api";
-import { setAccess, setToken, setUser } from "@/lib/utils/storage";
+import {
+  markAdminIntroIntent,
+  setAccess,
+  setToken,
+  setUser,
+} from "@/lib/utils/storage";
 import { hasRole } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
@@ -204,8 +209,13 @@ export default function RegisterPage() {
 
       const goAdmin =
         hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
+      const nextPath = goAdmin ? "/admin" : "/";
 
-      router.push(goAdmin ? "/admin" : "/");
+      if (nextPath.startsWith("/admin")) {
+        markAdminIntroIntent();
+      }
+
+      router.push(nextPath);
       router.refresh();
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

@@ -3,23 +3,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Bell,
   BookOpen,
   CalendarDays,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   FileText,
-  FolderKanban,
   FolderLock,
   GraduationCap,
   LayoutDashboard,
   LogOut,
   NotebookPen,
-  Package2,
   Settings,
   ShieldCheck,
   User,
@@ -66,14 +62,6 @@ type AdminSidebarProps = {
   grantedPermissions: PermissionKey[];
 };
 
-const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Admin",
-  MANAGER: "Manager",
-  TEACHER: "Teacher",
-  STUDENT: "Student",
-  USER: "User",
-};
-
 const menuGroups: SidebarGroup[] = [
   {
     labelKey: "sidebar.group.home",
@@ -113,23 +101,10 @@ const menuGroups: SidebarGroup[] = [
     labelKey: "sidebar.group.general",
     items: [
       {
+        href: "/admin/course",
         textKey: "sidebar.courses",
         icon: BookOpen,
         requiredGroupKeys: ["CATEGORIES", "COURSES"],
-        children: [
-          {
-            href: "/admin/category",
-            textKey: "sidebar.categories",
-            icon: FolderKanban,
-            requiredGroupKeys: ["CATEGORIES"],
-          },
-          {
-            href: "/admin/course",
-            textKey: "sidebar.products",
-            icon: Package2,
-            requiredGroupKeys: ["COURSES"],
-          },
-        ],
       },
     ],
   },
@@ -178,13 +153,6 @@ const menuGroups: SidebarGroup[] = [
     labelKey: "sidebar.group.audit",
     items: [
       {
-        href: "/admin/sent-notifications",
-        textKey: "sidebar.notificationHistory",
-        icon: Bell,
-        requiredGroupKeys: ["NOTIFICATIONS"],
-        requiredRolesAny: ["ADMIN", "MANAGER", "TEACHER"],
-      },
-      {
         href: "/admin/payment-audits",
         textKey: "sidebar.paymentHistory",
         icon: CreditCard,
@@ -230,22 +198,9 @@ export default function AdminSidebar({
   const { t } = useAdminPreferences();
   const dark = theme === "dark";
 
-  const sidebarRef = useRef<HTMLElement | null>(null);
-  const [showToggleButton, setShowToggleButton] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     "sidebar.courses": false,
   });
-
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!sidebarRef.current) return;
-      if (sidebarRef.current.contains(event.target as Node)) return;
-      setShowToggleButton(false);
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    return () => document.removeEventListener("pointerdown", handlePointerDown);
-  }, []);
 
   const grantedGroupKeys = useMemo(() => {
     const grantedPermissionSet = new Set(grantedPermissions);
@@ -340,95 +295,40 @@ export default function AdminSidebar({
 
   return (
     <aside
-      ref={sidebarRef}
-      onMouseEnter={() => setShowToggleButton(true)}
-      onMouseLeave={() => setShowToggleButton(false)}
-      onTouchStart={() => setShowToggleButton(true)}
-      onFocusCapture={() => setShowToggleButton(true)}
-      onBlurCapture={(event) => {
-        const nextTarget = event.relatedTarget as Node | null;
-        if (!nextTarget || !event.currentTarget.contains(nextTarget)) {
-          setShowToggleButton(false);
-        }
-      }}
       className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col overflow-visible transition-all duration-300",
+        "sticky top-0 flex h-screen shrink-0 flex-col overflow-visible border-r transition-all duration-300",
         collapsed ? "w-24" : "w-[280px]",
         dark
-          ? "bg-[linear-gradient(180deg,#071224_0%,#0a1730_100%)]"
-          : "bg-white"
+          ? "border-white/10 bg-[linear-gradient(180deg,#071224_0%,#0a1730_100%)]"
+          : "border-slate-200 bg-white"
       )}
     >
-      <div className="relative px-4 py-4">
+      <div
+        className={cn(
+          "relative flex shrink-0 items-center justify-center border-b px-4",
+          collapsed ? "h-[72px]" : "h-[96px]",
+          dark ? "border-white/10" : "border-slate-200"
+        )}
+      >
         <div
           title={currentUser?.name || t("common.admin")}
           className={cn(
-            "flex items-center rounded-[28px] transition-all duration-300",
-            collapsed
-              ? "h-20 justify-center bg-transparent px-0 py-0"
-              : dark
-                ? "min-w-0 gap-3 bg-white/[0.04] px-3 py-3 shadow-[0_12px_30px_rgba(2,6,23,0.22)]"
-                : "min-w-0 gap-3 bg-[#f8fbff] px-3 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+            "relative flex items-center justify-center overflow-hidden transition-all duration-300",
+            collapsed ? "h-[60px] w-[60px]" : "h-[78px] w-[248px]"
           )}
         >
           <Image
-            src="/Logo.png"
-            alt="EduLearn"
-            width={56}
-            height={56}
+            src={collapsed ? "/Logo-icon.png" : "/Logo-horizontal-clean.png"}
+            alt="Everest"
+            width={collapsed ? 572 : 919}
+            height={collapsed ? 435 : 241}
             priority
-            className="h-14 w-14 shrink-0 rounded-[20px] object-cover"
+            className={cn(
+              "shrink-0 object-contain",
+              collapsed ? "h-14 w-14" : "h-[70px] w-[248px]"
+            )}
           />
-
-          {!collapsed && (
-            <div className="min-w-0">
-              <div
-                className={cn(
-                  "truncate text-[17px] font-extrabold tracking-[0.01em]",
-                  dark ? "text-white" : "text-slate-900"
-                )}
-              >
-                Edu-Learn
-              </div>
-
-              <div
-                className={cn(
-                  "mt-1 text-[14px] font-medium",
-                  dark ? "text-slate-400" : "text-slate-500"
-                )}
-              >
-                {currentRole ? ROLE_LABELS[currentRole] : "User"}
-              </div>
-            </div>
-          )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            toggleCollapsed();
-            setShowToggleButton(true);
-          }}
-          className={cn(
-            "absolute top-1/2 z-20 flex -translate-y-1/2 items-center justify-center rounded-full transition-all duration-200",
-            collapsed ? "right-[-12px] h-11 w-11" : "right-[-14px] h-11 w-11",
-            showToggleButton
-              ? "pointer-events-auto translate-x-0 opacity-100"
-              : "pointer-events-none translate-x-1 opacity-0",
-            dark
-              ? "bg-[#e9edf3] text-slate-700 shadow-[0_10px_24px_rgba(2,6,23,0.22)] hover:bg-white"
-              : "bg-white text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.16)] hover:bg-slate-50"
-          )}
-          aria-label={
-            collapsed ? t("common.openSidebar") : t("common.closeSidebar")
-          }
-        >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-5">

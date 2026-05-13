@@ -1,62 +1,47 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  Activity,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  RefreshCw,
-  RotateCcw,
-  Search,
-  ShieldAlert,
-  ShieldCheck,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, X } from "lucide-react";
 import {
   securityAuditApi,
   type SecurityAuditItem,
 } from "@/app/api/security-audit.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import type { SortDirection } from "@/lib/utils/admin-list";
 
 const ACTION_OPTIONS = [
-  { label: "Tất cả thao tác", value: "" },
-  { label: "LOGIN_SUCCESS", value: "LOGIN_SUCCESS" },
-  { label: "LOGIN_FAILED", value: "LOGIN_FAILED" },
-  { label: "LOGOUT", value: "LOGOUT" },
-  { label: "REGISTER", value: "REGISTER" },
-  { label: "REFRESH_TOKEN", value: "REFRESH_TOKEN" },
-  { label: "ACCESS_GRANTED", value: "ACCESS_GRANTED" },
-  { label: "ACCESS_DENIED", value: "ACCESS_DENIED" },
-  { label: "PASSWORD_CHANGED", value: "PASSWORD_CHANGED" },
-  { label: "PASSWORD_RESET_REQUEST", value: "PASSWORD_RESET_REQUEST" },
-  { label: "PASSWORD_RESET_SUCCESS", value: "PASSWORD_RESET_SUCCESS" },
+  "LOGIN_SUCCESS",
+  "LOGIN_FAILED",
+  "LOGOUT",
+  "REGISTER",
+  "REFRESH_TOKEN",
+  "ACCESS_GRANTED",
+  "ACCESS_DENIED",
+  "PASSWORD_CHANGED",
+  "PASSWORD_RESET_REQUEST",
+  "PASSWORD_RESET_SUCCESS",
 ] as const;
 
 type SuccessFilter = "" | "true" | "false";
-
-type Filters = {
-  keyword: string;
-  email: string;
-  path: string;
-  ipAddress: string;
-  action: string;
-  success: SuccessFilter;
-};
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString("vi-VN");
-}
+type SecurityAuditSortKey =
+  | "user"
+  | "action"
+  | "path"
+  | "ipAddress"
+  | "success"
+  | "statusCode"
+  | "createdAt";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (typeof error === "object" && error !== null) {
     const maybeError = error as {
-      response?: {
-        data?: {
-          message?: unknown;
-          error?: unknown;
-        };
-      };
+      response?: { data?: { message?: unknown; error?: unknown } };
       message?: unknown;
     };
 
@@ -78,267 +63,60 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function getSuccessClasses(success: boolean) {
-  return success
-    ? {
-        badge:
-          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
-        card:
-          "border-slate-200 bg-white hover:border-emerald-200 hover:shadow-emerald-100/60 dark:border-white/10 dark:bg-slate-950/50 dark:hover:border-emerald-500/30 dark:hover:shadow-none",
-        line: "bg-emerald-500 dark:bg-emerald-400",
-        soft: "bg-emerald-50 text-emerald-700 border border-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200",
-      }
-    : {
-        badge:
-          "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
-        card:
-          "border-rose-200/70 bg-white hover:border-rose-300 hover:shadow-rose-100/60 dark:border-rose-500/25 dark:bg-slate-950/50 dark:hover:border-rose-500/35 dark:hover:shadow-none",
-        line: "bg-rose-500 dark:bg-rose-400",
-        soft: "bg-rose-50 text-rose-700 border border-rose-100 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200",
-      };
+function formatDate(value?: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-function getInitials(name: string, email: string) {
-  const source = (name || email || "?").trim();
-  const parts = source.split(/\s+/).filter(Boolean);
+function getAuditName(item: SecurityAuditItem) {
+  return item.user?.name || item.userName || "Người dùng hệ thống";
+}
 
-  if (parts.length >= 2) {
-    return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+function getAuditEmail(item: SecurityAuditItem) {
+  return item.user?.email || item.userEmail || "-";
+}
+
+function getInitials(name?: string, email?: string) {
+  const source = (name || email || "-").trim();
+  const words = source.split(/\s+/).filter(Boolean);
+
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
   }
 
   return source.slice(0, 2).toUpperCase();
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  tone = "slate",
-  subtext,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  tone?: "slate" | "emerald" | "rose" | "blue";
-  subtext?: string;
-}) {
-  const toneMap = {
-    slate: "bg-white border-slate-200 text-slate-900 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-100",
-    emerald: "bg-emerald-50 border-emerald-100 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-100",
-    rose: "bg-rose-50 border-rose-100 text-rose-900 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-100",
-    blue: "bg-blue-50 border-blue-100 text-blue-900 dark:border-blue-500/25 dark:bg-blue-500/10 dark:text-blue-100",
-  };
-
-  const iconToneMap = {
-    slate: "bg-slate-900 text-white",
-    emerald: "bg-emerald-600 text-white",
-    rose: "bg-rose-600 text-white",
-    blue: "bg-blue-600 text-white",
-  };
-
+function ActionBadge({ action }: { action: string }) {
   return (
-    <div
-      className={`rounded-[28px] border p-5 shadow-sm ${toneMap[tone]}`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</div>
-          <div className="mt-2 text-3xl font-black tracking-tight">{value}</div>
-          {subtext ? (
-            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">{subtext}</div>
-          ) : null}
-        </div>
-
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-2xl ${iconToneMap[tone]}`}
-        >
-          {icon}
-        </div>
-      </div>
-    </div>
+    <span className="inline-flex max-w-full items-center rounded-xl bg-slate-100 px-3 py-1 text-xs font-medium uppercase text-slate-700 dark:bg-white/10 dark:text-slate-100">
+      <span className="truncate">{action || "-"}</span>
+    </span>
   );
 }
 
-function FilterField({
-  children,
-  label,
-}: {
-  children: React.ReactNode;
-  label: string;
-}) {
+function MethodBadge({ method }: { method: string }) {
   return (
-    <div>
-      <div className="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{label}</div>
-      {children}
-    </div>
+    <span className="inline-flex h-6 min-w-[58px] items-center justify-center rounded-lg bg-sky-50 px-2 text-xs font-medium uppercase text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
+      {method || "-"}
+    </span>
   );
 }
 
-function Input({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-}) {
+function ResultBadge({ success }: { success: boolean }) {
   return (
-    <div className="relative">
-      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-white/10"
-      />
-    </div>
-  );
-}
-
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[15px] text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-white/10"
-    >
-      {children}
-    </select>
-  );
-}
-
-function MetaBox({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-white/5">
-      <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-        {label}
-      </div>
-      <div
-        className={`mt-1 break-all text-sm font-semibold text-slate-900 dark:text-slate-100 ${
-          mono ? "font-mono" : ""
-        }`}
-      >
-        {value || "-"}
-      </div>
-    </div>
-  );
-}
-
-function SecurityAuditCard({ item }: { item: SecurityAuditItem }) {
-  const userName = item.user?.name || item.userName || "Người dùng hệ thống";
-  const userEmail = item.user?.email || item.userEmail || "-";
-  const tone = getSuccessClasses(item.success);
-  const initials = getInitials(userName, userEmail);
-
-  return (
-    <article
-      className={`group relative overflow-hidden rounded-[30px] border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${tone.card}`}
-    >
-      <div className={`absolute left-0 top-0 h-full w-1.5 ${tone.line}`} />
-
-      <div className="p-5 md:p-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${tone.soft}`}
-              >
-                {item.success ? "SUCCESS" : "FAILED"}
-              </span>
-
-              <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
-                {item.action}
-              </span>
-
-              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                HTTP {item.statusCode || 0}
-              </span>
-            </div>
-
-            <div className="mt-4 flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-sm dark:bg-slate-800">
-                {initials}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="text-lg font-bold leading-tight text-slate-950 dark:text-slate-100">
-                  {userName}
-                </div>
-                <div className="mt-1 break-all text-sm text-slate-500 dark:text-slate-400">
-                  {userEmail}
-                </div>
-
-                {item.message ? (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-                    {item.message}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid min-w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:min-w-[360px] xl:max-w-[420px]">
-            <MetaBox label="Thời gian" value={formatDate(item.createdAt)} />
-            <MetaBox label="Kết quả" value={item.success ? "Thành công" : "Bị từ chối"} />
-            <MetaBox label="Method" value={item.method || "-"} />
-            <MetaBox label="IP Address" value={item.ipAddress || "-"} mono />
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.2fr_1fr]">
-          <MetaBox label="API Path" value={item.path || "-"} mono />
-
-          {item.userAgent ? (
-            <MetaBox label="User Agent" value={item.userAgent} />
-          ) : (
-            <MetaBox label="User Agent" value="-" />
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function LoadingCard() {
-  return (
-    <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
-      <div className="animate-pulse">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="h-6 w-48 rounded-xl bg-slate-200 dark:bg-white/10" />
-            <div className="mt-4 h-5 w-72 rounded-xl bg-slate-100 dark:bg-white/10" />
-            <div className="mt-3 h-16 w-full rounded-2xl bg-slate-100 dark:bg-white/10" />
-          </div>
-          <div className="grid w-[360px] grid-cols-2 gap-3">
-            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-            <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-          <div className="h-20 rounded-2xl bg-slate-100 dark:bg-white/10" />
-        </div>
-      </div>
-    </div>
+    <AdminStatusBadge tone={success ? "success" : "danger"}>
+      {success ? "Thành công" : "Từ chối"}
+    </AdminStatusBadge>
   );
 }
 
@@ -346,370 +124,370 @@ export default function AdminSecurityAuditsPage() {
   const [items, setItems] = useState<SecurityAuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-
-  const [keyword, setKeyword] = useState("");
-  const [email, setEmail] = useState("");
-  const [path, setPath] = useState("");
-  const [ipAddress, setIpAddress] = useState("");
+  const [search, setSearch] = useState("");
   const [action, setAction] = useState("");
   const [success, setSuccess] = useState<SuccessFilter>("");
+  const [sortKey, setSortKey] = useState<SecurityAuditSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [detailItem, setDetailItem] = useState<SecurityAuditItem | null>(null);
 
-  const [query, setQuery] = useState<Filters>({
-    keyword: "",
-    email: "",
-    path: "",
-    ipAddress: "",
-    action: "",
-    success: "",
-  });
+  const activeFilterCount = [action, success].filter(Boolean).length;
 
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
-
-  const stats = useMemo(() => {
-    const successCount = items.filter((item) => item.success).length;
-    const failedCount = items.filter((item) => !item.success).length;
-
-    return {
-      shown: items.length,
-      successCount,
-      failedCount,
-      successRate:
-        items.length > 0 ? Math.round((successCount / items.length) * 100) : 0,
-    };
-  }, [items]);
-
-  async function loadData(nextPage = 1, nextQuery = query) {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const res = await securityAuditApi.getAdminList({
-        page: nextPage,
-        limit: 10,
-        keyword: nextQuery.keyword || undefined,
-        email: nextQuery.email || undefined,
-        path: nextQuery.path || undefined,
-        ipAddress: nextQuery.ipAddress || undefined,
-        action: nextQuery.action || undefined,
-        success:
-          nextQuery.success === ""
-            ? undefined
-            : nextQuery.success === "true",
+      const result = await securityAuditApi.getAdminList({
+        page,
+        limit: pageSize,
+        keyword: search.trim() || undefined,
+        action: action || undefined,
+        success: success === "" ? undefined : success === "true",
       });
 
-      const nextItems = Array.isArray(res.items) ? res.items : [];
-      const pagination = res.pagination ?? {
-        page: nextPage,
-        limit: 10,
-        total: 0,
-        totalPages: 1,
-      };
-
-      setItems(nextItems);
-      setPage(typeof pagination.page === "number" ? pagination.page : nextPage);
-      setTotal(typeof pagination.total === "number" ? pagination.total : 0);
-      setTotalPages(
-        typeof pagination.totalPages === "number" ? pagination.totalPages : 1
-      );
-    } catch (error: unknown) {
+      setItems(result.items);
+      setPage(result.pagination.page);
+      setPageSize(result.pagination.limit);
+      setTotal(result.pagination.total);
+      setTotalPages(Math.max(result.pagination.totalPages || 1, 1));
+    } catch (loadError: unknown) {
       setItems([]);
-      setPage(1);
       setTotal(0);
       setTotalPages(1);
-      setError(getErrorMessage(error, "Không tải được kiểm tra bảo mật"));
+      setError(getErrorMessage(loadError, "Không tải được kiểm tra bảo mật"));
     } finally {
       setLoading(false);
     }
-  }
-
-  function applyFilters() {
-    const nextQuery: Filters = {
-      keyword: keyword.trim(),
-      email: email.trim(),
-      path: path.trim(),
-      ipAddress: ipAddress.trim(),
-      action: action.trim(),
-      success,
-    };
-
-    setPage(1);
-    setQuery(nextQuery);
-  }
-
-  function resetFilters() {
-    setKeyword("");
-    setEmail("");
-    setPath("");
-    setIpAddress("");
-    setAction("");
-    setSuccess("");
-
-    const nextQuery: Filters = {
-      keyword: "",
-      email: "",
-      path: "",
-      ipAddress: "",
-      action: "",
-      success: "",
-    };
-
-    setPage(1);
-    setQuery(nextQuery);
-  }
+  }, [action, page, pageSize, search, success]);
 
   useEffect(() => {
-    void loadData(1, query);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+    void loadData();
+  }, [loadData, refreshKey]);
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "action",
+        title: "Thao tác",
+        options: ACTION_OPTIONS.map((item) => ({
+          id: item,
+          label: item,
+          checked: action === item,
+          onToggle: () => {
+            setPage(1);
+            setAction((prev) => (prev === item ? "" : item));
+          },
+        })),
+      },
+      {
+        id: "success",
+        title: "Kết quả",
+        options: [
+          {
+            id: "success",
+            label: "Thành công",
+            checked: success === "true",
+            onToggle: () => {
+              setPage(1);
+              setSuccess((prev) => (prev === "true" ? "" : "true"));
+            },
+          },
+          {
+            id: "failed",
+            label: "Từ chối",
+            checked: success === "false",
+            onToggle: () => {
+              setPage(1);
+              setSuccess((prev) => (prev === "false" ? "" : "false"));
+            },
+          },
+        ],
+      },
+    ],
+    [action, success]
+  );
+
+  const sortedItems = useMemo(() => {
+    const multiplier = sortDirection === "asc" ? 1 : -1;
+
+    return [...items].sort((a, b) => {
+      let left: string | number = "";
+      let right: string | number = "";
+
+      if (sortKey === "user") {
+        left = getAuditName(a);
+        right = getAuditName(b);
+      } else if (sortKey === "action") {
+        left = a.action;
+        right = b.action;
+      } else if (sortKey === "path") {
+        left = `${a.method} ${a.path}`;
+        right = `${b.method} ${b.path}`;
+      } else if (sortKey === "ipAddress") {
+        left = a.ipAddress;
+        right = b.ipAddress;
+      } else if (sortKey === "success") {
+        left = a.success ? 1 : 0;
+        right = b.success ? 1 : 0;
+      } else if (sortKey === "statusCode") {
+        left = Number(a.statusCode || 0);
+        right = Number(b.statusCode || 0);
+      } else {
+        left = new Date(a.createdAt).getTime();
+        right = new Date(b.createdAt).getTime();
+      }
+
+      if (typeof left === "number" && typeof right === "number") {
+        return (left - right) * multiplier;
+      }
+
+      return String(left).localeCompare(String(right), "vi") * multiplier;
+    });
+  }, [items, sortDirection, sortKey]);
+
+  const columns = useMemo<
+    AdminTableColumn<SecurityAuditItem, SecurityAuditSortKey>[]
+  >(
+    () => [
+      {
+        id: "user",
+        label: "Người dùng",
+        sortKey: "user",
+        widthClassName: "w-[22%]",
+        render: (item) => {
+          const name = getAuditName(item);
+          const email = getAuditEmail(item);
+
+          return (
+            <AdminEntityCell
+              title={name}
+              subtitle={email}
+              fallback={getInitials(name, email)}
+            />
+          );
+        },
+      },
+      {
+        id: "action",
+        label: "Thao tác",
+        sortKey: "action",
+        widthClassName: "w-[17%]",
+        render: (item) => <ActionBadge action={item.action} />,
+      },
+      {
+        id: "path",
+        label: "Route",
+        sortKey: "path",
+        widthClassName: "w-[28%]",
+        render: (item) => (
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
+              <MethodBadge method={item.method} />
+              <span className="min-w-0 truncate font-mono text-xs font-medium text-slate-700 dark:text-slate-200">
+                {item.path || "-"}
+              </span>
+            </div>
+            <div className="mt-1 truncate font-mono text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              IP: {item.ipAddress || "-"} · HTTP {item.statusCode || "-"}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "success",
+        label: "Kết quả",
+        sortKey: "success",
+        widthClassName: "w-[13%]",
+        render: (item) => <ResultBadge success={item.success} />,
+      },
+      {
+        id: "createdAt",
+        label: "Thời gian",
+        sortKey: "createdAt",
+        widthClassName: "w-[14%]",
+        cellClassName: "whitespace-nowrap",
+        render: (item) => (
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {formatDate(item.createdAt)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        label: "Hành động",
+        widthClassName: "w-[6%]",
+        align: "right",
+        render: (item) => (
+          <AdminActionIconButton title="Xem" onClick={() => setDetailItem(item)}>
+            <Eye className="h-4 w-4" />
+          </AdminActionIconButton>
+        ),
+      },
+    ],
+    []
+  );
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.08),transparent_32%),linear-gradient(180deg,#f8fafc_0%,#f1f5f9_100%)] px-4 py-6 md:px-6 xl:px-8 dark:bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_28%),linear-gradient(180deg,#0f172a_0%,#020617_100%)]">
-      <div className="mx-auto max-w-7xl">
-        <section className="rounded-[32px] border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
-          <div className="hidden" />
-          <div className="hidden" />
+    <main className="space-y-4">
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200">
+          {error}
+        </div>
+      ) : null}
 
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="hidden">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700">
-                <Activity className="h-4 w-4" />
-                Trung tâm giám sát bảo mật
+      <AdminListTable<SecurityAuditItem, SecurityAuditSortKey>
+        rows={sortedItems}
+        columns={columns}
+        rowKey={(item) => item._id}
+        loading={loading}
+        searchValue={search}
+        searchPlaceholder="Tìm tên, email, route, IP, thao tác..."
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        filterSections={filterSections}
+        activeFilterCount={activeFilterCount}
+        onApplyFilters={() => setPage(1)}
+        onClearFilters={() => {
+          setSearch("");
+          setAction("");
+          setSuccess("");
+          setPage(1);
+        }}
+        sortBy={sortKey}
+        sortOrder={sortDirection}
+        onSortChange={(nextSortBy, nextSortOrder) => {
+          setSortKey(nextSortBy);
+          setSortDirection(nextSortOrder);
+        }}
+        onReload={() => setRefreshKey((prev) => prev + 1)}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems: total,
+          pageSize,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          },
+          onPageChange: setPage,
+          pageSizeOptions: [10, 20, 50],
+        }}
+        emptyText="Chưa có bản ghi bảo mật phù hợp"
+        labels={{
+          apply: "Áp dụng",
+          clear: "Xóa lọc",
+          filter: "Lọc",
+          loading: "Đang tải bản ghi bảo mật...",
+          noData: "Không có dữ liệu",
+          of: "trên",
+          reload: "Làm mới",
+          rows: "Dòng",
+          search: "Tìm kiếm",
+          showing: "Hiển thị",
+        }}
+        tableMinWidthClassName="min-w-full"
+      />
+
+      {detailItem ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+              <div className="min-w-0">
+                <h2 className="truncate text-xl font-semibold text-slate-950 dark:text-white">
+                  {detailItem.action || "Security Audit"}
+                </h2>
+                <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
+                  {getAuditName(detailItem)} · {getAuditEmail(detailItem)}
+                </p>
               </div>
-
-              <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-                Kiểm tra bảo mật hệ thống
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 md:text-base">
-                Theo dõi lịch sử đăng nhập, truy cập API, kiểm tra quyền và các
-                thao tác bảo mật quan trọng theo thời gian thực với giao diện rõ
-                ràng, hiện đại và dễ đọc.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
-                onClick={() => loadData(page, query)}
-                disabled={loading}
-                className="inline-flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                type="button"
+                onClick={() => setDetailItem(null)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                Làm mới
+                <X className="h-5 w-5" />
               </button>
+            </div>
 
-              <div className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm dark:bg-sky-500/15 dark:text-sky-100 dark:ring-1 dark:ring-sky-500/20">
-                Tổng bản ghi: <span className="font-black">{total}</span>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Kết quả
+                  </div>
+                  <div className="mt-2">
+                    <ResultBadge success={detailItem.success} />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    HTTP
+                  </div>
+                  <div className="mt-1 font-medium text-slate-950 dark:text-white">
+                    {detailItem.statusCode || "-"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Thời gian
+                  </div>
+                  <div className="mt-1 font-medium text-slate-950 dark:text-white">
+                    {formatDate(detailItem.createdAt)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Route
+                  </div>
+                  <div className="mt-2 flex min-w-0 items-center gap-2">
+                    <MethodBadge method={detailItem.method} />
+                    <span className="min-w-0 break-all font-mono text-sm font-medium text-slate-950 dark:text-white">
+                      {detailItem.path || "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    IP
+                  </div>
+                  <div className="mt-1 break-all font-mono text-sm font-medium text-slate-950 dark:text-white">
+                    {detailItem.ipAddress || "-"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/70">
+                <div className="text-xs font-medium uppercase text-slate-400">
+                  Message
+                </div>
+                <div className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  {detailItem.message || "-"}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/70">
+                <div className="text-xs font-medium uppercase text-slate-400">
+                  User Agent
+                </div>
+                <div className="mt-2 break-all text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  {detailItem.userAgent || "-"}
+                </div>
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            icon={<Activity className="h-5 w-5" />}
-            label="Tổng kết quả"
-            value={total}
-            tone="slate"
-            subtext="Tổng số bản ghi theo bộ lọc hiện tại"
-          />
-          <StatCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            label="Đang hiển thị"
-            value={stats.shown}
-            tone="blue"
-            subtext="Số bản ghi trên trang hiện tại"
-          />
-          <StatCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            label="Thành công"
-            value={stats.successCount}
-            tone="emerald"
-            subtext={`Tỷ lệ thành công: ${stats.successRate}%`}
-          />
-          <StatCard
-            icon={<ShieldAlert className="h-5 w-5" />}
-            label="Bị từ chối"
-            value={stats.failedCount}
-            tone="rose"
-            subtext="Bao gồm lỗi xác thực hoặc không đủ quyền"
-          />
-        </section>
-
-        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                <Filter className="h-4 w-4" />
-                Bộ lọc dữ liệu
-              </div>
-              <div className="mt-3 text-xl font-black text-slate-950 dark:text-slate-100">
-                Tìm nhanh bản ghi cần kiểm tra
-              </div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Lọc theo email, thao tác, đường dẫn API, IP hoặc trạng thái xử lý.
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-              Trang hiện tại: <span className="font-bold text-slate-900 dark:text-slate-100">{page}</span> /{" "}
-              {totalPages}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <FilterField label="Từ khóa chung">
-              <Input
-                value={keyword}
-                onChange={setKeyword}
-                placeholder="Tên người dùng, email, message..."
-              />
-            </FilterField>
-
-            <FilterField label="Email">
-              <Input
-                value={email}
-                onChange={setEmail}
-                placeholder="Nhập email cần tìm"
-              />
-            </FilterField>
-
-            <FilterField label="API path">
-              <Input
-                value={path}
-                onChange={setPath}
-                placeholder="/api/auth/login"
-              />
-            </FilterField>
-
-            <FilterField label="IP address">
-              <Input
-                value={ipAddress}
-                onChange={setIpAddress}
-                placeholder="127.0.0.1"
-              />
-            </FilterField>
-
-            <FilterField label="Action">
-              <Select value={action} onChange={setAction}>
-                {ACTION_OPTIONS.map((item) => (
-                  <option key={item.label} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </FilterField>
-
-            <FilterField label="Kết quả">
-              <Select
-                value={success}
-                onChange={(value) => setSuccess(value as SuccessFilter)}
-              >
-                <option value="">Tất cả kết quả</option>
-                <option value="true">Thành công</option>
-                <option value="false">Bị từ chối</option>
-              </Select>
-            </FilterField>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              onClick={applyFilters}
-              className="inline-flex h-14 items-center gap-2 rounded-2xl bg-slate-950 px-6 text-sm font-bold text-white shadow-sm transition hover:translate-y-[-1px] hover:opacity-95"
-            >
-              <Filter className="h-4 w-4" />
-              Lọc dữ liệu
-            </button>
-
-            <button
-              onClick={resetFilters}
-              className="inline-flex h-14 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Đặt lại
-            </button>
-          </div>
-        </section>
-
-        {error ? (
-          <div className="mt-6 rounded-[28px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-medium text-rose-700 shadow-sm">
-            {error}
-          </div>
-        ) : null}
-
-        <section className="mt-6 rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-white/10 dark:bg-slate-950/50">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="text-xl font-black text-slate-950 dark:text-slate-100">
-                Danh sách bản ghi
-              </div>
-              <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Hiển thị các hoạt động bảo mật mới nhất theo bộ lọc hiện tại.
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-white/5 dark:text-slate-300">
-              Đang hiển thị <span className="font-bold text-slate-900 dark:text-slate-100">{items.length}</span> /
-              <span className="font-bold text-slate-900 dark:text-slate-100"> {total}</span> bản ghi
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              <LoadingCard />
-              <LoadingCard />
-              <LoadingCard />
-            </div>
-          ) : items.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center dark:border-white/10 dark:bg-white/5">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white shadow-sm dark:bg-slate-900 dark:shadow-none">
-                <ShieldAlert className="h-7 w-7 text-slate-400" />
-              </div>
-              <div className="mt-5 text-2xl font-black text-slate-900 dark:text-slate-100">
-                Không có dữ liệu phù hợp
-              </div>
-              <div className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Hệ thống chưa có kiểm tra tương ứng với bộ lọc hiện tại hoặc chưa
-                phát sinh thao tác bảo mật nào để ghi nhật ký.
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {items.map((item) => (
-                <SecurityAuditCard key={item._id} item={item} />
-              ))}
-            </div>
-          )}
-
-          <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              onClick={() => hasPrev && loadData(page - 1, query)}
-              disabled={!hasPrev || loading}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Trang trước
-            </button>
-
-            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:bg-white/5 dark:text-slate-200">
-              Trang <span className="font-black text-slate-950 dark:text-slate-100">{page}</span> / {totalPages}
-            </div>
-
-            <button
-              onClick={() => hasNext && loadData(page + 1, query)}
-              disabled={!hasNext || loading}
-              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-            >
-              Trang sau
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </section>
-      </div>
+        </div>
+      ) : null}
     </main>
   );
 }

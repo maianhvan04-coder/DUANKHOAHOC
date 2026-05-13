@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  Lock,
+  LockOpen,
   Pencil,
   Plus,
   RefreshCw,
@@ -42,10 +44,12 @@ import AdminListTable, {
   type AdminTableColumn,
 } from "@/components/ui/admin/admin-list-table";
 import {
+  compareSortValues,
   makePaginationMeta,
   type PaginationMeta,
   type SortDirection,
 } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -130,6 +134,18 @@ function getStudentEmail(item: ClassroomStudentStudyItem) {
   }
 
   return "";
+}
+
+function getInitials(name?: string, email?: string) {
+  const source = (name || email || "").trim();
+  if (!source) return "--";
+
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0] ?? ""}${
+    parts[parts.length - 1][0] ?? ""
+  }`.toUpperCase();
 }
 
 function getClassStatusLabel(item: ClassroomItem, viewMode: ViewMode) {
@@ -227,18 +243,18 @@ function ProgressBar({
   const safeValue = Math.max(0, Math.min(100, Number(value || 0)));
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="text-[15px] font-semibold text-slate-800">
+        <span className="text-[15px] font-semibold text-slate-800 dark:text-slate-200">
           {label}
         </span>
 
-        <span className="text-[16px] font-bold leading-none text-slate-950">
+        <span className="text-[16px] font-bold leading-none text-slate-950 dark:text-white">
           {safeValue}%
         </span>
       </div>
 
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+      <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
         <div
           className="h-full rounded-full bg-emerald-500 transition-all duration-300"
           style={{ width: `${safeValue}%` }}
@@ -269,13 +285,13 @@ function SessionStatusSelect({
     : getHomeworkStyle(value as HomeworkStatus | undefined);
 
   return (
-    <div className="relative inline-flex">
+    <div className="relative flex w-full">
       <select
         value={value || ""}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          "h-10 min-w-[132px] appearance-none rounded-full border px-4 pr-10 text-center text-sm font-semibold outline-none transition",
+          "h-9 w-full min-w-0 appearance-none rounded-xl border px-3 pr-8 text-center text-xs font-bold outline-none transition",
           style,
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
         )}
@@ -298,8 +314,47 @@ function SessionStatusSelect({
         )}
       </select>
 
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-current opacity-70" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-current opacity-70" />
     </div>
+  );
+}
+
+function ScoreInput({
+  label,
+  value,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <label className="min-w-0">
+      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-400">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        max={10}
+        step="0.1"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onSave}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onSave();
+          }
+        }}
+        className="h-9 w-full min-w-0 rounded-xl border border-slate-200 px-2 text-center text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+      />
+    </label>
   );
 }
 
@@ -315,6 +370,12 @@ type ClassSortKey =
   | "room"
   | "status"
   | "createdAt";
+type StudentAttendanceSortKey =
+  | "student"
+  | "attendance"
+  | "homework"
+  | "date"
+  | "tests";
 
 type ClassFormState = {
   course: string;
@@ -463,15 +524,15 @@ function ClassroomModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] bg-slate-950/40 p-3 md:p-5">
-      <div className="flex h-full items-center justify-center">
-        <div className="flex h-[92vh] w-full max-w-[860px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-4 md:px-5">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+          <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
             <div className="pr-3">
-              <h2 className="text-[18px] font-bold text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                 {mode === "create" ? "Thêm lớp học" : "Cập nhật lớp học"}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Tạo lớp mới, gán khóa học, giảng viên và lịch học.
               </p>
             </div>
@@ -479,22 +540,22 @@ function ClassroomModal({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Khóa học
                 </label>
                 <select
                   value={value.course}
                   onChange={(e) => onChange({ course: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="">Chọn khóa học</option>
                   {courses.map((course) => (
@@ -506,13 +567,13 @@ function ClassroomModal({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Giảng viên
                 </label>
                 <select
                   value={value.teacher}
                   onChange={(e) => onChange({ teacher: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="">Chọn giảng viên</option>
                   {teachers.map((teacher) => (
@@ -524,19 +585,19 @@ function ClassroomModal({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Tên lớp
                 </label>
                 <input
                   value={value.className}
                   onChange={(e) => onChange({ className: e.target.value })}
                   placeholder="Ví dụ: KH Backend NestJS tháng 3"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Hình thức
                 </label>
                 <select
@@ -544,7 +605,7 @@ function ClassroomModal({
                   onChange={(e) =>
                     onChange({ mode: e.target.value as ClassMode })
                   }
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 >
                   <option value="ONLINE">Online</option>
                   <option value="OFFLINE">Offline</option>
@@ -552,55 +613,55 @@ function ClassroomModal({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Lịch học
                 </label>
                 <input
                   value={value.scheduleText}
                   onChange={(e) => onChange({ scheduleText: e.target.value })}
                   placeholder="T2 - T4 - T6 | 18:30 - 20:00"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Phòng học / Link học
                 </label>
                 <input
                   value={value.room}
                   onChange={(e) => onChange({ room: e.target.value })}
                   placeholder="Phòng 203 / Google Meet"
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Ngày bắt đầu
                 </label>
                 <input
                   type="date"
                   value={value.startedAt}
                   onChange={(e) => onChange({ startedAt: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Ngày kết thúc
                 </label>
                 <input
                   type="date"
                   value={value.endedAt}
                   onChange={(e) => onChange({ endedAt: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Số lượng tối đa
                 </label>
                 <input
@@ -608,11 +669,11 @@ function ClassroomModal({
                   min={0}
                   value={value.maxStudents}
                   onChange={(e) => onChange({ maxStudents: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-emerald-500"
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
 
-              <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700 md:col-span-2">
+              <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300 md:col-span-2">
                 <input
                   type="checkbox"
                   checked={value.isActive}
@@ -624,19 +685,19 @@ function ClassroomModal({
             </div>
           </div>
 
-          <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-4 py-4 md:px-5">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-2xl border border-slate-200 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Hủy
+              Đóng
             </button>
             <button
               type="button"
               disabled={saving}
               onClick={onSubmit}
-              className="inline-flex h-10 items-center rounded-2xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
                 ? "Đang lưu..."
@@ -677,65 +738,35 @@ function StudentEditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[140] bg-slate-950/45 p-3 md:p-5">
-      <div className="flex h-full items-center justify-center">
-        <div className="flex h-[88vh] w-full max-w-[1280px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-          <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-3 md:px-5">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+          <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
             <div className="pr-3">
-              <h2 className="text-[18px] font-bold text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                 Cập nhật học viên
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {getStudentName(item)} ·{" "}
-                {getTeacherName(item) || "Chưa có giảng viên"}
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {getStudentName(item)}
               </p>
             </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
             >
-              <X className="h-4.5 w-4.5" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
           <form
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-5"
+            className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-6 dark:bg-slate-900/70"
           >
-            <div className="grid gap-3 xl:grid-cols-4">
-              <ProgressBar label="Chuyên cần" value={item.attendancePercent} />
-              <ProgressBar label="Tiến độ" value={item.progressPercent} />
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[15px] font-semibold text-slate-800">
-                  Điểm quy đổi
-                </div>
-
-                <div className="mt-3 text-[28px] font-bold leading-none text-slate-950">
-                  {Number(item.score || 0).toFixed(1)}
-                </div>
-
-                <div className="mt-2 text-sm text-slate-500">Thang 100</div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="text-[15px] font-semibold text-slate-800">
-                  Điểm tổng kết
-                </div>
-
-                <div className="mt-3 text-[28px] font-bold leading-none text-slate-950">
-                  {Number(item.finalAverage || 0).toFixed(1)}
-                </div>
-
-                <div className="mt-2 text-sm text-slate-500">Thang 10</div>
-              </div>
-            </div>
-
-            <div className="mt-3 grid gap-3 xl:grid-cols-[1fr_1fr]">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 text-[15px] font-semibold text-slate-800">
+            <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+                <div className="mb-3 text-[15px] font-semibold text-slate-800 dark:text-slate-200">
                   Trạng thái học
                 </div>
 
@@ -747,7 +778,7 @@ function StudentEditModal({
                       status: e.target.value as StudyStatus,
                     }))
                   }
-                  className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500"
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 >
                   {STUDY_STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -757,8 +788,8 @@ function StudentEditModal({
                 </select>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="mb-3 text-[15px] font-semibold text-slate-800">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+                <div className="mb-3 text-[15px] font-semibold text-slate-800 dark:text-slate-200">
                   Vinh danh học viên
                 </div>
 
@@ -772,10 +803,10 @@ function StudentEditModal({
                       }))
                     }
                     placeholder="Học viên xuất sắc"
-                    className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                   />
 
-                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
+                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-white/10 dark:text-slate-300">
                     <input
                       type="checkbox"
                       checked={form.isHonored}
@@ -790,7 +821,7 @@ function StudentEditModal({
                     Đánh dấu học viên xuất sắc
                   </label>
 
-                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700">
+                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-white/10 dark:text-slate-300">
                     <input
                       type="checkbox"
                       checked={form.showHonorOnUserPage}
@@ -808,86 +839,22 @@ function StudentEditModal({
               </div>
             </div>
 
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="text-[15px] font-semibold text-slate-800">
-                  Điểm kiểm tra
-                </div>
-                <div className="text-xs text-slate-500">Chỉ xem</div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-xl border border-slate-200 px-3 py-3">
-                  <div className="text-sm font-semibold text-slate-700">
-                    Bài KT 1
-                  </div>
-                  <div className="mt-2 text-xl font-bold text-slate-900">
-                    {Number(item.test1 || 0).toFixed(1)}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 px-3 py-3">
-                  <div className="text-sm font-semibold text-slate-700">
-                    Bài KT 2
-                  </div>
-                  <div className="mt-2 text-xl font-bold text-slate-900">
-                    {Number(item.test2 || 0).toFixed(1)}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 px-3 py-3">
-                  <div className="text-sm font-semibold text-slate-700">
-                    Bài KT 3
-                  </div>
-                  <div className="mt-2 text-xl font-bold text-slate-900">
-                    {Number(item.test3 || 0).toFixed(1)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 text-[15px] font-semibold text-slate-800">
-                Danh sách 30 buổi học
-              </div>
-
-              <div className="space-y-2">
-                {Array.from({ length: 30 }, (_, index) => index + 1).map(
-                  (sessionNo) => {
-                    const session = getSessionByNo(item, sessionNo);
-
-                    return (
-                      <div
-                        key={`${item._id}-${sessionNo}`}
-                        className="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 text-sm text-slate-700 md:grid-cols-[80px_130px_140px_160px_1fr]"
-                      >
-                        <div className="font-semibold">Buổi {sessionNo}</div>
-                        <div>{formatDate(session.date)}</div>
-                        <div>{getAttendanceLabel(session.attendanceStatus)}</div>
-                        <div>{getHomeworkLabel(session.homeworkStatus)}</div>
-                        <div>{session.teacherNote || "--"}</div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-            </div>
           </form>
 
-          <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-4 py-3 md:px-5">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Hủy
+              Đóng
             </button>
 
             <button
               type="button"
               disabled={saving}
               onClick={() => void onSubmit(form)}
-              className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Đang lưu..." : "Lưu cập nhật"}
             </button>
@@ -897,6 +864,155 @@ function StudentEditModal({
     </div>
   );
 }
+
+function StudentResultModal({
+  open,
+  item,
+  onClose,
+}: {
+  open: boolean;
+  item: ClassroomStudentStudyItem | null;
+  onClose: () => void;
+}) {
+  if (!open || !item) return null;
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex h-full w-full items-center justify-center">
+        <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+          <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+            <div className="pr-3">
+              <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+                Xem điểm học viên
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {getStudentName(item)}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 p-6 dark:bg-slate-900/70">
+            <div className="grid gap-3 xl:grid-cols-4">
+              <ProgressBar label="Chuyên cần" value={item.attendancePercent} />
+              <ProgressBar label="Tiến độ" value={item.progressPercent} />
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+                <div className="text-[15px] font-semibold text-slate-800 dark:text-slate-200">
+                  Điểm quy đổi
+                </div>
+
+                <div className="mt-3 text-[28px] font-bold leading-none text-slate-950 dark:text-white">
+                  {Number(item.score || 0).toFixed(1)}
+                </div>
+
+                <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">Thang 100</div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+                <div className="text-[15px] font-semibold text-slate-800 dark:text-slate-200">
+                  Điểm tổng kết
+                </div>
+
+                <div className="mt-3 text-[28px] font-bold leading-none text-slate-950 dark:text-white">
+                  {Number(item.finalAverage || 0).toFixed(1)}
+                </div>
+
+                <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">Thang 10</div>
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="text-[15px] font-semibold text-slate-800 dark:text-slate-200">
+                  Điểm kiểm tra
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Chỉ xem</div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                {[
+                  ["Bài KT 1", item.test1],
+                  ["Bài KT 2", item.test2],
+                  ["Bài KT 3", item.test3],
+                ].map(([label, value]) => (
+                  <div
+                    key={String(label)}
+                    className="rounded-xl border border-slate-200 px-3 py-3 dark:border-white/10"
+                  >
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      {label}
+                    </div>
+                    <div className="mt-2 text-xl font-bold text-slate-900 dark:text-white">
+                      {Number(value || 0).toFixed(1)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950">
+              <div className="border-b border-slate-200 px-4 py-3 text-[15px] font-semibold text-slate-800 dark:border-white/10 dark:text-slate-200">
+                Danh sách 30 buổi học
+              </div>
+
+              <div className="divide-y divide-slate-200 dark:divide-white/10">
+                <div className="hidden grid-cols-[84px_120px_120px_132px_minmax(0,1fr)] gap-3 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 dark:bg-white/5 dark:text-white md:grid">
+                  <div>Buổi</div>
+                  <div>Ngày</div>
+                  <div>Điểm danh</div>
+                  <div>BTVN</div>
+                  <div>Ghi chú</div>
+                </div>
+
+                {Array.from({ length: 30 }, (_, index) => index + 1).map(
+                  (sessionNo) => {
+                    const session = getSessionByNo(item, sessionNo);
+
+                    return (
+                      <div
+                        key={`${item._id}-${sessionNo}`}
+                        className="grid grid-cols-2 gap-2 px-4 py-3 text-sm text-slate-700 dark:text-slate-300 md:grid-cols-[84px_120px_120px_132px_minmax(0,1fr)] md:gap-3"
+                      >
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                          Buổi {sessionNo}
+                        </div>
+                        <div>{formatDate(session.date)}</div>
+                        <div>{getAttendanceLabel(session.attendanceStatus)}</div>
+                        <div>{getHomeworkLabel(session.homeworkStatus)}</div>
+                        <div className="min-w-0 truncate">
+                          {session.teacherNote || "--"}
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end border-t border-slate-200 px-6 py-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StudentsModal({
   open,
   classRoom,
@@ -912,14 +1028,25 @@ function StudentsModal({
   const [statusFilter, setStatusFilter] = useState<StudentFilter>("all");
   const [editingItem, setEditingItem] =
     useState<ClassroomStudentStudyItem | null>(null);
+  const [viewingItem, setViewingItem] =
+    useState<ClassroomStudentStudyItem | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
   const [savingTestsKey, setSavingTestsKey] = useState<string | null>(null);
+  const [togglingStudentKey, setTogglingStudentKey] = useState<string | null>(
+    null
+  );
 
   const [selectedSessionNo, setSelectedSessionNo] = useState(1);
   const [selectedSessionDate, setSelectedSessionDate] = useState(
     getTodayInputValue()
   );
+  const [studentSortKey, setStudentSortKey] =
+    useState<StudentAttendanceSortKey>("student");
+  const [studentSortDirection, setStudentSortDirection] =
+    useState<SortDirection>("asc");
+  const [studentPage, setStudentPage] = useState(1);
+  const [studentRowsPerPage, setStudentRowsPerPage] = useState(10);
 
   const [testDrafts, setTestDrafts] = useState<
     Record<
@@ -1007,10 +1134,127 @@ function StudentsModal({
     });
   }, [items, search, statusFilter, selectedSessionNo]);
 
+  const sortedStudentItems = useMemo(() => {
+    return [...filteredItems].sort((a, b) => {
+      const aSession = getSessionByNo(a, selectedSessionNo);
+      const bSession = getSessionByNo(b, selectedSessionNo);
+
+      if (studentSortKey === "attendance") {
+        return compareSortValues(
+          getAttendanceLabel(aSession.attendanceStatus),
+          getAttendanceLabel(bSession.attendanceStatus),
+          studentSortDirection
+        );
+      }
+
+      if (studentSortKey === "homework") {
+        return compareSortValues(
+          getHomeworkLabel(aSession.homeworkStatus),
+          getHomeworkLabel(bSession.homeworkStatus),
+          studentSortDirection
+        );
+      }
+
+      if (studentSortKey === "date") {
+        return compareSortValues(
+          aSession.date || a.updatedAt,
+          bSession.date || b.updatedAt,
+          studentSortDirection
+        );
+      }
+
+      if (studentSortKey === "tests") {
+        const aDraft = testDrafts[a._id];
+        const bDraft = testDrafts[b._id];
+        const aAverage =
+          (Number(aDraft?.test1 ?? a.test1 ?? 0) +
+            Number(aDraft?.test2 ?? a.test2 ?? 0) +
+            Number(aDraft?.test3 ?? a.test3 ?? 0)) /
+          3;
+        const bAverage =
+          (Number(bDraft?.test1 ?? b.test1 ?? 0) +
+            Number(bDraft?.test2 ?? b.test2 ?? 0) +
+            Number(bDraft?.test3 ?? b.test3 ?? 0)) /
+          3;
+
+        return compareSortValues(aAverage, bAverage, studentSortDirection);
+      }
+
+      return compareSortValues(
+        getStudentName(a),
+        getStudentName(b),
+        studentSortDirection
+      );
+    });
+  }, [
+    filteredItems,
+    selectedSessionNo,
+    studentSortDirection,
+    studentSortKey,
+    testDrafts,
+  ]);
+
+  const studentTotalPages = Math.max(
+    1,
+    Math.ceil(sortedStudentItems.length / Math.max(studentRowsPerPage, 1))
+  );
+  const studentCurrentPage = Math.min(studentPage, studentTotalPages);
+  const pagedStudentItems = useMemo(() => {
+    const start = (studentCurrentPage - 1) * studentRowsPerPage;
+    return sortedStudentItems.slice(start, start + studentRowsPerPage);
+  }, [sortedStudentItems, studentCurrentPage, studentRowsPerPage]);
+  const studentPagination = useMemo(
+    () =>
+      makePaginationMeta(
+        sortedStudentItems.length,
+        studentCurrentPage,
+        studentRowsPerPage
+      ),
+    [sortedStudentItems.length, studentCurrentPage, studentRowsPerPage]
+  );
+
+  useEffect(() => {
+    if (studentPage > studentTotalPages) {
+      setStudentPage(studentTotalPages);
+    }
+  }, [studentPage, studentTotalPages]);
+
+  const studentActiveFilterCount = statusFilter === "all" ? 0 : 1;
+  const studentFilterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "status",
+        title: "Trạng thái học",
+        options: [
+          {
+            id: "status-all",
+            label: "Tất cả trạng thái",
+            checked: statusFilter === "all",
+            onToggle: () => {
+              setStatusFilter("all");
+              setStudentPage(1);
+            },
+          },
+          ...STUDY_STATUS_OPTIONS.map((option) => ({
+            id: `status-${option.value}`,
+            label: option.label,
+            checked: statusFilter === option.value,
+            onToggle: () => {
+              setStatusFilter(option.value);
+              setStudentPage(1);
+            },
+          })),
+        ],
+      },
+    ],
+    [statusFilter]
+  );
+
   if (!open || !classRoom) return null;
 
   function handleSessionNoChange(nextSessionNo: number) {
     setSelectedSessionNo(nextSessionNo);
+    setStudentPage(1);
 
     const firstHasDate = items
       .map((item) => getSessionByNo(item, nextSessionNo))
@@ -1024,16 +1268,25 @@ function StudentsModal({
     setSelectedSessionDate(getTodayInputValue());
   }
 
-  async function handleDelete(item: ClassroomStudentStudyItem) {
-    const ok = window.confirm(`Xóa học viên "${getStudentName(item)}" khỏi lớp?`);
+  async function handleToggleStudentActive(item: ClassroomStudentStudyItem) {
+    const nextActive = !item.isActive;
+    const ok = await toastConfirm(
+      nextActive
+        ? `Mở khóa học viên "${getStudentName(item)}"?`
+        : `Khóa học viên "${getStudentName(item)}"?`
+    );
+
     if (!ok) return;
 
     try {
-      await classroomApi.removeStudentStudy(item._id);
-      toast.success("Đã xóa học viên khỏi lớp");
+      setTogglingStudentKey(item._id);
+      await classroomApi.updateStudentStudy(item._id, { isActive: nextActive });
+      toast.success(nextActive ? "Đã mở khóa học viên" : "Đã khóa học viên");
       await fetchStudents();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Xóa học viên thất bại"));
+      toast.error(getErrorMessage(error, "Cập nhật trạng thái học viên thất bại"));
+    } finally {
+      setTogglingStudentKey(null);
     }
   }
 
@@ -1140,298 +1393,281 @@ function StudentsModal({
     }
   }
 
+  const studentToolbarStart = (
+    <>
+      <div className="relative w-[132px]">
+        <select
+          value={selectedSessionNo}
+          onChange={(e) => handleSessionNoChange(Number(e.target.value))}
+          className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 pr-9 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+        >
+          {Array.from({ length: 30 }, (_, index) => index + 1).map(
+            (sessionNo) => (
+              <option key={sessionNo} value={sessionNo}>
+                Buổi {sessionNo}
+              </option>
+            )
+          )}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      </div>
+
+      <input
+        type="date"
+        value={selectedSessionDate}
+        onChange={(e) => {
+          setSelectedSessionDate(e.target.value);
+          setStudentPage(1);
+        }}
+        className="h-11 w-[160px] rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+      />
+    </>
+  );
+
+  const attendanceColumns: AdminTableColumn<
+    ClassroomStudentStudyItem,
+    StudentAttendanceSortKey
+  >[] = [
+    {
+      id: "student",
+      label: "Học viên",
+      sortKey: "student",
+      widthClassName: "w-[28%]",
+      render: (item) => {
+        const name = getStudentName(item);
+        const email = getStudentEmail(item);
+
+        return (
+          <AdminEntityCell
+            title={name}
+            subtitle={email || "--"}
+            fallback={getInitials(name, email)}
+          />
+        );
+      },
+    },
+    {
+      id: "attendance",
+      label: "Điểm danh",
+      sortKey: "attendance",
+      widthClassName: "w-[14%]",
+      render: (item) => {
+        const currentSession = getSessionByNo(item, selectedSessionNo);
+
+        return (
+          <SessionStatusSelect
+            type="attendance"
+            value={currentSession.attendanceStatus}
+            disabled={savingSessionKey === `${item._id}-attendanceStatus`}
+            onChange={(value) =>
+              void handleQuickSessionChange(item, "attendanceStatus", value)
+            }
+          />
+        );
+      },
+    },
+    {
+      id: "homework",
+      label: "BTVN",
+      sortKey: "homework",
+      widthClassName: "w-[14%]",
+      render: (item) => {
+        const currentSession = getSessionByNo(item, selectedSessionNo);
+
+        return (
+          <SessionStatusSelect
+            type="homework"
+            value={currentSession.homeworkStatus}
+            disabled={savingSessionKey === `${item._id}-homeworkStatus`}
+            onChange={(value) =>
+              void handleQuickSessionChange(item, "homeworkStatus", value)
+            }
+          />
+        );
+      },
+    },
+    {
+      id: "date",
+      label: "Ngày",
+      sortKey: "date",
+      widthClassName: "w-[12%]",
+      render: (item) => {
+        const currentSession = getSessionByNo(item, selectedSessionNo);
+        const displayDate = selectedSessionDate
+          ? toIsoFromDateInput(selectedSessionDate)
+          : currentSession.date || item.updatedAt;
+
+        return (
+          <div className="font-semibold text-slate-900 dark:text-white">
+            {formatDate(displayDate)}
+          </div>
+        );
+      },
+    },
+    {
+      id: "tests",
+      label: "Điểm KT",
+      sortKey: "tests",
+      widthClassName: "w-[24%]",
+      render: (item) => {
+        const currentDraft = testDrafts[item._id] ?? {
+          test1: String(item.test1 ?? 0),
+          test2: String(item.test2 ?? 0),
+          test3: String(item.test3 ?? 0),
+        };
+        const disabled = savingTestsKey === item._id;
+
+        return (
+          <div className="grid min-w-0 grid-cols-3 gap-2">
+            <ScoreInput
+              label="KT1"
+              value={currentDraft.test1}
+              disabled={disabled}
+              onChange={(value) =>
+                handleTestDraftChange(item._id, "test1", value)
+              }
+              onSave={() => void handleSaveTests(item)}
+            />
+            <ScoreInput
+              label="KT2"
+              value={currentDraft.test2}
+              disabled={disabled}
+              onChange={(value) =>
+                handleTestDraftChange(item._id, "test2", value)
+              }
+              onSave={() => void handleSaveTests(item)}
+            />
+            <ScoreInput
+              label="KT3"
+              value={currentDraft.test3}
+              disabled={disabled}
+              onChange={(value) =>
+                handleTestDraftChange(item._id, "test3", value)
+              }
+              onSave={() => void handleSaveTests(item)}
+            />
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      label: "Hành động",
+      widthClassName: "w-[8%]",
+      align: "right",
+      render: (item) => (
+        <div className="flex items-center justify-end gap-1">
+          <AdminActionIconButton
+            title="Xem điểm"
+            onClick={() => setViewingItem(item)}
+          >
+            <Eye className="h-4 w-4" />
+          </AdminActionIconButton>
+          <AdminActionIconButton
+            title="Cập nhật học viên"
+            onClick={() => setEditingItem(item)}
+          >
+            <Pencil className="h-4 w-4" />
+          </AdminActionIconButton>
+          <AdminActionIconButton
+            disabled={togglingStudentKey === item._id}
+            title={item.isActive ? "Khóa học viên" : "Mở khóa học viên"}
+            onClick={() => void handleToggleStudentActive(item)}
+          >
+            {item.isActive ? (
+              <Lock className="h-4 w-4" />
+            ) : (
+              <LockOpen className="h-4 w-4" />
+            )}
+          </AdminActionIconButton>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className="fixed inset-0 z-[130] bg-slate-950/45 p-3 md:p-5">
-        <div className="flex h-full items-center justify-center">
-          <div className="flex h-[94vh] w-full max-w-[1760px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-4 md:px-5">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+        <div className="flex h-full w-full items-center justify-center">
+          <div className="flex max-h-[92vh] w-full max-w-[1760px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+            <div className="border-b border-slate-200 px-6 py-5 dark:border-white/10">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <h2 className="text-[22px] font-bold text-slate-900">
+                  <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
                     Quản lý điểm danh học viên
                   </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {classRoom.className} · {getCourseTitle(classRoom)} ·{" "}
-                    {getTeacherName(classRoom) || "Chưa có giảng viên"}
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {classRoom.className} · {getCourseTitle(classRoom)}
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
-
-              <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_160px_180px_120px]">
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm học viên, giáo viên, nhận xét..."
-                    className="h-11 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 text-sm outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div className="relative">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) =>
-                      setStatusFilter(e.target.value as StudentFilter)
-                    }
-                    className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm outline-none focus:border-emerald-500"
-                  >
-                    <option value="all">Tất cả trạng thái</option>
-                    {STUDY_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                </div>
-
-                <div className="relative">
-                  <select
-                    value={selectedSessionNo}
-                    onChange={(e) =>
-                      handleSessionNoChange(Number(e.target.value))
-                    }
-                    className="h-11 w-full appearance-none rounded-2xl border border-slate-300 bg-white px-4 pr-10 text-sm outline-none focus:border-emerald-500"
-                  >
-                    {Array.from({ length: 30 }, (_, index) => index + 1).map(
-                      (sessionNo) => (
-                        <option key={sessionNo} value={sessionNo}>
-                          Buổi {sessionNo}
-                        </option>
-                      )
-                    )}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-                </div>
-
-                <input
-                  type="date"
-                  value={selectedSessionDate}
-                  onChange={(e) => setSelectedSessionDate(e.target.value)}
-                  className="h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm outline-none focus:border-emerald-500"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => void fetchStudents()}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </button>
-              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-4 md:px-5">
-              {loading ? (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-                  Đang tải danh sách học viên...
-                </div>
-              ) : filteredItems.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                    <BookOpen className="h-6 w-6" />
-                  </div>
-                  <div className="mt-4 text-sm text-slate-500">
-                    Chưa có học viên nào phù hợp trong lớp này.
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white shadow-sm">
-                  <div className="min-w-[1820px]">
-                    <div className="grid grid-cols-[2fr_1.2fr_1fr_1fr_1fr_120px_120px_120px_260px] items-center gap-x-4 border-b border-slate-200 bg-slate-50 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                      <div>Họ tên</div>
-                      <div>Giáo viên</div>
-                      <div>Điểm danh</div>
-                      <div>BTVN</div>
-                      <div>Ngày</div>
-                      <div>Bài KT 1</div>
-                      <div>Bài KT 2</div>
-                      <div>Bài KT 3</div>
-                      <div>Action</div>
-                    </div>
-
-                    {filteredItems.map((item) => {
-                      const currentSession = getSessionByNo(item, selectedSessionNo);
-                      const currentDraft = testDrafts[item._id] ?? {
-                        test1: String(item.test1 ?? 0),
-                        test2: String(item.test2 ?? 0),
-                        test3: String(item.test3 ?? 0),
-                      };
-
-                      return (
-                        <div
-                          key={item._id}
-                          className="grid grid-cols-[2fr_1.2fr_1fr_1fr_1fr_120px_120px_120px_260px] items-center gap-x-4 border-b border-slate-200 px-6 py-4 text-sm last:border-b-0"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold text-slate-900">
-                              {getStudentName(item)}
-                            </div>
-                            <div className="truncate text-slate-500">
-                              {getStudentEmail(item) || "--"}
-                            </div>
-                          </div>
-
-                          <div className="truncate text-slate-700">
-                            {getTeacherName(item) || "--"}
-                          </div>
-
-                          <div>
-                            <SessionStatusSelect
-                              type="attendance"
-                              value={currentSession.attendanceStatus}
-                              disabled={
-                                savingSessionKey === `${item._id}-attendanceStatus`
-                              }
-                              onChange={(value) =>
-                                void handleQuickSessionChange(
-                                  item,
-                                  "attendanceStatus",
-                                  value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div>
-                            <SessionStatusSelect
-                              type="homework"
-                              value={currentSession.homeworkStatus}
-                              disabled={
-                                savingSessionKey === `${item._id}-homeworkStatus`
-                              }
-                              onChange={(value) =>
-                                void handleQuickSessionChange(
-                                  item,
-                                  "homeworkStatus",
-                                  value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="text-slate-700">
-                            {formatDate(
-                              selectedSessionDate
-                                ? toIsoFromDateInput(selectedSessionDate)
-                                : currentSession.date || item.updatedAt
-                            )}
-                          </div>
-
-                          <div>
-                            <input
-                              type="number"
-                              min={0}
-                              max={10}
-                              step="0.1"
-                              value={currentDraft.test1}
-                              disabled={savingTestsKey === item._id}
-                              onChange={(e) =>
-                                handleTestDraftChange(
-                                  item._id,
-                                  "test1",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={() => void handleSaveTests(item)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  void handleSaveTests(item);
-                                }
-                              }}
-                              className="h-10 w-full min-w-[110px] rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <input
-                              type="number"
-                              min={0}
-                              max={10}
-                              step="0.1"
-                              value={currentDraft.test2}
-                              disabled={savingTestsKey === item._id}
-                              onChange={(e) =>
-                                handleTestDraftChange(
-                                  item._id,
-                                  "test2",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={() => void handleSaveTests(item)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  void handleSaveTests(item);
-                                }
-                              }}
-                              className="h-10 w-full min-w-[110px] rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500"
-                            />
-                          </div>
-
-                          <div>
-                            <input
-                              type="number"
-                              min={0}
-                              max={10}
-                              step="0.1"
-                              value={currentDraft.test3}
-                              disabled={savingTestsKey === item._id}
-                              onChange={(e) =>
-                                handleTestDraftChange(
-                                  item._id,
-                                  "test3",
-                                  e.target.value
-                                )
-                              }
-                              onBlur={() => void handleSaveTests(item)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  void handleSaveTests(item);
-                                }
-                              }}
-                              className="h-10 w-full min-w-[110px] rounded-2xl border border-slate-200 px-3 text-sm outline-none focus:border-emerald-500"
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-3 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setEditingItem(item)}
-                              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => void handleDelete(item)}
-                              className="inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-6 py-5 dark:bg-slate-900/70">
+              <AdminListTable<
+                ClassroomStudentStudyItem,
+                StudentAttendanceSortKey
+              >
+                rows={pagedStudentItems}
+                columns={attendanceColumns}
+                rowKey={(item) => item._id}
+                loading={loading}
+                searchValue={search}
+                searchPlaceholder="Tìm học viên, email, nhận xét..."
+                onSearchChange={(value) => {
+                  setSearch(value);
+                  setStudentPage(1);
+                }}
+                filterSections={studentFilterSections}
+                activeFilterCount={studentActiveFilterCount}
+                onApplyFilters={() => setStudentPage(1)}
+                onClearFilters={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                  setStudentPage(1);
+                }}
+                sortBy={studentSortKey}
+                sortOrder={studentSortDirection}
+                onSortChange={(nextSortBy, nextSortOrder) => {
+                  setStudentSortKey(nextSortBy);
+                  setStudentSortDirection(nextSortOrder);
+                  setStudentPage(1);
+                }}
+                onReload={() => void fetchStudents()}
+                toolbarStart={studentToolbarStart}
+                pagination={{
+                  currentPage: studentPagination.page,
+                  totalPages: studentPagination.totalPages,
+                  totalItems: studentPagination.total,
+                  pageSize: studentRowsPerPage,
+                  onPageSizeChange: (nextPageSize) => {
+                    setStudentRowsPerPage(nextPageSize);
+                    setStudentPage(1);
+                  },
+                  onPageChange: setStudentPage,
+                  pageSizeOptions: [5, 10, 20, 30],
+                }}
+                emptyText="Chưa có học viên nào phù hợp trong lớp này."
+                labels={{
+                  showing: "Hiển thị",
+                  rows: "Dòng",
+                  of: "trên",
+                  filter: "Lọc",
+                  clear: "Xóa lọc",
+                  reload: "Tải lại",
+                  loading: "Đang tải danh sách học viên...",
+                  noData: "Không có dữ liệu",
+                }}
+                tableMinWidthClassName="min-w-0"
+              />
             </div>
           </div>
         </div>
@@ -1444,6 +1680,13 @@ function StudentsModal({
         saving={savingEdit}
         onClose={() => setEditingItem(null)}
         onSubmit={handleSaveEdit}
+      />
+
+      <StudentResultModal
+        key={viewingItem?._id ?? "student-result"}
+        open={Boolean(viewingItem)}
+        item={viewingItem}
+        onClose={() => setViewingItem(null)}
       />
     </>
   );
@@ -1620,7 +1863,7 @@ export default function AdminClassesPage() {
   }
 
   async function handleSoftDelete(item: ClassroomItem) {
-    if (!window.confirm(`Xóa mềm lớp "${item.className}"?`)) return;
+    if (!(await toastConfirm(`Xóa mềm lớp "${item.className}"?`))) return;
 
     try {
       await classroomApi.softDelete(item._id);
@@ -1642,7 +1885,7 @@ export default function AdminClassesPage() {
   }
 
   async function handleHardDelete(item: ClassroomItem) {
-    if (!window.confirm(`Xóa cứng "${item.className}"?`)) return;
+    if (!(await toastConfirm(`Xóa cứng "${item.className}"?`))) return;
 
     try {
       await classroomApi.forceDelete(item._id);
@@ -1650,6 +1893,28 @@ export default function AdminClassesPage() {
       toast.success("Xóa cứng thành công");
     } catch (error) {
       toast.error(getErrorMessage(error, "Xóa cứng thất bại"));
+    }
+  }
+
+  async function handleToggleActive(item: ClassroomItem) {
+    const nextActive = !item.isActive;
+    const ok = await toastConfirm(
+      nextActive
+        ? `Mở khóa lớp "${item.className}"?`
+        : `Khóa lớp "${item.className}"?`
+    );
+    if (!ok) return;
+
+    try {
+      const updated = await classroomApi.update(item._id, {
+        isActive: nextActive,
+      });
+      setItems((prev) =>
+        prev.map((x) => (x._id === item._id ? updated : x))
+      );
+      toast.success(nextActive ? "Đã mở khóa lớp" : "Đã khóa lớp");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Cập nhật trạng thái lớp thất bại"));
     }
   }
 
@@ -1688,15 +1953,6 @@ export default function AdminClassesPage() {
               setPage(1);
             },
           },
-          {
-            id: "status-deleted",
-            label: "Đã xóa",
-            checked: statusFilter === "deleted",
-            onToggle: () => {
-              setStatusFilter("deleted");
-              setPage(1);
-            },
-          },
         ],
       },
     ],
@@ -1732,20 +1988,6 @@ export default function AdminClassesPage() {
         render: (item) => <div className="truncate">{getTeacherName(item) || "--"}</div>,
       },
       {
-        id: "schedule",
-        label: "Lịch",
-        sortKey: "schedule",
-        widthClassName: "w-[190px]",
-        render: (item) => <div className="truncate">{item.scheduleText || "--"}</div>,
-      },
-      {
-        id: "room",
-        label: "Phòng",
-        sortKey: "room",
-        widthClassName: "w-[140px]",
-        render: (item) => <div className="truncate">{item.room || "--"}</div>,
-      },
-      {
         id: "status",
         label: "Trạng thái",
         sortKey: "status",
@@ -1770,43 +2012,26 @@ export default function AdminClassesPage() {
         widthClassName: "w-[170px]",
         align: "right",
         render: (item) => (
-          <div className="flex items-center justify-end gap-2">
-            {viewMode === "active" ? (
-              <>
-                <AdminActionIconButton
-                  title="Học viên"
-                  onClick={() => setStudentsModalClass(item)}
-                >
-                  <Users className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
-                  <Pencil className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete"
-                  onClick={() => void handleSoftDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
+          <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton
+              title="Học viên"
+              onClick={() => setStudentsModalClass(item)}
+            >
+              <Users className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+              <Pencil className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton
+              title={item.isActive ? "Lock" : "Unlock"}
+              onClick={() => void handleToggleActive(item)}
+            >
+              {item.isActive ? (
+                <Lock className="h-4 w-4" />
             ) : (
-              <>
-                <AdminActionIconButton
-                  title="Restore"
-                  onClick={() => void handleRestore(item)}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Delete"
-                  onClick={() => void handleHardDelete(item)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
+                <LockOpen className="h-4 w-4" />
+              )}
+            </AdminActionIconButton>
           </div>
         ),
       },
@@ -1902,7 +2127,7 @@ export default function AdminClassesPage() {
         onApplyFilters={() => setPage(1)}
         onClearFilters={() => {
           setSearch("");
-          setStatusFilter(viewMode === "deleted" ? "deleted" : "all");
+          setStatusFilter("all");
           setPage(1);
         }}
         sortBy={sortKey}
@@ -1913,50 +2138,11 @@ export default function AdminClassesPage() {
           setPage(1);
         }}
         onReload={() => void fetchClassrooms()}
-        toolbarStart={
-          <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("active");
-                setStatusFilter("all");
-                setPage(1);
-              }}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                viewMode === "active"
-                  ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-              )}
-            >
-              <School className="h-4 w-4" />
-              Lớp học
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode("deleted");
-                setStatusFilter("deleted");
-                setPage(1);
-              }}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                viewMode === "deleted"
-                  ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                  : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-              )}
-            >
-              <Trash2 className="h-4 w-4" />
-              Đã xóa
-            </button>
-          </div>
-        }
         toolbarEnd={
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
           >
             <Plus className="h-4 w-4" />
             Thêm lớp
@@ -1976,7 +2162,7 @@ export default function AdminClassesPage() {
         }}
         emptyText="Chua co lop hoc nao phu hop."
         labels={{ showing: "Hiển thị", rows: "Số dòng / trang" }}
-        tableMinWidthClassName="min-w-[1220px]"
+        tableMinWidthClassName="min-w-[890px]"
       />
 
       <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">

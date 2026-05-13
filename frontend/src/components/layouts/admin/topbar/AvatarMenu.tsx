@@ -77,7 +77,7 @@ export default function AvatarMenu() {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center bg-transparent p-0"
+        className="flex h-10 w-10 items-center justify-center bg-transparent p-0 transition hover:opacity-85"
         aria-label={t("common.account")}
         aria-expanded={open}
         title={safeName || safeEmail || t("common.account")}
@@ -97,6 +97,7 @@ export default function AvatarMenu() {
             <User className="h-5 w-5" />
           </div>
         )}
+
       </button>
 
       <div

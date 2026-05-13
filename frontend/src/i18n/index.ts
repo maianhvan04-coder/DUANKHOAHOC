@@ -12,17 +12,17 @@ export {
   type StudentTheme,
   type UserLocale,
   type UserMessageKey,
-} from "./config";
+} from "../config/config-i18n";
 export {
   StudentPreferencesProvider,
   useStudentPreferences,
-} from "./StudentPreferencesProvider";
+} from "../providers/student/StudentPreferencesProvider";
 export {
   AdminAutoTranslator,
   AdminPreferencesProvider,
   useAdminPreferences,
-} from "./AdminPreferencesProvider";
+} from "../providers/admin/AdminPreferencesProvider";
 export {
   UserPreferencesProvider,
   useUserPreferences,
-} from "./UserPreferencesProvider";
+} from "../providers/client/UserPreferencesProvider";

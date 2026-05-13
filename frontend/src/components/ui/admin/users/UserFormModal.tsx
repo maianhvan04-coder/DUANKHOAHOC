@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Check, Eye, EyeOff, LockKeyhole, X } from "lucide-react";
 import type { UserRow } from "@/app/api/user.api";
 
 export type UserFormInitial = UserRow & {
@@ -33,6 +34,14 @@ function normalizeList(list: string[]) {
   return out;
 }
 
+function filterSelectableRoles(list: string[], options: string[]) {
+  const normalized = normalizeList(list);
+  if (!options.length) return normalized;
+
+  const allowed = new Set(options.map((role) => role.toLowerCase()));
+  return normalized.filter((role) => allowed.has(role.toLowerCase()));
+}
+
 function ModalBody({
   initial,
   saving,
@@ -49,8 +58,9 @@ function ModalBody({
   const [email, setEmail] = useState(() => initial?.email ?? "");
   const [phone, setPhone] = useState(() => initial?.phone ?? "");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [roles, setRoles] = useState<string[]>(() =>
-    normalizeList(initial?.roles ?? (initial?.role ? [initial.role] : []))
+    filterSelectableRoles(initial?.roles ?? (initial?.role ? [initial.role] : []), options)
   );
   const [active, setActive] = useState(() => initial?.active ?? true);
 
@@ -64,7 +74,7 @@ function ModalBody({
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
-      roles: normalizeList(roles),
+      roles: filterSelectableRoles(roles, options),
       active,
     };
 
@@ -77,108 +87,132 @@ function ModalBody({
   };
 
   return (
-    <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl">
-      <div className="flex items-center justify-between border-b px-5 py-4">
-        <div className="text-[15px] font-bold text-black/85">
-          {isEdit ? "Update Profile" : "Create Account"}
+    <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
+      <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+            {isEdit ? "Cập nhật người dùng" : "Thêm người dùng"}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {isEdit
+              ? "Chỉnh sửa thông tin, vai trò và trạng thái tài khoản."
+              : "Tạo tài khoản mới và gán vai trò hệ thống."}
+          </p>
         </div>
 
         <button
           type="button"
           onClick={onClose}
           disabled={saving}
-          className="grid h-8 w-8 place-items-center rounded-lg text-black/60 hover:bg-black/5 disabled:opacity-60"
-          aria-label="Close"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+          aria-label="Đóng"
         >
-          ✕
+          <X className="h-5 w-5" />
         </button>
       </div>
 
-      <div className="p-5">
-        <div className="rounded-2xl border border-black/10 bg-white p-4">
-          <div className="text-[13px] font-bold text-blue-600">Thông tin người dùng</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="grid gap-5">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/70">
+            <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+              Thông tin người dùng
+            </h3>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-black/70">
-                Họ và tên <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={saving}
-                className="h-10 w-full rounded-lg border border-black/10 px-3 text-[13px] outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[12px] font-semibold text-black/70">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={saving}
-                className="h-10 w-full rounded-lg border border-black/10 px-3 text-[13px] outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
-              />
-            </div>
-
-            <div className="space-y-1 col-span-2">
-              <label className="text-[12px] font-semibold text-black/70">Số điện thoại</label>
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="VD: 0987654321"
-                disabled={saving}
-                className="h-10 w-full rounded-lg border border-black/10 px-3 text-[13px] outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-60"
-              />
-            </div>
-
-            {isEdit && (
-              <div className="col-span-2 space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-[12px] font-semibold text-black/70">
-                    Đổi mật khẩu (tuỳ chọn)
-                  </label>
-                  <span className="text-[12px] text-black/35">ⓘ</span>
-                </div>
-
-                <div className="flex h-10 items-center overflow-hidden rounded-lg border border-black/10">
-                  <div className="grid h-full w-10 place-items-center border-r border-black/10 text-black/50">
-                    🔒
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu mới..."
-                    disabled={saving}
-                    className="h-full w-full px-3 text-[13px] outline-none disabled:opacity-60"
-                  />
-                  <div className="grid h-full w-10 place-items-center border-l border-black/10 text-black/40">
-                    👁
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-black/45">
-                  Nếu nhập mật khẩu mới, hệ thống sẽ cập nhật mật khẩu cho người dùng.
-                </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Họ và tên <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
               </div>
-            )}
-          </div>
 
-          {/* Roles */}
-          <div className="mt-4 border-t border-black/10 pt-4">
-            <div className="flex items-center justify-between">
-              <div className="text-[12px] font-semibold text-black/70">Vai trò hệ thống</div>
-              <div className="text-[11px] text-black/40">{options.length ? "" : "Chưa có vai trò"}</div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Email <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
+              </div>
+
+              <div className={isEdit ? "" : "md:col-span-2"}>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Số điện thoại
+                </label>
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="VD: 0987654321"
+                  disabled={saving}
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                />
+              </div>
+
+              {isEdit ? (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Đổi mật khẩu
+                  </label>
+                  <div className="flex h-11 items-center overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-sky-500 dark:border-white/10 dark:bg-slate-950">
+                    <div className="grid h-full w-11 place-items-center border-r border-slate-200 text-slate-400 dark:border-white/10">
+                      <LockKeyhole className="h-4 w-4" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Nhập mật khẩu mới..."
+                      disabled={saving}
+                      className="h-full min-w-0 flex-1 bg-transparent px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 disabled:opacity-60 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      disabled={saving}
+                      className="grid h-full w-11 place-items-center border-l border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Bỏ trống nếu không muốn đổi mật khẩu.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/70">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                Vai trò hệ thống
+              </h3>
+              {!options.length ? (
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Chưa có vai trò
+                </span>
+              ) : null}
             </div>
 
-            {options.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 gap-3">
+            {options.length > 0 ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {options.map((r) => {
                   const checked = roles.includes(r);
+
                   return (
                     <button
                       key={r}
@@ -186,94 +220,82 @@ function ModalBody({
                       onClick={() => toggleRole(r)}
                       disabled={saving}
                       className={[
-                        "flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition",
-                        checked ? "border-blue-500 bg-blue-50" : "border-black/10 bg-white hover:bg-black/5",
-                        saving ? "opacity-60" : "",
+                        "flex min-h-11 items-center gap-3 rounded-xl border px-3 text-left transition disabled:opacity-60",
+                        checked
+                          ? "border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-200"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-white/10",
                       ].join(" ")}
                     >
                       <span
                         className={[
-                          "grid h-4 w-4 place-items-center rounded border transition",
-                          checked ? "border-blue-500 bg-blue-600" : "border-black/20 bg-white",
+                          "grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
+                          checked
+                            ? "border-sky-600 bg-sky-600"
+                            : "border-slate-300 bg-white dark:border-white/20 dark:bg-slate-900",
                         ].join(" ")}
                         aria-hidden="true"
                       >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          className={checked ? "opacity-100" : "opacity-0"}
-                        >
-                          <path
-                            d="M20 6L9 17l-5-5"
-                            stroke="white"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        {checked ? <Check className="h-3.5 w-3.5 text-white" /> : null}
                       </span>
-
-                      <span className="text-[12px] font-bold text-black/80">{r}</span>
+                      <span className="truncate text-sm font-semibold">{r}</span>
                     </button>
                   );
                 })}
               </div>
-            )}
-          </div>
+            ) : null}
+          </section>
 
-          {/* Status */}
-          <div className="mt-4 border-t border-black/10 pt-4">
-            <div className="text-[12px] font-semibold text-black/70">Trạng thái tài khoản</div>
-
-            <div className="mt-2 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-              <div className="text-[12px] font-bold text-emerald-900">
-                {active ? "Tài khoản đang hoạt động" : "Tài khoản bị khoá"}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/70">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                  Trạng thái tài khoản
+                </h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {active ? "Tài khoản đang hoạt động" : "Tài khoản đang bị khóa"}
+                </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => setActive((v) => !v)}
+                onClick={() => setActive((value) => !value)}
                 disabled={saving}
                 className={[
-                  "relative h-6 w-10 rounded-full transition",
-                  active ? "bg-emerald-500" : "bg-black/25",
-                  saving ? "opacity-60" : "",
+                  "relative h-8 w-14 rounded-full transition disabled:opacity-60",
+                  active ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700",
                 ].join(" ")}
-                aria-label="Toggle active"
+                aria-label="Đổi trạng thái tài khoản"
               >
                 <span
                   className={[
-                    "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow transition",
-                    active ? "left-5" : "left-1",
+                    "absolute top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-white shadow transition",
+                    active ? "left-7" : "left-1",
                   ].join(" ")}
                 />
               </button>
             </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="rounded-lg border border-black/10 bg-white px-4 py-2 text-[12px] font-bold text-black/70 hover:bg-black/5 disabled:opacity-60"
-            >
-              Huỷ
-            </button>
-
-            <button
-              type="button"
-              onClick={submit}
-              disabled={saving}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-[12px] font-extrabold text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {saving ? "Đang lưu..." : isEdit ? "Cập nhật" : "Tạo người dùng"}
-            </button>
-          </div>
+          </section>
         </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+        >
+          Đóng
+        </button>
+
+        <button
+          type="button"
+          onClick={submit}
+          disabled={saving}
+          className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saving ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo người dùng"}
+        </button>
       </div>
     </div>
   );
@@ -290,13 +312,11 @@ export default function UserFormModal(props: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/40" />
-
       <ModalBody key={String(formKey)} {...props} />
 
       {/* (Optional) nút ẩn cho a11y */}

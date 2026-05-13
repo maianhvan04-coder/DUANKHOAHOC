@@ -12,7 +12,7 @@ import {
   userMessages,
   type UserLocale,
   type UserMessageKey,
-} from "./config";
+} from "../../config/config-i18n";
 
 type UserPreferencesContextValue = {
   locale: UserLocale;

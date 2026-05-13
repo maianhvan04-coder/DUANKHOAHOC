@@ -1,86 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, X } from "lucide-react";
 import {
   paymentAuditApi,
-  type PaymentAuditAction,
-  type PaymentAuditActorType,
   type PaymentAuditItem,
+  type PaymentHistoryProvider,
+  type PaymentHistoryStatus,
 } from "@/app/api/payment-audit.api";
+import AdminListTable, {
+  AdminActionIconButton,
+  AdminEntityCell,
+  AdminStatusBadge,
+  type AdminFilterSection,
+  type AdminTableColumn,
+} from "@/components/ui/admin/admin-list-table";
+import type { SortDirection } from "@/lib/utils/admin-list";
 
-const PAYMENT_ACTIONS: ReadonlyArray<{
-  label: string;
-  value: PaymentAuditAction;
-}> = [
-  { label: "CHECKOUT_CREATED", value: "CHECKOUT_CREATED" },
-  { label: "RETURN_RECEIVED", value: "RETURN_RECEIVED" },
-  { label: "IPN_RECEIVED", value: "IPN_RECEIVED" },
-  { label: "MARK_PAID", value: "MARK_PAID" },
-  { label: "MARK_FAILED", value: "MARK_FAILED" },
-  { label: "MARK_CANCELLED", value: "MARK_CANCELLED" },
-  { label: "DUPLICATE_IGNORED", value: "DUPLICATE_IGNORED" },
-  { label: "ADMIN_NOTE", value: "ADMIN_NOTE" },
-];
-
-const ACTOR_TYPES: ReadonlyArray<{
-  label: string;
-  value: PaymentAuditActorType;
-}> = [
-  { label: "SYSTEM", value: "SYSTEM" },
-  { label: "USER", value: "USER" },
-  { label: "ADMIN", value: "ADMIN" },
-  { label: "VNPAY", value: "VNPAY" },
-];
-
-type PaymentAuditFilters = {
-  keyword: string;
-  paymentCode: string;
-  provider: "" | "vnpay" | "payos";
-  action: "" | PaymentAuditAction;
-  actorType: "" | PaymentAuditActorType;
-};
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString("vi-VN");
-}
-
-function formatMoney(value: number, currency = "VND") {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency,
-  }).format(value || 0);
-}
-
-function badgeClass(action: PaymentAuditAction) {
-  switch (action) {
-    case "MARK_PAID":
-      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-200";
-    case "MARK_FAILED":
-    case "MARK_CANCELLED":
-      return "bg-rose-50 text-rose-700 border-rose-200 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200";
-    case "ADMIN_NOTE":
-      return "bg-amber-50 text-amber-700 border-amber-200 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-200";
-    default:
-      return "bg-slate-50 text-slate-700 border-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-200";
-  }
-}
+type PaymentAuditSortKey =
+  | "paymentCode"
+  | "user"
+  | "provider"
+  | "amount"
+  | "status"
+  | "createdAt";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (typeof error === "object" && error !== null) {
     const maybeError = error as {
-      response?: {
-        data?: {
-          message?: unknown;
-        };
-      };
+      response?: { data?: { message?: unknown; error?: unknown } };
       message?: unknown;
     };
 
     const responseMessage = maybeError.response?.data?.message;
     if (typeof responseMessage === "string" && responseMessage.trim()) {
       return responseMessage;
+    }
+
+    const responseError = maybeError.response?.data?.error;
+    if (typeof responseError === "string" && responseError.trim()) {
+      return responseError;
     }
 
     if (typeof maybeError.message === "string" && maybeError.message.trim()) {
@@ -91,451 +50,469 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export default function AdminPaymentAuditsPage() {
-  const [items, setItems] = useState<PaymentAuditItem[]>([]);
-  const [timeline, setTimeline] = useState<PaymentAuditItem[]>([]);
-  const [selectedPaymentCode, setSelectedPaymentCode] = useState<number | null>(null);
+function formatOrderCode(paymentCode: number) {
+  return `ORD-${String(paymentCode || 0).padStart(8, "0")}`;
+}
 
-  const [loadingList, setLoadingList] = useState(true);
-  const [loadingTimeline, setLoadingTimeline] = useState(false);
-  const [submittingNote, setSubmittingNote] = useState(false);
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
 
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-
-  const [keyword, setKeyword] = useState("");
-  const [paymentCodeInput, setPaymentCodeInput] = useState("");
-  const [provider, setProvider] = useState<"" | "vnpay" | "payos">("");
-  const [action, setAction] = useState<"" | PaymentAuditAction>("");
-  const [actorType, setActorType] = useState<"" | PaymentAuditActorType>("");
-
-  const [query, setQuery] = useState<PaymentAuditFilters>({
-    keyword: "",
-    paymentCode: "",
-    provider: "",
-    action: "",
-    actorType: "",
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
+}
 
-  const [note, setNote] = useState("");
-  const [error, setError] = useState("");
+function formatMoney(value: number) {
+  return `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))}đ`;
+}
 
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
+function formatProvider(provider: PaymentHistoryProvider) {
+  return provider.toUpperCase();
+}
 
-  const selectedSummary = useMemo(() => {
-    if (!selectedPaymentCode) return null;
+function getUserName(item: PaymentAuditItem) {
+  return item.user?.name?.trim() || "-";
+}
 
-    return (
-      items.find((item) => item.paymentCode === selectedPaymentCode) ??
-      timeline[0] ??
-      null
-    );
-  }, [items, timeline, selectedPaymentCode]);
+function getInitials(name?: string, email?: string) {
+  const source = (name || email || "-").trim();
+  const words = source.split(/\s+/).filter(Boolean);
 
-  async function loadList(nextPage = 1) {
-    try {
-      setLoadingList(true);
-      setError("");
-
-      const res = await paymentAuditApi.getAdminList({
-        page: nextPage,
-        limit: 12,
-        keyword: query.keyword || undefined,
-        paymentCode: query.paymentCode ? Number(query.paymentCode) : undefined,
-        provider: query.provider || undefined,
-        action: query.action || undefined,
-        actorType: query.actorType || undefined,
-      });
-
-      setItems(res.items);
-      setPage(res.pagination.page);
-      setTotalPages(res.pagination.totalPages);
-      setTotal(res.pagination.total);
-
-      if (!selectedPaymentCode && res.items.length > 0) {
-        void openTimeline(res.items[0].paymentCode);
-      }
-
-      if (
-        selectedPaymentCode !== null &&
-        !res.items.some((item) => item.paymentCode === selectedPaymentCode)
-      ) {
-        setTimeline([]);
-      }
-    } catch (error: unknown) {
-      setError(getErrorMessage(error, "Không tải được kiểm tra thanh toán"));
-    } finally {
-      setLoadingList(false);
-    }
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
   }
 
-  async function openTimeline(paymentCode: number) {
-    try {
-      setSelectedPaymentCode(paymentCode);
-      setLoadingTimeline(true);
-      setError("");
+  return source.slice(0, 2).toUpperCase();
+}
 
-      const res = await paymentAuditApi.getAdminTimeline(paymentCode);
-      setTimeline(res.items);
-    } catch (error: unknown) {
-      setTimeline([]);
-      setError(getErrorMessage(error, "Không tải được dòng thời gian"));
-    } finally {
-      setLoadingTimeline(false);
-    }
+function parsePaymentCode(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return undefined;
+  const parsed = Number(digits);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function statusConfig(status: PaymentHistoryStatus) {
+  switch (status) {
+    case "PAID":
+      return { label: "Thành công", tone: "success" as const };
+    case "FAILED":
+      return { label: "Thất bại", tone: "danger" as const };
+    case "CANCELLED":
+      return { label: "Đã hủy", tone: "neutral" as const };
+    case "PENDING":
+    default:
+      return { label: "Chờ xử lý", tone: "warning" as const };
   }
+}
 
-  async function submitNote() {
-    if (!selectedPaymentCode || !note.trim()) return;
+function StatusBadge({ status }: { status: PaymentHistoryStatus }) {
+  const config = statusConfig(status);
 
-    try {
-      setSubmittingNote(true);
-      setError("");
+  return <AdminStatusBadge tone={config.tone}>{config.label}</AdminStatusBadge>;
+}
 
-      await paymentAuditApi.addAdminNote(selectedPaymentCode, note.trim());
-      setNote("");
-      await openTimeline(selectedPaymentCode);
-      await loadList(page);
-    } catch (error: unknown) {
-      setError(getErrorMessage(error, "Không thêm được ghi chú"));
-    } finally {
-      setSubmittingNote(false);
-    }
-  }
-
-  function applyFilters() {
-    setPage(1);
-    setQuery({
-      keyword: keyword.trim(),
-      paymentCode: paymentCodeInput.trim(),
-      provider,
-      action,
-      actorType,
-    });
-  }
-
-  function resetFilters() {
-    setKeyword("");
-    setPaymentCodeInput("");
-    setProvider("");
-    setAction("");
-    setActorType("");
-    setPage(1);
-    setQuery({
-      keyword: "",
-      paymentCode: "",
-      provider: "",
-      action: "",
-      actorType: "",
-    });
-  }
-
-  useEffect(() => {
-    void loadList(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
-
+function ProviderBadge({ provider }: { provider: PaymentHistoryProvider }) {
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-transparent">
-      <div className="mx-auto max-w-7xl">
-        <div className="hidden">
-          <h1 className="text-3xl font-extrabold text-slate-900">Kiểm tra thanh toán</h1>
-          <p className="mt-2 text-slate-600">
-            Theo dõi toàn bộ lịch sử thanh toán, IPN, trả về, đổi trạng thái và ghi chú quản trị.
-          </p>
-        </div>
-
-        <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Tìm ghi chú, người thực hiện..."
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            />
-            <input
-              value={paymentCodeInput}
-              onChange={(e) => setPaymentCodeInput(e.target.value)}
-              placeholder="Mã thanh toán"
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            />
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as "" | "vnpay" | "payos")}
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="">Tất cả nhà cung cấp</option>
-              <option value="vnpay">vnpay</option>
-              <option value="payos">payos</option>
-            </select>
-            <select
-              value={action}
-              onChange={(e) => setAction(e.target.value as "" | PaymentAuditAction)}
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="">Tất cả thao tác</option>
-              {PAYMENT_ACTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={actorType}
-              onChange={(e) =>
-                setActorType(e.target.value as "" | PaymentAuditActorType)
-              }
-              className="h-11 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            >
-              <option value="">Tất cả người thực hiện</option>
-              {ACTOR_TYPES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button
-              onClick={applyFilters}
-              className="h-11 rounded-xl bg-slate-900 px-5 font-semibold text-white"
-            >
-              Lọc dữ liệu
-            </button>
-            <button
-              onClick={resetFilters}
-              className="h-11 rounded-xl border border-slate-200 px-5 font-semibold text-slate-700 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-            >
-              Đặt lại
-            </button>
-            <div className="ml-auto flex items-center text-sm text-slate-500 dark:text-slate-400">
-              Tổng: <span className="ml-1 font-semibold text-slate-900 dark:text-slate-100">{total}</span>
-            </div>
-          </div>
-        </div>
-
-        {error ? (
-          <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Danh sách kiểm tra</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Bấm vào mã thanh toán để xem dòng thời gian</p>
-            </div>
-
-            {loadingList ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                Đang tải dữ liệu...
-              </div>
-            ) : items.length === 0 ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                Không có dữ liệu
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((item) => {
-                  const active = selectedPaymentCode === item.paymentCode;
-
-                  return (
-                    <button
-                      key={item._id}
-                      onClick={() => openTimeline(item.paymentCode)}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${
-                        active
-                          ? "border-slate-900 bg-slate-50 dark:border-sky-400/40 dark:bg-white/10"
-                          : "border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950 dark:hover:border-white/20"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                              #{item.paymentCode}
-                            </div>
-                            <span
-                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(
-                                item.action
-                              )}`}
-                            >
-                              {item.action}
-                            </span>
-                          </div>
-
-                          <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            {item.user?.name || "-"} · {item.user?.email || "-"}
-                          </div>
-                        </div>
-
-                        <div className="text-left md:text-right">
-                          <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            Số tiền
-                          </div>
-                          <div className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-100">
-                            {formatMoney(item.amount, item.currency)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                        <Mini label="Nhà cung cấp" value={item.provider} />
-                        <Mini label="Người thực hiện" value={item.actorType} />
-                        <Mini label="Từ" value={item.fromStatus || "-"} />
-                        <Mini label="Đến" value={item.toStatus || "-"} />
-                      </div>
-
-                      {item.note ? (
-                        <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">
-                          {item.note}
-                        </div>
-                      ) : null}
-
-                      <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                        {formatDate(item.createdAt)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="mt-5 flex items-center justify-between">
-              <button
-                onClick={() => hasPrev && loadList(page - 1)}
-                disabled={!hasPrev || loadingList}
-                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-              >
-                Trang trước
-              </button>
-
-              <div className="text-sm text-slate-600 dark:text-slate-300">
-                Trang <span className="font-semibold">{page}</span> / {totalPages}
-              </div>
-
-              <button
-                onClick={() => hasNext && loadList(page + 1)}
-                disabled={!hasNext || loadingList}
-                className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-              >
-                Trang sau
-              </button>
-            </div>
-          </section>
-
-          <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50">
-            <div className="mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Dòng thời gian</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Lịch sử chi tiết theo từng mã thanh toán
-              </p>
-            </div>
-
-            {!selectedPaymentCode ? (
-              <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                Chưa chọn giao dịch
-              </div>
-            ) : (
-              <>
-                <div className="mb-4 rounded-2xl bg-slate-50 p-4 dark:bg-white/5">
-                  <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Mã thanh toán
-                  </div>
-                  <div className="mt-1 text-2xl font-extrabold text-slate-900 dark:text-slate-100">
-                    #{selectedPaymentCode}
-                  </div>
-                  {selectedSummary ? (
-                    <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                      {selectedSummary.user?.name || "-"} ·{" "}
-                      {selectedSummary.user?.email || "-"}
-                    </div>
-                  ) : null}
-                </div>
-
-                {loadingTimeline ? (
-                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                    Đang tải dòng thời gian...
-                  </div>
-                ) : timeline.length === 0 ? (
-                  <div className="rounded-2xl bg-slate-50 p-8 text-center text-slate-500 dark:bg-white/5 dark:text-slate-400">
-                    Chưa có dòng thời gian
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {timeline.map((item) => (
-                      <div key={item._id} className="rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-950">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-slate-900 dark:text-slate-100">{item.action}</div>
-                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                              {formatDate(item.createdAt)}
-                            </div>
-                          </div>
-
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${badgeClass(
-                              item.action
-                            )}`}
-                          >
-                            {item.actorType}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-2 gap-3">
-                          <Mini label="Từ" value={item.fromStatus || "-"} />
-                          <Mini label="Đến" value={item.toStatus || "-"} />
-                        </div>
-
-                        {item.note ? (
-                          <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-700 dark:bg-white/5 dark:text-slate-200">
-                            {item.note}
-                          </div>
-                        ) : null}
-
-                        <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                          {item.ipAddr || "-"} · {item.actorName || item.actorType}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-5 rounded-2xl border border-slate-200 p-4 dark:border-white/10 dark:bg-slate-950">
-                  <div className="mb-2 font-semibold text-slate-900 dark:text-slate-100">Ghi chú quản trị</div>
-                  <textarea
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    rows={4}
-                    placeholder="Nhập ghi chú cho giao dịch này..."
-                    className="w-full rounded-xl border border-slate-200 bg-white p-3 text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
-                  />
-                  <button
-                    onClick={submitNote}
-                    disabled={submittingNote || !note.trim() || !selectedPaymentCode}
-                    className="mt-3 h-11 rounded-xl bg-slate-900 px-5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {submittingNote ? "Đang lưu..." : "Lưu ghi chú"}
-                  </button>
-                </div>
-              </>
-            )}
-          </aside>
-        </div>
-      </div>
-    </main>
+    <span className="inline-flex h-7 items-center rounded-xl bg-slate-100 px-3 text-xs font-medium uppercase text-slate-700 dark:bg-white/10 dark:text-slate-100">
+      {formatProvider(provider)}
+    </span>
   );
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+export default function AdminPaymentAuditsPage() {
+  const [items, setItems] = useState<PaymentAuditItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [provider, setProvider] = useState<"" | PaymentHistoryProvider>("");
+  const [status, setStatus] = useState<"" | PaymentHistoryStatus>("");
+  const [sortKey, setSortKey] = useState<PaymentAuditSortKey>("createdAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [detailItem, setDetailItem] = useState<PaymentAuditItem | null>(null);
+
+  const activeFilterCount = [provider, status].filter(Boolean).length;
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const keyword = search.trim();
+      const paymentCode = parsePaymentCode(keyword);
+      const result = await paymentAuditApi.getAdminList({
+        page,
+        limit: pageSize,
+        paymentCode,
+        userKeyword: paymentCode ? undefined : keyword || undefined,
+        provider: provider || undefined,
+        status: status || undefined,
+      });
+
+      setItems(result.items);
+      setPage(result.pagination.page);
+      setPageSize(result.pagination.limit);
+      setTotal(result.pagination.total);
+      setTotalPages(Math.max(result.pagination.totalPages || 1, 1));
+    } catch (loadError: unknown) {
+      setItems([]);
+      setTotal(0);
+      setTotalPages(1);
+      setError(getErrorMessage(loadError, "Không tải được dữ liệu thanh toán"));
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, provider, search, status]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData, refreshKey]);
+
+  const filterSections = useMemo<AdminFilterSection[]>(
+    () => [
+      {
+        id: "provider",
+        title: "Phương thức",
+        options: [
+          {
+            id: "vnpay",
+            label: "VNPAY",
+            checked: provider === "vnpay",
+            onToggle: () => {
+              setPage(1);
+              setProvider((prev) => (prev === "vnpay" ? "" : "vnpay"));
+            },
+          },
+          {
+            id: "payos",
+            label: "PAYOS",
+            checked: provider === "payos",
+            onToggle: () => {
+              setPage(1);
+              setProvider((prev) => (prev === "payos" ? "" : "payos"));
+            },
+          },
+        ],
+      },
+      {
+        id: "status",
+        title: "Trạng thái",
+        options: [
+          {
+            id: "paid",
+            label: "Thành công",
+            checked: status === "PAID",
+            onToggle: () => {
+              setPage(1);
+              setStatus((prev) => (prev === "PAID" ? "" : "PAID"));
+            },
+          },
+          {
+            id: "pending",
+            label: "Chờ xử lý",
+            checked: status === "PENDING",
+            onToggle: () => {
+              setPage(1);
+              setStatus((prev) => (prev === "PENDING" ? "" : "PENDING"));
+            },
+          },
+          {
+            id: "failed",
+            label: "Thất bại",
+            checked: status === "FAILED",
+            onToggle: () => {
+              setPage(1);
+              setStatus((prev) => (prev === "FAILED" ? "" : "FAILED"));
+            },
+          },
+          {
+            id: "cancelled",
+            label: "Đã hủy",
+            checked: status === "CANCELLED",
+            onToggle: () => {
+              setPage(1);
+              setStatus((prev) => (prev === "CANCELLED" ? "" : "CANCELLED"));
+            },
+          },
+        ],
+      },
+    ],
+    [provider, status]
+  );
+
+  const sortedItems = useMemo(() => {
+    const multiplier = sortDirection === "asc" ? 1 : -1;
+
+    return [...items].sort((a, b) => {
+      let left: string | number = "";
+      let right: string | number = "";
+
+      if (sortKey === "paymentCode") {
+        left = a.paymentCode;
+        right = b.paymentCode;
+      } else if (sortKey === "user") {
+        left = getUserName(a);
+        right = getUserName(b);
+      } else if (sortKey === "provider") {
+        left = a.provider;
+        right = b.provider;
+      } else if (sortKey === "amount") {
+        left = a.amount;
+        right = b.amount;
+      } else if (sortKey === "status") {
+        left = a.status;
+        right = b.status;
+      } else {
+        left = new Date(a.paidAt || a.createdAt).getTime();
+        right = new Date(b.paidAt || b.createdAt).getTime();
+      }
+
+      if (typeof left === "number" && typeof right === "number") {
+        return (left - right) * multiplier;
+      }
+
+      return String(left).localeCompare(String(right), "vi") * multiplier;
+    });
+  }, [items, sortDirection, sortKey]);
+
+  const columns = useMemo<
+    AdminTableColumn<PaymentAuditItem, PaymentAuditSortKey>[]
+  >(
+    () => [
+      {
+        id: "paymentCode",
+        label: "Mã đơn hàng",
+        sortKey: "paymentCode",
+        widthClassName: "w-[15%]",
+        render: (item) => (
+          <span className="font-medium text-slate-950 dark:text-white">
+            {formatOrderCode(item.paymentCode)}
+          </span>
+        ),
+      },
+      {
+        id: "user",
+        label: "Người dùng",
+        sortKey: "user",
+        widthClassName: "w-[24%]",
+        render: (item) => (
+          <AdminEntityCell
+            title={getUserName(item)}
+            subtitle={item.user?.email || "-"}
+            fallback={getInitials(item.user?.name, item.user?.email)}
+          />
+        ),
+      },
+      {
+        id: "provider",
+        label: "Phương thức",
+        sortKey: "provider",
+        widthClassName: "w-[13%]",
+        render: (item) => <ProviderBadge provider={item.provider} />,
+      },
+      {
+        id: "amount",
+        label: "Giá",
+        sortKey: "amount",
+        widthClassName: "w-[14%]",
+        render: (item) => (
+          <span className="font-medium text-slate-950 dark:text-white">
+            {formatMoney(item.amount)}
+          </span>
+        ),
+      },
+      {
+        id: "status",
+        label: "Trạng thái",
+        sortKey: "status",
+        widthClassName: "w-[14%]",
+        render: (item) => <StatusBadge status={item.status} />,
+      },
+      {
+        id: "createdAt",
+        label: "Ngày mua",
+        sortKey: "createdAt",
+        widthClassName: "w-[14%]",
+        cellClassName: "whitespace-nowrap",
+        render: (item) => (
+          <span className="font-medium text-slate-900 dark:text-slate-100">
+            {formatDate(item.paidAt || item.createdAt)}
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        label: "Hành động",
+        widthClassName: "w-[6%]",
+        align: "right",
+        render: (item) => (
+          <AdminActionIconButton title="Xem" onClick={() => setDetailItem(item)}>
+            <Eye className="h-4 w-4" />
+          </AdminActionIconButton>
+        ),
+      },
+    ],
+    []
+  );
+
   return (
-    <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/5">
-      <div className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</div>
-      <div className="mt-1 break-all text-sm font-semibold text-slate-900 dark:text-slate-100">{value}</div>
-    </div>
+    <main className="space-y-4">
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200">
+          {error}
+        </div>
+      ) : null}
+
+      <AdminListTable<PaymentAuditItem, PaymentAuditSortKey>
+        rows={sortedItems}
+        columns={columns}
+        rowKey={(item) => item._id}
+        loading={loading}
+        searchValue={search}
+        searchPlaceholder="Tìm theo mã đơn hoặc người dùng..."
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        filterSections={filterSections}
+        activeFilterCount={activeFilterCount}
+        onApplyFilters={() => setPage(1)}
+        onClearFilters={() => {
+          setSearch("");
+          setProvider("");
+          setStatus("");
+          setPage(1);
+        }}
+        sortBy={sortKey}
+        sortOrder={sortDirection}
+        onSortChange={(nextSortBy, nextSortOrder) => {
+          setSortKey(nextSortBy);
+          setSortDirection(nextSortOrder);
+        }}
+        onReload={() => setRefreshKey((prev) => prev + 1)}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems: total,
+          pageSize,
+          onPageSizeChange: (nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          },
+          onPageChange: setPage,
+          pageSizeOptions: [10, 20, 50],
+        }}
+        emptyText="Chưa có giao dịch phù hợp"
+        labels={{
+          apply: "Áp dụng",
+          clear: "Xóa lọc",
+          filter: "Lọc",
+          loading: "Đang tải giao dịch...",
+          noData: "Không có dữ liệu",
+          of: "trên",
+          reload: "Làm mới",
+          rows: "Dòng",
+          search: "Tìm kiếm",
+          showing: "Hiển thị",
+        }}
+        tableMinWidthClassName="min-w-full"
+      />
+
+      {detailItem ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+                  {formatOrderCode(detailItem.paymentCode)}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {getUserName(detailItem)} · {detailItem.user?.email || "-"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailItem(null)}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Phương thức
+                  </div>
+                  <div className="mt-2">
+                    <ProviderBadge provider={detailItem.provider} />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Giá
+                  </div>
+                  <div className="mt-1 font-medium text-slate-950 dark:text-white">
+                    {formatMoney(detailItem.amount)}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
+                  <div className="text-xs font-medium uppercase text-slate-400">
+                    Trạng thái
+                  </div>
+                  <div className="mt-2">
+                    <StatusBadge status={detailItem.status} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/70">
+                <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-950 dark:border-white/10 dark:text-white">
+                  Gói đã mua
+                </div>
+                <div className="divide-y divide-slate-200 dark:divide-white/10">
+                  {detailItem.items.length ? (
+                    detailItem.items.map((entry) => (
+                      <div
+                        key={`${entry.courseId}-${entry.title}`}
+                        className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-slate-950 dark:text-white">
+                            {entry.title}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            SL: {entry.quantity}
+                          </div>
+                        </div>
+                        <div className="shrink-0 font-medium text-slate-950 dark:text-white">
+                          {formatMoney(entry.subtotal)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                      Không có gói
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </main>
   );
 }

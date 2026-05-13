@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   KeyRound,
   Pencil,
@@ -19,6 +20,7 @@ import {
   type PermissionMetaItem,
   type RoleItem,
 } from "@/app/api/rbac.api";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -172,11 +174,11 @@ function RoleFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-[560px] rounded-2xl bg-white shadow-2xl dark:bg-slate-950 dark:shadow-black/30">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-white/10">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
+        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            <h3 className="text-xl font-semibold text-slate-950 dark:text-white">
               {mode === "create" ? "Thêm vai trò" : "Sửa vai trò"}
             </h3>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -189,13 +191,13 @@ function RoleFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -251,7 +253,7 @@ function RoleFormModal({
             />
           </div>
 
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 dark:border-white/10">
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 dark:border-white/10 dark:bg-white/5">
             <input
               type="checkbox"
               checked={form.isActive}
@@ -266,19 +268,19 @@ function RoleFormModal({
             <span className="text-sm text-slate-700 dark:text-slate-200">Kích hoạt vai trò</span>
           </label>
 
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="-mx-6 mt-6 flex items-center justify-end gap-3 border-t border-slate-200 px-6 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
-              Hủy
+              Đóng
             </button>
 
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving && <Loader2 size={16} className="animate-spin" />}
               {mode === "create" ? "Tạo vai trò" : "Lưu thay đổi"}
@@ -339,7 +341,7 @@ export default function AdminRbacPage() {
       setRolePermissionMap(Object.fromEntries(permissionPairs));
     } catch (error) {
       console.error(error);
-      alert("Không tải được dữ liệu RBAC");
+      toast.error("Không tải được dữ liệu RBAC");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -404,12 +406,12 @@ export default function AdminRbacPage() {
 
   async function handleSubmitRole(values: RoleFormState) {
     if (!values.code.trim()) {
-      alert("Vui lòng nhập mã vai trò");
+      toast.warning("Vui lòng nhập mã vai trò");
       return;
     }
 
     if (!values.name.trim()) {
-      alert("Vui lòng nhập tên vai trò");
+      toast.warning("Vui lòng nhập tên vai trò");
       return;
     }
 
@@ -434,9 +436,14 @@ export default function AdminRbacPage() {
       setOpenRoleForm(false);
       setActiveEditRole(null);
       await loadAll(true);
+      toast.success(
+        roleFormMode === "create"
+          ? "Tạo vai trò thành công"
+          : "Cập nhật vai trò thành công"
+      );
     } catch (error) {
       console.error(error);
-      alert(
+      toast.error(
         roleFormMode === "create"
           ? "Tạo vai trò thất bại"
           : "Cập nhật vai trò thất bại"
@@ -448,11 +455,11 @@ export default function AdminRbacPage() {
 
   async function handleDelete(role: RoleItem) {
     if (isSystemRole(role.code)) {
-      alert("Không được xóa vai trò hệ thống");
+      toast.warning("Không được xóa vai trò hệ thống");
       return;
     }
 
-    const ok = window.confirm(
+    const ok = await toastConfirm(
       `Bạn có chắc muốn xóa vai trò "${role.code}" không?`
     );
     if (!ok) return;
@@ -467,9 +474,10 @@ export default function AdminRbacPage() {
         delete next[role.code];
         return next;
       });
+      toast.success("Xóa vai trò thành công");
     } catch (error) {
       console.error(error);
-      alert("Xóa vai trò thất bại");
+      toast.error("Xóa vai trò thất bại");
     } finally {
       setDeletingCode(null);
     }
@@ -538,6 +546,7 @@ export default function AdminRbacPage() {
               const theme = roleTheme(role.code);
               const preview = getPermissionPreview(role.code);
               const deleting = deletingCode === role.code;
+              const isAdminRole = role.code.toUpperCase() === "ADMIN";
 
               return (
                 <div
@@ -653,10 +662,16 @@ export default function AdminRbacPage() {
 
                     <button
                       type="button"
-                      onClick={() => void handleDelete(role)}
-                      disabled={deleting}
-                      className="text-[#ef4444] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Xóa"
+                      onClick={() => {
+                        if (isAdminRole) return;
+                        void handleDelete(role);
+                      }}
+                      disabled={deleting || isAdminRole}
+                      className={cn(
+                        "text-[#ef4444] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-35",
+                        isAdminRole && "grayscale"
+                      )}
+                      title={isAdminRole ? "Không được xóa ADMIN" : "Xóa"}
                     >
                       {deleting ? (
                         <Loader2 size={18} className="animate-spin" />

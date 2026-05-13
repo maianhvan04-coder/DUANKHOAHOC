@@ -204,6 +204,12 @@ export type UpdateStudentLearningPayload = {
   note?: string;
 };
 
+export type UpdateStudentStudyPayload = {
+  status?: StudyStatus;
+  note?: string;
+  isActive?: boolean | "true" | "false";
+};
+
 export type UpdateStudentTestsPayload = {
   test1?: number;
   test2?: number;
@@ -705,6 +711,16 @@ export const classroomApi = {
   async listStudents(classRoomId: string) {
     const res = await http.get(`/api/classes/${classRoomId}/students`);
     return pickArray(res.data).map(normalizeStudentStudy);
+  },
+
+  async updateStudentStudy(
+    studyId: string,
+    payload: UpdateStudentStudyPayload
+  ) {
+    const res = await http.put(`/api/students/studies/${studyId}`, payload);
+    return normalizeStudentStudy(
+      requireItem(res.data, "Không đọc được dữ liệu học viên")
+    );
   },
 
   async updateStudentLearning(

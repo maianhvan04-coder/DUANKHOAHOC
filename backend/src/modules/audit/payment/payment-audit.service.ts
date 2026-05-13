@@ -21,6 +21,7 @@ function normalizeListQuery(input: Partial<PaymentHistoryListQuery>): PaymentHis
     status: input.status,
     userId: input.userId,
     keyword: input.keyword?.trim() || undefined,
+    userKeyword: input.userKeyword?.trim() || undefined,
   };
 }
 

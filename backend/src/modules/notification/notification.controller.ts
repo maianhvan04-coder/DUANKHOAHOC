@@ -7,6 +7,8 @@ import {
   getUserNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
+  sendAdminNotification,
+  updateAdminNotification,
   type NotificationListQuery,
 } from "./notification.service";
 
@@ -28,6 +30,12 @@ type CreateNotificationBody = {
   userId: string;
   title: string;
   message: string;
+  type?: NotificationType;
+};
+
+type UpdateNotificationBody = {
+  title?: string;
+  message?: string;
   type?: NotificationType;
 };
 
@@ -142,6 +150,50 @@ export async function deleteAdminNotificationController(
     return res.json({
       ok: true,
       message: "Xóa thông báo thành công",
+      data: notification,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateAdminNotificationController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const notificationId = getParamString(req.params.id);
+    const body = req.body as UpdateNotificationBody;
+
+    const notification = await updateAdminNotification(notificationId, {
+      title: body.title,
+      message: body.message,
+      type: body.type,
+    });
+
+    return res.json({
+      ok: true,
+      message: "Cập nhật thông báo thành công",
+      data: notification,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function sendAdminNotificationController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const notificationId = getParamString(req.params.id);
+    const notification = await sendAdminNotification(notificationId);
+
+    return res.json({
+      ok: true,
+      message: "Đã gửi thông báo",
       data: notification,
     });
   } catch (error) {

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import {
   Lock,
   LockOpen,
@@ -9,7 +10,6 @@ import {
   Plus,
   RotateCcw,
   Trash2,
-  Users,
 } from "lucide-react";
 import { userApi, type UserRow } from "@/app/api/user.api";
 import UserFormModal, { type UserFormInitial } from "@/components/ui/admin/users/UserFormModal";
@@ -25,6 +25,7 @@ import {
   type PaginationMeta,
   type SortDirection,
 } from "@/lib/utils/admin-list";
+import { toastConfirm } from "@/lib/utils/toast-confirm";
 
 type ApiErrorBody = { message?: string };
 
@@ -32,6 +33,21 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type TabKey = "USERS" | "DELETED";
 type FormRole = UserFormInitial["role"];
 type UserSortKey = "name" | "email" | "role" | "status" | "createdAt";
+
+const SYSTEM_ROLE_OPTIONS = ["USER", "STUDENT", "TEACHER", "MANAGER"];
+const BLOCKED_FORM_ROLE_SET = new Set(["ADMIN"]);
+
+function isBlockedFormRole(role: string) {
+  return BLOCKED_FORM_ROLE_SET.has(role.trim().toUpperCase());
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError<ApiErrorBody>(error)) {
+    return error.response?.data?.message || fallback;
+  }
+
+  return fallback;
+}
 
 /** ===== UI ViewModel (NO any) ===== */
 type UserVM = {
@@ -45,7 +61,7 @@ type UserVM = {
 };
 
 function isFormRole(v: string): v is FormRole {
-  return v === "USER" || v === "ADMIN";
+  return SYSTEM_ROLE_OPTIONS.includes(v);
 }
 
 function toFormRole(input?: string): FormRole {
@@ -240,7 +256,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<TabKey>("USERS");
+  const [tab] = useState<TabKey>("USERS");
 
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
@@ -313,9 +329,18 @@ export default function UsersPage() {
 
   const roleOptions = useMemo(() => {
     const set = new Set<string>();
+    for (const role of SYSTEM_ROLE_OPTIONS) set.add(role);
     for (const u of items) for (const r of u.roles) set.add(r);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const extras = Array.from(set)
+      .filter((role) => !SYSTEM_ROLE_OPTIONS.includes(role))
+      .sort((a, b) => a.localeCompare(b));
+    return [...SYSTEM_ROLE_OPTIONS, ...extras];
   }, [items]);
+
+  const formRoleOptions = useMemo(
+    () => roleOptions.filter((role) => !isBlockedFormRole(role)),
+    [roleOptions]
+  );
 
   const onCreate = () => {
     setEditing(null);
@@ -323,7 +348,7 @@ export default function UsersPage() {
   };
 
   const onEdit = (u: UserVM) => {
-    const rolePrimary = toFormRole(u.roles[0]); // ✅ now "USER" | "ADMIN"
+    const rolePrimary = toFormRole(u.roles[0]);
 
     const mapped: UserFormInitial = {
       id: u.id,
@@ -332,8 +357,8 @@ export default function UsersPage() {
       active: u.active,
       phone: "",
       createdAt: u.createdAt,
-      role: rolePrimary,      // ✅ hết lỗi
-      roles: u.roles,         // (giữ nguyên nếu UserFormInitial.roles là string[])
+      role: rolePrimary,
+      roles: u.roles,
     };
 
     setEditing(mapped);
@@ -345,7 +370,7 @@ export default function UsersPage() {
 
     const nextActive = !u.active;
     const msg = nextActive ? "Chuyển sang hoạt động?" : "Chuyển sang tạm tắt?";
-    if (!confirm(msg)) return;
+    if (!(await toastConfirm(msg))) return;
 
     try {
       setStatusBusy((prev) => new Set(prev).add(u.id));
@@ -355,9 +380,9 @@ export default function UsersPage() {
       setItems((prev) =>
         prev.map((x) => (x.id === u.id ? { ...x, active: nextActive } : x))
       );
+      toast.success(nextActive ? "Đã mở khóa người dùng" : "Đã tạm tắt người dùng");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Đổi trạng thái thất bại");
-      else alert("Đổi trạng thái thất bại");
+      toast.error(getApiErrorMessage(error, "Đổi trạng thái thất bại"));
     } finally {
       setStatusBusy((prev) => {
         const next = new Set(prev);
@@ -371,7 +396,7 @@ export default function UsersPage() {
   const onDelete = async (id: string) => {
     const hard = tab === "DELETED";
     const msg = hard ? "Xóa vĩnh viễn người dùng này?" : "Chuyển người dùng này vào đã xóa? (sẽ tạm tắt)";
-    if (!confirm(msg)) return;
+    if (!(await toastConfirm(msg))) return;
 
     try {
       if (hard) await userApi.hardRemove(id);
@@ -384,14 +409,14 @@ export default function UsersPage() {
       });
 
       await load(tab);
+      toast.success(hard ? "Đã xóa vĩnh viễn người dùng" : "Đã chuyển người dùng vào đã xóa");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Xoá thất bại");
-      else alert("Xoá thất bại");
+      toast.error(getApiErrorMessage(error, "Xoá thất bại"));
     }
   };
 
   const onRestore = async (id: string) => {
-    if (!confirm("Khôi phục người dùng này? (sẽ hoạt động)")) return;
+    if (!(await toastConfirm("Khôi phục người dùng này? (sẽ hoạt động)"))) return;
     try {
       await userApi.restore(id);
 
@@ -402,9 +427,9 @@ export default function UsersPage() {
       });
 
       await load(tab);
+      toast.success("Đã khôi phục người dùng");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Restore thất bại");
-      else alert("Restore thất bại");
+      toast.error(getApiErrorMessage(error, "Restore thất bại"));
     }
   };
 
@@ -418,9 +443,9 @@ export default function UsersPage() {
       setOpenForm(false);
       setEditing(null);
       await load(tab);
+      toast.success(editing ? "Đã cập nhật người dùng" : "Đã tạo người dùng");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Lưu thất bại");
-      else alert("Lưu thất bại");
+      toast.error(getApiErrorMessage(error, "Lưu thất bại"));
     } finally {
       setSaving(false);
     }
@@ -474,7 +499,7 @@ export default function UsersPage() {
     const msg = hard
       ? `Xóa vĩnh viễn ${selected.size} người dùng đã chọn?`
       : `Chuyển ${selected.size} người dùng vào đã xóa? (sẽ tạm tắt)`;
-    if (!confirm(msg)) return;
+    if (!(await toastConfirm(msg))) return;
 
     try {
       const ids = Array.from(selected);
@@ -482,15 +507,15 @@ export default function UsersPage() {
 
       clearSelected();
       await load(tab);
+      toast.success(hard ? "Đã xóa vĩnh viễn người dùng đã chọn" : "Đã chuyển người dùng đã chọn vào đã xóa");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Xoá nhiều thất bại");
-      else alert("Xoá nhiều thất bại");
+      toast.error(getApiErrorMessage(error, "Xoá nhiều thất bại"));
     }
   };
 
   const onBulkRestore = async () => {
     if (tab !== "DELETED" || selected.size === 0) return;
-    if (!confirm(`Khôi phục ${selected.size} người dùng đã chọn? (sẽ hoạt động)`)) return;
+    if (!(await toastConfirm(`Khôi phục ${selected.size} người dùng đã chọn? (sẽ hoạt động)`))) return;
 
     try {
       const ids = Array.from(selected);
@@ -498,11 +523,15 @@ export default function UsersPage() {
 
       clearSelected();
       await load(tab);
+      toast.success("Đã khôi phục người dùng đã chọn");
     } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorBody>(error)) alert(error.response?.data?.message || "Restore nhiều thất bại");
-      else alert("Restore nhiều thất bại");
+      toast.error(getApiErrorMessage(error, "Restore nhiều thất bại"));
     }
   };
+
+  void selectedCount;
+  void onBulkDelete;
+  void onBulkRestore;
 
   const activeFilterCount =
     (roleFilter !== "ALL" ? 1 : 0) + (statusFilter !== "ALL" ? 1 : 0);
@@ -572,26 +601,6 @@ export default function UsersPage() {
 
   const tableColumns: AdminTableColumn<UserVM, UserSortKey>[] = [
       {
-        id: "select",
-        label: (
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={toggleAll}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-        ),
-        widthClassName: "w-[56px]",
-        render: (u) => (
-          <input
-            type="checkbox"
-            checked={selected.has(u.id)}
-            onChange={() => toggleOne(u.id)}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-        ),
-      },
-      {
         id: "user",
         label: "User",
         sortKey: "name",
@@ -606,7 +615,7 @@ export default function UsersPage() {
       },
       {
         id: "roles",
-        label: "Roles",
+        label: "Role",
         sortKey: "role",
         widthClassName: "w-[180px]",
         render: (u) =>
@@ -656,47 +665,20 @@ export default function UsersPage() {
         align: "right",
         render: (u) => (
           <div className="flex items-center justify-end gap-2">
-            {tab === "USERS" ? (
-              <>
-                <AdminActionIconButton title="Edit" onClick={() => onEdit(u)}>
-                  <Pencil className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  title={u.active ? "Lock" : "Unlock"}
-                  disabled={statusBusy.has(u.id)}
-                  onClick={() => void onToggleStatus(u)}
-                >
-                  {u.active ? (
-                    <Lock className="h-4 w-4" />
-                  ) : (
-                    <LockOpen className="h-4 w-4" />
-                  )}
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Chuyển vào đã xóa"
-                  onClick={() => void onDelete(u.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
+            <AdminActionIconButton title="Edit" onClick={() => onEdit(u)}>
+              <Pencil className="h-4 w-4" />
+            </AdminActionIconButton>
+            <AdminActionIconButton
+              title={u.active ? "Lock" : "Unlock"}
+              disabled={statusBusy.has(u.id)}
+              onClick={() => void onToggleStatus(u)}
+            >
+              {u.active ? (
+                <Lock className="h-4 w-4" />
             ) : (
-              <>
-                <AdminActionIconButton
-                  title="Restore"
-                  onClick={() => void onRestore(u.id)}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </AdminActionIconButton>
-                <AdminActionIconButton
-                  danger
-                  title="Xóa vĩnh viễn"
-                  onClick={() => void onDelete(u.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </AdminActionIconButton>
-              </>
-            )}
+                <LockOpen className="h-4 w-4" />
+              )}
+            </AdminActionIconButton>
           </div>
         ),
       },
@@ -705,45 +687,6 @@ export default function UsersPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Bulk bar */}
-        {selectedCount > 0 ? (
-          <section className="rounded-[30px] border border-slate-200 bg-white px-5 py-4 shadow-sm dark:border-white/10 dark:bg-slate-950/45">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                Đã chọn: <span className="font-extrabold">{selectedCount}</span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
-                {tab === "DELETED" ? (
-                  <button
-                    type="button"
-                    onClick={onBulkRestore}
-                    className="h-10 rounded-[16px] bg-sky-600 px-4 text-sm font-semibold text-white transition hover:bg-sky-700"
-                  >
-                    Khôi phục mục đã chọn
-                  </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={clearSelected}
-                  className="h-10 rounded-[16px] border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-                >
-                  Clear
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onBulkDelete}
-                  className="h-10 rounded-[16px] bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-700"
-                >
-                  {tab === "DELETED" ? "Xóa vĩnh viễn" : "Chuyển vào đã xóa"}
-                </button>
-              </div>
-            </div>
-          </section>
-        ) : null}
-
         <AdminListTable<UserVM, UserSortKey>
           rows={paged}
           columns={tableColumns}
@@ -772,49 +715,11 @@ export default function UsersPage() {
             setPage(1);
           }}
           onReload={() => void load(tab)}
-          toolbarStart={
-            <div className="inline-flex rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-white/10 dark:bg-white/5">
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("USERS");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  tab === "USERS"
-                    ? "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <Users className="h-4 w-4" />
-                Users
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setTab("DELETED");
-                  setPage(1);
-                }}
-                className={cn(
-                  "inline-flex h-11 items-center gap-2 rounded-[16px] px-5 text-sm font-semibold transition",
-                  tab === "DELETED"
-                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200"
-                    : "text-slate-700 hover:bg-white dark:text-slate-200 dark:hover:bg-white/10"
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-                Đã xóa
-              </button>
-            </div>
-          }
           toolbarEnd={
             <button
               type="button"
               onClick={onCreate}
-              disabled={tab === "DELETED"}
-              className="inline-flex h-11 items-center gap-2 rounded-[18px] bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
             >
               <Plus className="h-4.5 w-4.5" />
               New User
@@ -833,7 +738,7 @@ export default function UsersPage() {
             pageSizeOptions: [5, 10, 20],
           }}
           emptyText={err || "Không có dữ liệu"}
-          tableMinWidthClassName="min-w-[1040px]"
+          tableMinWidthClassName="min-w-[984px]"
         />
 
         {/* Table */}
@@ -1043,7 +948,7 @@ export default function UsersPage() {
           open={openForm}
           initial={editing}
           saving={saving}
-          roleOptions={roleOptions}
+          roleOptions={formRoleOptions}
           onClose={() => {
             setOpenForm(false);
             setEditing(null);
