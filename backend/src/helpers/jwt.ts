@@ -1,10 +1,9 @@
 // src/helpers/jwt.ts
 
 import jwt, { type SignOptions } from "jsonwebtoken";
-import { Role } from "../constants/roles";
 import { uuid } from "./token.util";
 
-export type JwtPayload = { sub: string; email: string; role: Role; jti: string };
+export type JwtPayload = { sub: string; email: string; role: string; jti: string };
 
 function getAccessSecret() {
   const secret = process.env.JWT_ACCESS_SECRET;

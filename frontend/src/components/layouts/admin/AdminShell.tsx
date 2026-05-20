@@ -32,7 +32,7 @@ import {
 import type { AuthUser, UserAccess } from "@/app/api/auth.api";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { clearAuth, takeAdminIntroIntent } from "@/lib/utils/storage";
-import { hasAnyRole } from "@/lib/helpers/auth/access";
+import { canAccessAdmin } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -184,7 +184,7 @@ function AdminShellFrame({ children }: { children: ReactNode }) {
       return;
     }
 
-    const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+    const allowed = canAccessAdmin(access);
 
     if (!allowed) {
       router.replace("/403");

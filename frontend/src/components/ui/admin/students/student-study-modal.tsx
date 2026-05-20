@@ -441,7 +441,7 @@ function StudyForm({
             ? "Đang lưu..."
             : mode === "edit"
               ? "Lưu thay đổi"
-              : "Gán vào lớp"}
+              : "Gán học viên vào lớp"}
         </button>
       </div>
     </form>
@@ -745,7 +745,7 @@ export default function StudentStudyModal({
         <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div>
             <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-              Hồ sơ học tập
+              Gán học viên vào lớp
             </h2>
           </div>
 
@@ -792,7 +792,7 @@ export default function StudentStudyModal({
                 className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
               >
                 <Plus className="h-4 w-4" />
-                Gán vào lớp
+                Gán học viên vào lớp
               </button>
             }
             pagination={{
@@ -826,7 +826,9 @@ export default function StudentStudyModal({
           {!loading && items.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-10 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-400">
               <BookOpen className="mx-auto h-7 w-7 text-slate-400" />
-              <p className="mt-3">Bấm “Gán vào lớp” để thêm lớp học cho học viên.</p>
+              <p className="mt-3">
+                Bấm “Gán học viên vào lớp” để thêm lớp học cho học viên.
+              </p>
             </div>
           ) : null}
 
@@ -840,7 +842,9 @@ export default function StudentStudyModal({
               <div className="flex items-center gap-2">
                 <CircleCheckBig className="h-5 w-5 text-slate-700 dark:text-slate-200" />
                 <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                  {formMode === "edit" ? "Update class assignment" : "Assign to class"}
+                  {formMode === "edit"
+                    ? "Cập nhật hồ sơ học tập"
+                    : "Gán học viên vào lớp"}
                 </h2>
               </div>
               <button

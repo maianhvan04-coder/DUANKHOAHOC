@@ -1,6 +1,6 @@
 import { http } from "@/lib/utils/http";
 
-export type Role = "ADMIN" | "MANAGER" | "TEACHER" | "STUDENT" | "USER";
+export type Role = string;
 export type PermissionKey = string;
 
 export type AuthUser = {

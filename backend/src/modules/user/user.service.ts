@@ -1,7 +1,8 @@
+import bcrypt from "bcrypt";
 import { isValidObjectId, Types } from "mongoose";
-import { ROLES, type RoleCode } from "../../constants/roles";
+import { ROLES } from "../../constants/roles";
 import { UserModel } from "./user.model";
-import { setRolesForUser } from "../rbac/rbac.service";
+import { getUserAccess, setRolesForUser } from "../rbac/rbac.service";
 import UserRole from "../rbac/models/userRole.model";
 import {
   escapeRegex,
@@ -15,13 +16,23 @@ import {
 type CreateUserInput = {
   name: string;
   email: string;
-  role?: RoleCode;
+  role?: string;
+  roles?: string[];
 };
 
 type UpdateUserInput = Partial<{
   name: string;
   email: string;
-  role: RoleCode;
+  role: string;
+  roles: string[];
+  password: string;
+}>;
+
+type UserUpdateData = Partial<{
+  name: string;
+  email: string;
+  role: string;
+  passwordHash: string;
 }>;
 
 const HIDDEN_USER_EMAILS = ["admin@gmail.com"];
@@ -30,6 +41,39 @@ function sanitizeUser<T extends Record<string, any>>(user: T | null) {
   if (!user) return null;
   const { passwordHash: _pw, ...safe } = user;
   return safe;
+}
+
+function normalizeRoleCodes(roleCodes: string[]) {
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of roleCodes) {
+    const role = String(item || "").trim().toUpperCase();
+    if (!role || seen.has(role)) continue;
+    seen.add(role);
+    out.push(role);
+  }
+
+  return out.length ? out : [ROLES.USER];
+}
+
+function getRequestedRoleCodes(data: { role?: string; roles?: string[] }) {
+  return normalizeRoleCodes(
+    data.roles?.length ? data.roles : data.role ? [data.role] : []
+  );
+}
+
+async function withAccessRoles<T extends Record<string, any>>(user: T | null) {
+  const safe = sanitizeUser(user);
+  if (!safe?._id) return safe;
+
+  const access = await getUserAccess(String(safe._id));
+
+  return {
+    ...safe,
+    role: access.primaryRole,
+    roles: access.roles,
+  };
 }
 
 export const userService = {
@@ -85,7 +129,9 @@ export const userService = {
       userQuery,
     ]);
 
-    return makeListResponse(users, total, pagination);
+    const items = await Promise.all(users.map((user) => withAccessRoles(user)));
+
+    return makeListResponse(items, total, pagination);
   },
 
   async getById(id: string) {
@@ -95,11 +141,12 @@ export const userService = {
       .select("-passwordHash")
       .lean();
 
-    return user;
+    return withAccessRoles(user);
   },
 
   async create(data: CreateUserInput) {
-    const role = data.role ?? ROLES.USER;
+    const roleCodes = getRequestedRoleCodes(data);
+    const role = roleCodes[0] ?? ROLES.USER;
 
     const exists = await UserModel.findOne({
       email: data.email.trim().toLowerCase(),
@@ -120,16 +167,16 @@ export const userService = {
       deletedAt: null,
     });
 
-    await setRolesForUser(String(doc._id), [role]);
+    await setRolesForUser(String(doc._id), roleCodes);
 
     const obj = doc.toObject() as Record<string, any>;
-    return sanitizeUser(obj);
+    return withAccessRoles(obj);
   },
 
   async update(id: string, data: UpdateUserInput) {
     if (!isValidObjectId(id)) return null;
 
-    const updateData: UpdateUserInput = {};
+    const updateData: UserUpdateData = {};
 
     if (data.name !== undefined) {
       updateData.name = data.name.trim();
@@ -153,8 +200,16 @@ export const userService = {
       updateData.email = normalizedEmail;
     }
 
-    if (data.role !== undefined) {
-      updateData.role = data.role;
+    const shouldUpdateRoles =
+      data.roles !== undefined || data.role !== undefined;
+    const roleCodes = shouldUpdateRoles ? getRequestedRoleCodes(data) : [];
+
+    if (shouldUpdateRoles) {
+      updateData.role = roleCodes[0] ?? ROLES.USER;
+    }
+
+    if (data.password !== undefined) {
+      updateData.passwordHash = await bcrypt.hash(data.password, 10);
     }
 
     const updated = await UserModel.findOneAndUpdate(
@@ -167,11 +222,11 @@ export const userService = {
 
     if (!updated) return null;
 
-    if (data.role) {
-      await setRolesForUser(id, [data.role]);
+    if (shouldUpdateRoles) {
+      await setRolesForUser(id, roleCodes);
     }
 
-    return updated;
+    return withAccessRoles(updated);
   },
 
   async setActive(id: string, active: boolean) {

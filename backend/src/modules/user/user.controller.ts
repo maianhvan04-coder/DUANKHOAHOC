@@ -12,6 +12,16 @@ const setActiveSchema = z.object({
   active: z.boolean(),
 });
 
+function requestedRoles(payload: { role?: string; roles?: string[] }) {
+  return (payload.roles?.length ? payload.roles : payload.role ? [payload.role] : [])
+    .map((role) => String(role).trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function requiresSetRolePermission(payload: { role?: string; roles?: string[] }) {
+  return requestedRoles(payload).some((role) => role !== ROLES.USER);
+}
+
 export const userController = {
   // GET /users?deleted=0|1
   list: asyncHandler(async (req: Request, res: Response) => {
@@ -35,8 +45,7 @@ export const userController = {
 
     // nếu tạo user với role khác USER thì cần quyền gán role
     if (
-      payload.role &&
-      payload.role !== ROLES.USER &&
+      requiresSetRolePermission(payload) &&
       !req.user?.permissions.includes(PERMISSIONS.USER_SET_ROLES)
     ) {
       return res.status(403).json({
@@ -53,7 +62,7 @@ export const userController = {
 
     // nếu update role thì cần quyền set role
     if (
-      payload.role &&
+      requiresSetRolePermission(payload) &&
       !req.user?.permissions.includes(PERMISSIONS.USER_SET_ROLES)
     ) {
       return res.status(403).json({

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -15,14 +16,12 @@ import {
   School,
   Search,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   classroomApi,
   type AttendanceStatus,
-  type ClassMode,
   type ClassroomItem,
   type ClassroomSessionItem,
   type ClassroomStudentStudyItem,
@@ -366,8 +365,6 @@ type ClassSortKey =
   | "className"
   | "course"
   | "teacher"
-  | "schedule"
-  | "room"
   | "status"
   | "createdAt";
 type StudentAttendanceSortKey =
@@ -381,11 +378,6 @@ type ClassFormState = {
   course: string;
   teacher: string;
   className: string;
-  mode: ClassMode;
-  scheduleText: string;
-  room: string;
-  startedAt: string;
-  endedAt: string;
   maxStudents: string;
   isActive: boolean;
 };
@@ -401,11 +393,6 @@ const INITIAL_CLASS_FORM: ClassFormState = {
   course: "",
   teacher: "",
   className: "",
-  mode: "ONLINE",
-  scheduleText: "",
-  room: "",
-  startedAt: "",
-  endedAt: "",
   maxStudents: "0",
   isActive: true,
 };
@@ -476,11 +463,6 @@ function getInitialClassForm(
           ? initialData.teacher._id
           : "",
       className: initialData.className || "",
-      mode: initialData.mode || "ONLINE",
-      scheduleText: initialData.scheduleText || "",
-      room: initialData.room || "",
-      startedAt: initialData.startedAt ? initialData.startedAt.slice(0, 10) : "",
-      endedAt: initialData.endedAt ? initialData.endedAt.slice(0, 10) : "",
       maxStudents: String(initialData.maxStudents ?? 0),
       isActive: initialData.isActive ?? true,
     };
@@ -533,7 +515,7 @@ function ClassroomModal({
                 {mode === "create" ? "Thêm lớp học" : "Cập nhật lớp học"}
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Tạo lớp mới, gán khóa học, giảng viên và lịch học.
+                Tạo lớp mới và gán khóa học, giảng viên.
               </p>
             </div>
 
@@ -596,71 +578,7 @@ function ClassroomModal({
                 />
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Hình thức
-                </label>
-                <select
-                  value={value.mode}
-                  onChange={(e) =>
-                    onChange({ mode: e.target.value as ClassMode })
-                  }
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                >
-                  <option value="ONLINE">Online</option>
-                  <option value="OFFLINE">Offline</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Lịch học
-                </label>
-                <input
-                  value={value.scheduleText}
-                  onChange={(e) => onChange({ scheduleText: e.target.value })}
-                  placeholder="T2 - T4 - T6 | 18:30 - 20:00"
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Phòng học / Link học
-                </label>
-                <input
-                  value={value.room}
-                  onChange={(e) => onChange({ room: e.target.value })}
-                  placeholder="Phòng 203 / Google Meet"
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Ngày bắt đầu
-                </label>
-                <input
-                  type="date"
-                  value={value.startedAt}
-                  onChange={(e) => onChange({ startedAt: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Ngày kết thúc
-                </label>
-                <input
-                  type="date"
-                  value={value.endedAt}
-                  onChange={(e) => onChange({ endedAt: e.target.value })}
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
+              <div className="md:col-span-2">
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Số lượng tối đa
                 </label>
@@ -1594,7 +1512,7 @@ function StudentsModal({
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                    Quản lý điểm danh học viên
+                    Quản lí học tập
                   </h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     {classRoom.className} · {getCourseTitle(classRoom)}
@@ -1814,11 +1732,6 @@ export default function AdminClassesPage() {
           course: form.course,
           teacher: form.teacher,
           className: form.className.trim(),
-          mode: form.mode,
-          scheduleText: form.scheduleText.trim(),
-          room: form.room.trim(),
-          startedAt: form.startedAt || undefined,
-          endedAt: form.endedAt || undefined,
           maxStudents: form.maxStudents,
           isActive: form.isActive,
         };
@@ -1835,11 +1748,6 @@ export default function AdminClassesPage() {
           course: form.course,
           teacher: form.teacher,
           className: form.className.trim(),
-          mode: form.mode,
-          scheduleText: form.scheduleText.trim(),
-          room: form.room.trim(),
-          startedAt: form.startedAt || undefined,
-          endedAt: form.endedAt || undefined,
           maxStudents: form.maxStudents,
           isActive: form.isActive,
         };
@@ -1968,7 +1876,7 @@ export default function AdminClassesPage() {
         render: (item) => (
           <AdminEntityCell
             title={item.className || "--"}
-            subtitle={`${item.mode} · ${item.maxStudents} HV`}
+            subtitle={`Tối đa ${item.maxStudents} HV`}
             icon={<School className="h-4 w-4 text-slate-500" />}
           />
         ),
@@ -2014,10 +1922,10 @@ export default function AdminClassesPage() {
         render: (item) => (
           <div className="flex items-center justify-end gap-1">
             <AdminActionIconButton
-              title="Học viên"
+              title="Quản lí học tập"
               onClick={() => setStudentsModalClass(item)}
             >
-              <Users className="h-4 w-4" />
+              <BookOpen className="h-4 w-4" />
             </AdminActionIconButton>
             <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
               <Pencil className="h-4 w-4" />
@@ -2117,7 +2025,7 @@ export default function AdminClassesPage() {
         rowKey={(item) => item._id}
         loading={loading}
         searchValue={search}
-        searchPlaceholder="Tìm lớp, khóa học, giảng viên, phòng..."
+        searchPlaceholder="Tìm lớp, khóa học, giảng viên..."
         onSearchChange={(value) => {
           setSearch(value);
           setPage(1);
@@ -2175,7 +2083,7 @@ export default function AdminClassesPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Tìm lớp, khóa học, giảng viên, phòng..."
+              placeholder="Tìm lớp, khóa học, giảng viên..."
               className="h-11 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 text-sm outline-none focus:border-emerald-500"
             />
           </div>
@@ -2212,8 +2120,6 @@ export default function AdminClassesPage() {
               <option value="className">Sort: Lớp</option>
               <option value="course">Sort: Khóa học</option>
               <option value="teacher">Sort: Giảng viên</option>
-              <option value="schedule">Sort: Lịch</option>
-              <option value="room">Sort: Phòng</option>
               <option value="status">Sort: Trạng thái</option>
             </select>
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -2243,12 +2149,10 @@ export default function AdminClassesPage() {
       <section className="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <div className="min-w-[1250px]">
-            <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1fr_220px] items-center border-b border-slate-200 bg-slate-50 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+            <div className="grid grid-cols-[2fr_1.4fr_1fr_1fr_220px] items-center border-b border-slate-200 bg-slate-50 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
               <div>Lớp</div>
               <div>Khóa học</div>
               <div>Giảng viên</div>
-              <div>Lịch</div>
-              <div>Phòng</div>
               <div>Trạng thái</div>
               <div>Action</div>
             </div>
@@ -2265,14 +2169,14 @@ export default function AdminClassesPage() {
               pagedItems.map((item) => (
                 <div
                   key={item._id}
-                  className="grid grid-cols-[2fr_1.4fr_1fr_1fr_1fr_1fr_220px] items-center border-b border-slate-200 px-6 py-4 text-sm last:border-b-0"
+                  className="grid grid-cols-[2fr_1.4fr_1fr_1fr_220px] items-center border-b border-slate-200 px-6 py-4 text-sm last:border-b-0"
                 >
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-slate-900">
                       {item.className}
                     </div>
                     <div className="truncate text-slate-500">
-                      {item.mode} · {item.maxStudents} HV
+                      Tối đa {item.maxStudents} HV
                     </div>
                   </div>
 
@@ -2283,12 +2187,6 @@ export default function AdminClassesPage() {
                   <div className="truncate text-slate-700">
                     {getTeacherName(item) || "--"}
                   </div>
-
-                  <div className="text-slate-700">
-                    {item.scheduleText || "--"}
-                  </div>
-
-                  <div className="text-slate-700">{item.room || "--"}</div>
 
                   <div>
                     <span
@@ -2309,8 +2207,8 @@ export default function AdminClassesPage() {
                           onClick={() => setStudentsModalClass(item)}
                           className="inline-flex h-10 items-center gap-2 rounded-xl border border-sky-200 px-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-50"
                         >
-                          <Users className="h-4 w-4" />
-                          Học viên
+                          <BookOpen className="h-4 w-4" />
+                          Quản lí học tập
                         </button>
 
                         <button

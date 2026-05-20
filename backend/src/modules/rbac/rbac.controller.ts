@@ -11,6 +11,8 @@ import {
 import { ROLES } from "../../constants/roles";
 
 import { rbacRepo } from "./rbac.repo";
+import { roleRepo } from "./repos/role.repo";
+import { roleService } from "./services/role.service";
 import {
   getUserAccess as getUserAccessService,
   seedDefaultRbac,
@@ -20,9 +22,11 @@ import {
   syncLegacyUserRolesFromUsers,
 } from "./rbac.service";
 import {
+  createRoleSchema,
   roleCodeParamsSchema,
   setRolePermissionsSchema,
   setUserRolesSchema,
+  updateRoleSchema,
   userIdParamsSchema,
 } from "./rbac.validate";
 
@@ -46,6 +50,53 @@ export const rbacController = {
   listRoles: asyncHandler(async (_req: Request, res: Response) => {
     const roles = await rbacRepo.listRoles();
     res.json(roles);
+  }),
+
+  createRole: asyncHandler(async (req: Request, res: Response) => {
+    const body = createRoleSchema.parse(req.body);
+    const role = await roleService.create(body);
+
+    res.status(201).json({
+      message: "Tạo vai trò thành công",
+      role,
+    });
+  }),
+
+  updateRole: asyncHandler(async (req: Request, res: Response) => {
+    const { roleCode } = roleCodeParamsSchema.parse(req.params);
+    const body = updateRoleSchema.parse(req.body);
+    const role = await roleRepo.findByCode(roleCode);
+
+    if (!role) {
+      return res.status(404).json({
+        message: "Không tìm thấy vai trò",
+      });
+    }
+
+    const updated = await roleService.update(String(role._id), body);
+
+    res.json({
+      message: "Cập nhật vai trò thành công",
+      role: updated,
+    });
+  }),
+
+  deleteRole: asyncHandler(async (req: Request, res: Response) => {
+    const { roleCode } = roleCodeParamsSchema.parse(req.params);
+    const role = await roleRepo.findByCode(roleCode);
+
+    if (!role) {
+      return res.status(404).json({
+        message: "Không tìm thấy vai trò",
+      });
+    }
+
+    await roleService.delete(String(role._id));
+
+    res.json({
+      message: "Xóa vai trò thành công",
+      roleCode: String(role.code).trim().toUpperCase(),
+    });
   }),
 
   listPermissions: asyncHandler(async (_req: Request, res: Response) => {

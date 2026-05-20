@@ -1,5 +1,4 @@
 import { Schema, model } from "mongoose";
-import { ROLES } from "../../constants/roles";
 
 const userSchema = new Schema(
   {
@@ -34,10 +33,11 @@ const userSchema = new Schema(
 
     role: {
       type: String,
-      enum: Object.values(ROLES),
-      default: ROLES.USER,
+      default: "USER",
       required: true,
       index: true,
+      trim: true,
+      uppercase: true,
     },
 
     active: {

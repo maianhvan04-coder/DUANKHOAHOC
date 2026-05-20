@@ -193,7 +193,12 @@ export type CreateClassroomPayload = {
   isActive?: boolean | "true" | "false";
 };
 
-export type UpdateClassroomPayload = Partial<CreateClassroomPayload>;
+export type UpdateClassroomPayload = Partial<
+  Omit<CreateClassroomPayload, "startedAt" | "endedAt">
+> & {
+  startedAt?: string | null;
+  endedAt?: string | null;
+};
 
 export type UpdateStudentLearningPayload = {
   status?: StudyStatus;

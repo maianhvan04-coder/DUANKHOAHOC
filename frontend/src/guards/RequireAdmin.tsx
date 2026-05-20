@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { hasAnyRole } from "@/lib/helpers/auth/access";
+import { canAccessAdmin } from "@/lib/helpers/auth/access";
 
 export default function RequireAdmin({
   children,
@@ -22,7 +22,7 @@ export default function RequireAdmin({
       return;
     }
 
-    const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+    const allowed = canAccessAdmin(access);
 
     if (!allowed) {
       router.replace("/403");
@@ -35,7 +35,7 @@ export default function RequireAdmin({
 
   if (!user) return null;
 
-  const allowed = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+  const allowed = canAccessAdmin(access);
 
   if (!allowed) return null;
 

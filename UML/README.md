@@ -1,45 +1,54 @@
 # UML
 
-Bộ sơ đồ được sinh lại theo 23 chức năng trong `usecase-tong-quat/usecase-tong-quat.svg`.
+Bộ sơ đồ gồm use case tổng quát rút gọn theo actor chính và 31 đặc tả chức năng chi tiết của hệ thống.
 
 ## Mở nhanh
 
-- `xem-bieu-do.html`: xem use case tổng quát và danh sách use case phân rã theo từng actor.
+- `xem-bieu-do.html`: xem use case tổng quát và danh sách use case phân rã.
 - `tong-the/index.html`: xem sơ đồ hoạt động, trình tự và lớp tổng thể toàn hệ thống.
 - `trien-khai/index.html`: xem biểu đồ triển khai frontend, backend, database và dịch vụ ngoài.
-- `usecase-phan-ra/<Actor>/index.html`: xem toàn bộ sơ đồ phân rã riêng của một actor.
-- `usecase-phan-ra/<Actor>/<ma-chuc-nang>.svg`: sơ đồ phạm vi riêng của actor trong một chức năng cụ thể.
-- `chuc-nang/index.html`: xem 23 chức năng; mỗi chức năng có `hoat-dong.svg`, `lop.svg`, `trinh-tu.svg`.
-- `dac-ta-uc/`: bảng danh sách tác nhân - UseCase và 23 file đặc tả use case dạng bảng văn bản.
+- `hoat-dong-quan-ly/index.html`: xem các sơ đồ hoạt động tổng hợp cho nhóm use case Quản lý.
+- `usecase-phan-ra/index.html`: xem toàn bộ use case phân rã theo sơ đồ tổng quát.
+- `usecase-phan-ra/<ma-use-case>.svg`: sơ đồ phân rã kèm bảng đặc tả cho một use case.
+- `chuc-nang/index.html`: xem 31 đặc tả chức năng; mỗi mục có `hoat-dong.svg`, `lop.svg`, `trinh-tu.svg`.
+- `dac-ta-uc/`: bảng danh sách tác nhân - UseCase và các file đặc tả use case dạng bảng văn bản.
 
-## Danh sách 23 chức năng
+## Danh sách đặc tả chức năng
 
-UC01. Xem nội dung công khai
-UC02. Thanh toán khóa học
-UC03. Cập nhật thông tin tài khoản
-UC04. Xem lịch sử thanh toán
-UC05. Đổi mật khẩu
-UC06. Xem điểm
-UC07. Xem lớp / lịch học
-UC08. Xem thông báo
-UC09. Quản lý lớp học
-UC10. Quản lý lịch học
-UC11. Quản lý học viên
-UC12. Quản lý thông báo
-UC13. Đăng ký, đăng nhập
-UC14. Dashboard thống kê
-UC15. Quản lý bài viết
-UC16. Quản lý danh mục bài viết
-UC17. Xem audit bảo mật
-UC18. Xem audit thanh toán
-UC19. Quản lý danh mục khóa học
-UC20. Quản lý khóa học
-UC21. Quản lý giảng viên
-UC22. Quản lý người dùng
-UC23. Phân quyền RBAC
+UC01.1. Thực hiện thanh toán khóa học
+UC02.1. Cập nhật hồ sơ
+UC02.2. Đổi mật khẩu
+UC07.1. Thêm lớp học
+UC07.2. Sửa lớp học
+UC07.3. Khóa lớp học
+UC08.1. Thêm lịch học
+UC08.2. Sửa lịch học
+UC08.3. Xóa lịch học
+UC09.1. Thêm học viên
+UC09.2. Sửa học viên
+UC09.3. Khóa học viên
+UC10.1. Xem thông báo
+UC10.2. Thêm thông báo
+UC10.3. Gửi thông báo
+UC10.4. Sửa trạng thái gửi
+UC10.5. Xóa thông báo
+UC11. Đăng nhập
+UC12. Đăng kí
+UC15.1. Xem chi tiết audit
+UC16.1. Thêm khóa học
+UC16.2. Cập nhật khóa học
+UC16.3. Ẩn khóa học
+UC17.1. Thêm giảng viên
+UC17.2. Cập nhật giảng viên
+UC17.3. Khóa tài khoản
+UC18.1. Thêm người dùng
+UC18.2. Cập nhật người dùng
+UC18.3. Khóa tài khoản
+UC19.1. Thêm vai trò
+UC19.2. Sửa vai trò
 
 ## Sinh lại
 
 Chạy `node UML/generate-20-uml.mjs` để sinh lại toàn bộ ảnh SVG và HTML.
 
-Chạy `node UML/generate-usecase-specs.mjs` để sinh lại bảng danh sách tác nhân và 23 file đặc tả use case.
+Chạy `node UML/generate-usecase-specs.mjs` để sinh lại bảng danh sách tác nhân và các file đặc tả use case.

@@ -19,5 +19,12 @@ yarn-error.log*
 dist/
 build/
 
+# generated UML docs
+PlanUML/
+UML/
+
+# uploaded files
+uploads/
+
 # OS
 .DS_Store

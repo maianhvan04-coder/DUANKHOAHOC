@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="1640" viewBox="0 0 1020 1640">
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="1180" viewBox="0 0 620 1180">
   <title>Use case tổng quát</title>
   <defs>
-    <marker id="arrow" markerWidth="9" markerHeight="9" refX="9" refY="4.5" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L9,4.5 L0,9 Z" fill="#111"/>
+    <marker id="arrow" viewBox="0 0 12 10" markerWidth="12" markerHeight="10" refX="12" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L12 5 L0 10 Z" fill="#111"/>
     </marker>
     <style>
       text { font-family: "Segoe UI", Arial, sans-serif; fill: #111; }
@@ -27,118 +27,90 @@
     </style>
   </defs>
   <rect width="100%" height="100%" fill="#fff"/>
-  <text x="510" y="34" text-anchor="middle" class="title">Use case tổng quát</text>
-<pattern id="grid" width="18" height="18" patternUnits="userSpaceOnUse">
-    <path d="M18 0 H0 V18" fill="none" stroke="#eeeeee" stroke-width="1"/>
-  </pattern>
-<rect width="100%" height="100%" fill="url(#grid)" opacity="0.65"/>
-<rect class="boundary" x="190" y="70" width="750" height="1510"/>
-<text x="565" y="98" text-anchor="middle" class="small">Hệ thống quản lý khóa học</text>
-<circle class="actor" cx="90" cy="199" r="10"/>
-<path class="actor" d="M90 209 L90 253 M68 227 L112 227 M90 253 L70 287 M90 253 L110 287"/>
-<text x="90" y="308" text-anchor="middle" class="small">Người dùng</text>
-<circle class="actor" cx="90" cy="479" r="10"/>
-<path class="actor" d="M90 489 L90 533 M68 507 L112 507 M90 533 L70 567 M90 533 L110 567"/>
-<text x="90" y="588" text-anchor="middle" class="small">Học viên</text>
-<circle class="actor" cx="90" cy="764" r="10"/>
-<path class="actor" d="M90 774 L90 818 M68 792 L112 792 M90 818 L70 852 M90 818 L110 852"/>
-<text x="90" y="873" text-anchor="middle" class="small">Giảng viên</text>
-<circle class="actor" cx="90" cy="1079" r="10"/>
-<path class="actor" d="M90 1089 L90 1133 M68 1107 L112 1107 M90 1133 L70 1167 M90 1133 L110 1167"/>
-<text x="90" y="1188" text-anchor="middle" class="small">Quản lý</text>
-<circle class="actor" cx="90" cy="1394" r="10"/>
-<path class="actor" d="M90 1404 L90 1448 M68 1422 L112 1422 M90 1448 L70 1482 M90 1448 L110 1482"/>
-<text x="90" y="1503" text-anchor="middle" class="small">Admin</text>
-<path class="relation" d="M90 457 L90 293"/>
-<path d="M90 293 L81 310 L99 310 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
-<path class="relation" d="M90 742 L90 573"/>
-<path d="M90 573 L81 590 L99 590 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
-<path class="relation" d="M90 1057 L90 858"/>
-<path d="M90 858 L81 875 L99 875 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
-<path class="relation" d="M90 1372 L90 1173"/>
-<path d="M90 1173 L81 1190 L99 1190 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
-<ellipse class="usecase" cx="610" cy="130" rx="190" ry="24"/>
-<text x="610" y="135" text-anchor="middle" class="small"><tspan x="610" y="135">UC01. Xem nội dung công khai</tspan></text>
-<path class="relation" d="M115 235 L420 130"/>
-<ellipse class="usecase" cx="610" cy="192" rx="190" ry="24"/>
-<text x="610" y="197" text-anchor="middle" class="small"><tspan x="610" y="197">UC02. Thanh toán khóa học</tspan></text>
-<path class="relation" d="M115 235 L420 192"/>
-<ellipse class="usecase" cx="610" cy="254" rx="190" ry="24"/>
-<text x="610" y="259" text-anchor="middle" class="small"><tspan x="610" y="259">UC03. Cập nhật thông tin tài khoản</tspan></text>
-<path class="relation" d="M115 235 L420 254"/>
-<ellipse class="usecase" cx="610" cy="316" rx="190" ry="24"/>
-<text x="610" y="321" text-anchor="middle" class="small"><tspan x="610" y="321">UC04. Xem lịch sử thanh toán</tspan></text>
-<path class="relation" d="M115 235 L420 316"/>
-<ellipse class="usecase" cx="610" cy="378" rx="190" ry="24"/>
-<text x="610" y="383" text-anchor="middle" class="small"><tspan x="610" y="383">UC05. Đổi mật khẩu</tspan></text>
-<path class="relation" d="M115 235 L420 378"/>
-<ellipse class="usecase" cx="610" cy="440" rx="190" ry="24"/>
-<text x="610" y="445" text-anchor="middle" class="small"><tspan x="610" y="445">UC06. Xem điểm</tspan></text>
-<path class="relation" d="M115 515 L420 440"/>
-<ellipse class="usecase" cx="610" cy="502" rx="190" ry="24"/>
-<text x="610" y="507" text-anchor="middle" class="small"><tspan x="610" y="507">UC07. Xem lớp / lịch học</tspan></text>
-<path class="relation" d="M115 515 L420 502"/>
-<ellipse class="usecase" cx="610" cy="564" rx="190" ry="24"/>
-<text x="610" y="569" text-anchor="middle" class="small"><tspan x="610" y="569">UC08. Xem thông báo</tspan></text>
-<path class="relation" d="M115 515 L420 564"/>
-<path class="relation" d="M115 235 L420 564"/>
-<ellipse class="usecase" cx="610" cy="626" rx="190" ry="24"/>
-<text x="610" y="631" text-anchor="middle" class="small"><tspan x="610" y="631">UC09. Quản lý lớp học</tspan></text>
-<path class="relation" d="M115 800 L420 626"/>
-<ellipse class="usecase" cx="610" cy="688" rx="190" ry="24"/>
-<text x="610" y="693" text-anchor="middle" class="small"><tspan x="610" y="693">UC10. Quản lý lịch học</tspan></text>
-<path class="relation" d="M115 800 L420 688"/>
-<ellipse class="usecase" cx="610" cy="750" rx="190" ry="24"/>
-<text x="610" y="755" text-anchor="middle" class="small"><tspan x="610" y="755">UC11. Quản lý học viên</tspan></text>
-<path class="relation" d="M115 800 L420 750"/>
-<path class="relation" d="M115 1115 L420 750"/>
-<ellipse class="usecase" cx="610" cy="812" rx="190" ry="24"/>
-<text x="610" y="817" text-anchor="middle" class="small"><tspan x="610" y="817">UC12. Quản lý thông báo</tspan></text>
-<path class="relation" d="M115 800 L420 812"/>
-<path class="relation" d="M115 1115 L420 812"/>
-<ellipse class="usecase" cx="610" cy="874" rx="190" ry="24"/>
-<text x="610" y="879" text-anchor="middle" class="small"><tspan x="610" y="879">UC13. Đăng ký, đăng nhập</tspan></text>
-<path class="relation" d="M115 235 L420 874"/>
-<path class="relation" d="M115 515 L420 874"/>
-<path class="relation" d="M115 800 L420 874"/>
-<path class="relation" d="M115 1115 L420 874"/>
-<path class="relation" d="M115 1430 L420 874"/>
-<ellipse class="usecase" cx="610" cy="936" rx="190" ry="24"/>
-<text x="610" y="941" text-anchor="middle" class="small"><tspan x="610" y="941">UC14. Dashboard thống kê</tspan></text>
-<path class="relation" d="M115 1115 L420 936"/>
-<path class="relation" d="M115 1430 L420 936"/>
-<ellipse class="usecase" cx="610" cy="998" rx="190" ry="24"/>
-<text x="610" y="1003" text-anchor="middle" class="small"><tspan x="610" y="1003">UC15. Quản lý bài viết</tspan></text>
-<path class="relation" d="M115 1115 L420 998"/>
-<path class="relation" d="M115 1430 L420 998"/>
-<ellipse class="usecase" cx="610" cy="1060" rx="190" ry="24"/>
-<text x="610" y="1065" text-anchor="middle" class="small"><tspan x="610" y="1065">UC16. Quản lý danh mục bài viết</tspan></text>
-<path class="relation" d="M115 1115 L420 1060"/>
-<path class="relation" d="M115 1430 L420 1060"/>
-<ellipse class="usecase" cx="610" cy="1122" rx="190" ry="24"/>
-<text x="610" y="1127" text-anchor="middle" class="small"><tspan x="610" y="1127">UC17. Xem audit bảo mật</tspan></text>
-<path class="relation" d="M115 1115 L420 1122"/>
-<path class="relation" d="M115 1430 L420 1122"/>
-<ellipse class="usecase" cx="610" cy="1184" rx="190" ry="24"/>
-<text x="610" y="1189" text-anchor="middle" class="small"><tspan x="610" y="1189">UC18. Xem audit thanh toán</tspan></text>
-<path class="relation" d="M115 1115 L420 1184"/>
-<path class="relation" d="M115 1430 L420 1184"/>
-<ellipse class="usecase" cx="610" cy="1246" rx="190" ry="24"/>
-<text x="610" y="1251" text-anchor="middle" class="small"><tspan x="610" y="1251">UC19. Quản lý danh mục khóa học</tspan></text>
-<path class="relation" d="M115 1115 L420 1246"/>
-<path class="relation" d="M115 1430 L420 1246"/>
-<ellipse class="usecase" cx="610" cy="1308" rx="190" ry="24"/>
-<text x="610" y="1313" text-anchor="middle" class="small"><tspan x="610" y="1313">UC20. Quản lý khóa học</tspan></text>
-<path class="relation" d="M115 1115 L420 1308"/>
-<path class="relation" d="M115 1430 L420 1308"/>
-<ellipse class="usecase" cx="610" cy="1370" rx="190" ry="24"/>
-<text x="610" y="1375" text-anchor="middle" class="small"><tspan x="610" y="1375">UC21. Quản lý giảng viên</tspan></text>
-<path class="relation" d="M115 1115 L420 1370"/>
-<path class="relation" d="M115 1430 L420 1370"/>
-<ellipse class="usecase" cx="610" cy="1432" rx="190" ry="24"/>
-<text x="610" y="1437" text-anchor="middle" class="small"><tspan x="610" y="1437">UC22. Quản lý người dùng</tspan></text>
-<path class="relation" d="M115 1430 L420 1432"/>
-<ellipse class="usecase" cx="610" cy="1494" rx="190" ry="24"/>
-<text x="610" y="1499" text-anchor="middle" class="small"><tspan x="610" y="1499">UC23. Phân quyền RBAC</tspan></text>
-<path class="relation" d="M115 1430 L420 1494"/>
+  
+<rect class="boundary" x="120" y="20" width="470" height="1135"/>
+<circle class="actor" cx="55" cy="79" r="10"/>
+<path class="actor" d="M55 89 L55 133 M33 107 L77 107 M55 133 L35 167 M55 133 L75 167"/>
+<text x="55" y="188" text-anchor="middle" class="small">User</text>
+<circle class="actor" cx="55" cy="264" r="10"/>
+<path class="actor" d="M55 274 L55 318 M33 292 L77 292 M55 318 L35 352 M55 318 L75 352"/>
+<text x="55" y="373" text-anchor="middle" class="small">Student</text>
+<circle class="actor" cx="55" cy="494" r="10"/>
+<path class="actor" d="M55 504 L55 548 M33 522 L77 522 M55 548 L35 582 M55 548 L75 582"/>
+<text x="55" y="603" text-anchor="middle" class="small">Teacher</text>
+<circle class="actor" cx="55" cy="784" r="10"/>
+<path class="actor" d="M55 794 L55 838 M33 812 L77 812 M55 838 L35 872 M55 838 L75 872"/>
+<text x="55" y="893" text-anchor="middle" class="small">Manager</text>
+<circle class="actor" cx="55" cy="994" r="10"/>
+<path class="actor" d="M55 1004 L55 1048 M33 1022 L77 1022 M55 1048 L35 1082 M55 1048 L75 1082"/>
+<text x="55" y="1103" text-anchor="middle" class="small">Admin</text>
+<path class="relation" d="M55 242 L55 157"/>
+<path d="M55 157 L46 174 L64 174 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
+<path class="relation" d="M55 472 L55 342"/>
+<path d="M55 342 L46 359 L64 359 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
+<path class="relation" d="M55 762 L55 572"/>
+<path d="M55 572 L46 589 L64 589 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
+<path class="relation" d="M55 972 L55 862"/>
+<path d="M55 862 L46 879 L64 879 Z" fill="#fff" stroke="#111" stroke-width="1.1"/>
+<ellipse class="usecase" cx="405" cy="70" rx="140" ry="18"/>
+<text x="405" y="75" text-anchor="middle" class="small"><tspan x="405" y="75">Thanh toán khóa học</tspan></text>
+<path class="relation" d="M80 115 L265 70"/>
+<ellipse class="usecase" cx="405" cy="120" rx="140" ry="18"/>
+<text x="405" y="125" text-anchor="middle" class="small"><tspan x="405" y="125">Cập nhật thông tin tài khoản</tspan></text>
+<path class="relation" d="M80 115 L265 120"/>
+<ellipse class="usecase" cx="405" cy="170" rx="140" ry="18"/>
+<text x="405" y="175" text-anchor="middle" class="small"><tspan x="405" y="175">Xem lịch sử thanh toán</tspan></text>
+<path class="relation" d="M80 115 L265 170"/>
+<ellipse class="usecase" cx="405" cy="275" rx="140" ry="18"/>
+<text x="405" y="280" text-anchor="middle" class="small"><tspan x="405" y="280">Xem điểm</tspan></text>
+<path class="relation" d="M80 300 L265 275"/>
+<ellipse class="usecase" cx="405" cy="325" rx="140" ry="18"/>
+<text x="405" y="330" text-anchor="middle" class="small"><tspan x="405" y="330">Xem lịch học</tspan></text>
+<path class="relation" d="M80 300 L265 325"/>
+<ellipse class="usecase" cx="405" cy="375" rx="140" ry="18"/>
+<text x="405" y="380" text-anchor="middle" class="small"><tspan x="405" y="380">Xem thông báo</tspan></text>
+<path class="relation" d="M80 300 L265 375"/>
+<ellipse class="usecase" cx="405" cy="485" rx="140" ry="18"/>
+<text x="405" y="490" text-anchor="middle" class="small"><tspan x="405" y="490">Quản lý lớp học</tspan></text>
+<path class="relation" d="M80 530 L265 485"/>
+<ellipse class="usecase" cx="405" cy="535" rx="140" ry="18"/>
+<text x="405" y="540" text-anchor="middle" class="small"><tspan x="405" y="540">Quản lý lịch học</tspan></text>
+<path class="relation" d="M80 530 L265 535"/>
+<ellipse class="usecase" cx="405" cy="585" rx="140" ry="18"/>
+<text x="405" y="590" text-anchor="middle" class="small"><tspan x="405" y="590">Quản lý học viên</tspan></text>
+<path class="relation" d="M80 530 L265 585"/>
+<ellipse class="usecase" cx="405" cy="635" rx="140" ry="18"/>
+<text x="405" y="640" text-anchor="middle" class="small"><tspan x="405" y="640">Quản lý thông báo</tspan></text>
+<path class="relation" d="M80 530 L265 635"/>
+<ellipse class="usecase" cx="405" cy="705" rx="140" ry="18"/>
+<text x="405" y="710" text-anchor="middle" class="small"><tspan x="405" y="710">Đăng nhập</tspan></text>
+<path class="relation" d="M80 115 L265 705"/>
+<path class="relation" d="M80 300 L265 705"/>
+<path class="relation" d="M80 530 L265 705"/>
+<path class="relation" d="M80 820 L265 705"/>
+<path class="relation" d="M80 1030 L265 705"/>
+<ellipse class="usecase" cx="405" cy="755" rx="140" ry="18"/>
+<text x="405" y="760" text-anchor="middle" class="small"><tspan x="405" y="760">Đăng kí</tspan></text>
+<path class="relation" d="M80 115 L265 755"/>
+<ellipse class="usecase" cx="405" cy="830" rx="140" ry="18"/>
+<text x="405" y="835" text-anchor="middle" class="small"><tspan x="405" y="835">Dashboard</tspan></text>
+<path class="relation" d="M80 820 L265 830"/>
+<ellipse class="usecase" cx="405" cy="880" rx="140" ry="18"/>
+<text x="405" y="885" text-anchor="middle" class="small"><tspan x="405" y="885">Quản lý bài viết</tspan></text>
+<path class="relation" d="M80 820 L265 880"/>
+<ellipse class="usecase" cx="405" cy="930" rx="140" ry="18"/>
+<text x="405" y="935" text-anchor="middle" class="small"><tspan x="405" y="935">Audit thanh toán</tspan></text>
+<path class="relation" d="M80 820 L265 930"/>
+<ellipse class="usecase" cx="405" cy="980" rx="140" ry="18"/>
+<text x="405" y="985" text-anchor="middle" class="small"><tspan x="405" y="985">Quản lý khóa học</tspan></text>
+<path class="relation" d="M80 820 L265 980"/>
+<ellipse class="usecase" cx="405" cy="1030" rx="140" ry="18"/>
+<text x="405" y="1035" text-anchor="middle" class="small"><tspan x="405" y="1035">Quản lý giảng viên</tspan></text>
+<path class="relation" d="M80 820 L265 1030"/>
+<ellipse class="usecase" cx="405" cy="1080" rx="140" ry="18"/>
+<text x="405" y="1085" text-anchor="middle" class="small"><tspan x="405" y="1085">Quản lý người dùng</tspan></text>
+<path class="relation" d="M80 820 L265 1080"/>
+<ellipse class="usecase" cx="405" cy="1130" rx="140" ry="18"/>
+<text x="405" y="1135" text-anchor="middle" class="small"><tspan x="405" y="1135">Phân quyền RBAC</tspan></text>
+<path class="relation" d="M80 1030 L265 1130"/>
 </svg>

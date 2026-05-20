@@ -28,8 +28,8 @@ import {
 } from "@/lib/utils/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
+  getAdminEntryPath,
   canAccessStudentPortal,
-  hasAnyRole,
 } from "@/lib/helpers/auth/access";
 import {
   notificationApi,
@@ -267,7 +267,8 @@ export default function Navbar() {
   const checkingAuth = !hydrated || isLoading;
   const isLoggedIn = !!user;
 
-  const canAccessAdmin = hasAnyRole(access, ["ADMIN", "MANAGER", "TEACHER"]);
+  const adminEntryPath = getAdminEntryPath(access);
+  const canAccessAdmin = !!adminEntryPath;
   const canAccessStudent = canAccessStudentPortal(access);
 
   const loadNotificationSummary = useCallback(async () => {
@@ -753,7 +754,7 @@ export default function Navbar() {
 
                           {canAccessAdmin && (
                             <Link
-                              href="/admin"
+                              href={adminEntryPath ?? "/admin"}
                               onClick={() => {
                                 markAdminIntroIntent();
                                 setOpenProfileMenu(false);

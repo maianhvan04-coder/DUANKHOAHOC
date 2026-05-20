@@ -14,8 +14,8 @@ import { roleRepo } from "./repos/role.repo";
 import { userRoleRepo } from "./repos/userRole.repo";
 
 export type UserAccess = {
-  primaryRole: Role;
-  roles: Role[];
+  primaryRole: string;
+  roles: string[];
   permissions: PermissionKey[];
 };
 
@@ -48,12 +48,12 @@ function normalizePermissionKey(value: string) {
 }
 
 function isRoleCode(value: string): value is Role {
-  return Object.values(ROLES).includes(value as Role);
+  return !!normalizeRoleCode(value);
 }
 
-function coerceRole(value: unknown): Role {
+function normalizeAccessRole(value: unknown): string {
   const normalized = normalizeRoleCode(String(value || ""));
-  return isRoleCode(normalized) ? normalized : ROLES.USER;
+  return normalized || ROLES.USER;
 }
 
 function sortRolesByPriority<T extends { priority?: number | null; code: string }>(
@@ -267,7 +267,7 @@ export async function setRolesForUser(userId: string, roleCodes: string[]) {
   }
 
   const sortedRoles = sortRolesByPriority(roles);
-  const primaryRole = coerceRole(sortedRoles[0]?.code);
+  const primaryRole = normalizeAccessRole(sortedRoles[0]?.code);
 
   await userRoleRepo.replaceRolesForUser(
     userId,
@@ -290,7 +290,9 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
   if (roleIds.length) {
     const roles = await roleRepo.findActiveByIds(roleIds);
     const sortedRoles = sortRolesByPriority(roles);
-    const roleCodes = unique(sortedRoles.map((role) => coerceRole(role.code)));
+    const roleCodes = unique(
+      sortedRoles.map((role) => normalizeAccessRole(role.code))
+    );
 
     if (roleCodes.length) {
       const permissions = await getPermissionsByRoleIds(
@@ -309,7 +311,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
     .select("role")
     .lean();
 
-  const legacyRole = coerceRole(user?.role);
+  const legacyRole = normalizeAccessRole(user?.role);
 
   const roleDoc = await roleRepo.findActiveByCode(legacyRole);
 
@@ -336,7 +338,7 @@ export async function syncLegacyUserRolesFromUsers() {
   const users = await UserModel.find({}).select("_id role").lean();
 
   for (const user of users) {
-    const roleCode = coerceRole(user.role);
+    const roleCode = normalizeAccessRole(user.role);
     await setRolesForUser(String(user._id), [roleCode]);
   }
 }

@@ -248,15 +248,22 @@ function TeacherModal({
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  {mode === "create" ? "Mật khẩu" : "Mật khẩu mới"}
+                  {mode === "create" ? "Mật khẩu" : "Đổi mật khẩu"}
                 </label>
                 <input
                   type="password"
                   value={value.password}
                   onChange={(e) => onChange({ password: e.target.value })}
-                  placeholder="******"
+                  placeholder={
+                    mode === "create" ? "Nhập mật khẩu" : "Nhập mật khẩu mới..."
+                  }
                   className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
+                {mode === "edit" ? (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Bỏ trống nếu không muốn đổi mật khẩu.
+                  </p>
+                ) : null}
               </div>
 
               <div>

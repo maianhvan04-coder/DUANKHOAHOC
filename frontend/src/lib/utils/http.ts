@@ -5,7 +5,7 @@ import axios, {
 } from "axios";
 import { getToken, setToken, setAccess, clearAuth } from "./storage";
 
-type Role = "ADMIN" | "MANAGER" | "TEACHER" | "STUDENT" | "USER";
+type Role = string;
 
 type RefreshResponse = {
   accessToken: string;

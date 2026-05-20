@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  KeyRound,
   Pencil,
   ShieldCheck,
   Trash2,
@@ -11,9 +10,13 @@ import {
   Loader2,
   RefreshCw,
   Plus,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  Minus,
   X,
 } from "lucide-react";
-import RolePermissionModal from "@/components/ui/admin/rbac/RolePermissionModal";
 import {
   rbacApi,
   type PermissionKey,
@@ -143,10 +146,73 @@ const EMPTY_FORM: RoleFormState = {
   isActive: true,
 };
 
+type PermissionGroupBlock = {
+  groupKey: string;
+  groupLabel: string;
+  items: PermissionMetaItem[];
+  order: number;
+};
+
+type CheckState = "checked" | "mixed" | "empty";
+
+function getCheckState(total: number, selectedCount: number): CheckState {
+  if (total > 0 && selectedCount === total) return "checked";
+  if (selectedCount > 0) return "mixed";
+  return "empty";
+}
+
+function permissionNodeLabel(group: PermissionGroupBlock) {
+  if (group.groupKey === "DASHBOARD") return "Bảng điều khiển";
+  return group.groupLabel;
+}
+
+function CheckboxMark({
+  state,
+  onClick,
+  className,
+  ariaLabel,
+}: {
+  state: CheckState;
+  onClick: () => void;
+  className?: string;
+  ariaLabel: string;
+}) {
+  return (
+    <span
+      aria-label={ariaLabel}
+      aria-checked={state === "mixed" ? "mixed" : state === "checked"}
+      role="checkbox"
+      tabIndex={0}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onClick();
+      }}
+      className={cn(
+        "inline-flex h-[17px] w-[17px] shrink-0 cursor-pointer items-center justify-center rounded-[3px] border transition",
+        state === "empty"
+          ? "border-slate-300 bg-white dark:border-white/20 dark:bg-slate-950"
+          : "border-sky-600 bg-sky-600 text-white",
+        className
+      )}
+    >
+      {state === "checked" ? <Check size={13} strokeWidth={3} /> : null}
+      {state === "mixed" ? <Minus size={13} strokeWidth={3} /> : null}
+    </span>
+  );
+}
+
 function RoleFormModal({
   open,
   mode,
   initialValue,
+  permissionMeta,
+  initialPermissionKeys,
   saving,
   onClose,
   onSubmit,
@@ -154,124 +220,377 @@ function RoleFormModal({
   open: boolean;
   mode: RoleFormMode;
   initialValue: RoleFormState;
+  permissionMeta: PermissionMetaItem[];
+  initialPermissionKeys: PermissionKey[];
   saving: boolean;
   onClose: () => void;
-  onSubmit: (values: RoleFormState) => Promise<void>;
+  onSubmit: (
+    values: RoleFormState,
+    permissionKeys: PermissionKey[]
+  ) => Promise<void>;
 }) {
   const [form, setForm] = useState<RoleFormState>(initialValue);
+  const [selected, setSelected] =
+    useState<PermissionKey[]>(initialPermissionKeys);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set()
+  );
+
+  const groups = useMemo<PermissionGroupBlock[]>(() => {
+    const map = new Map<string, PermissionGroupBlock>();
+
+    for (const item of permissionMeta) {
+      const current = map.get(item.groupKey);
+      if (current) {
+        current.items.push(item);
+        current.order = Math.min(current.order, item.order ?? 99999);
+      } else {
+        map.set(item.groupKey, {
+          groupKey: item.groupKey,
+          groupLabel: item.groupLabel,
+          items: [item],
+          order: item.order ?? 99999,
+        });
+      }
+    }
+
+    return Array.from(map.values())
+      .map((group) => ({
+        ...group,
+        items: [...group.items].sort(
+          (a, b) => (a.order ?? 99999) - (b.order ?? 99999)
+        ),
+      }))
+      .sort((a, b) => a.order - b.order);
+  }, [permissionMeta]);
+
+  const selectedSet = useMemo(() => new Set(selected), [selected]);
+  const totalPermissions = permissionMeta.length;
+
+  function togglePermission(key: PermissionKey) {
+    setSelected((prev) =>
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    );
+  }
+
+  function setGroupChecked(keys: PermissionKey[], checked: boolean) {
+    setSelected((prev) => {
+      if (!checked) return prev.filter((item) => !keys.includes(item));
+      return Array.from(new Set([...prev, ...keys]));
+    });
+  }
+
+  function clearGroup(keys: PermissionKey[]) {
+    setGroupChecked(keys, false);
+  }
+
+  function setAllChecked(checked: boolean) {
+    setSelected(checked ? permissionMeta.map((item) => item.key) : []);
+  }
+
+  function toggleGroupOpen(groupKey: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  }
 
   if (!open) return null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    const orderedPermissionKeys = permissionMeta
+      .map((item) => item.key)
+      .filter((key) => selected.includes(key));
+
     await onSubmit({
       ...form,
       code: normalizeCode(form.code),
       name: form.name.trim(),
       description: form.description.trim(),
-    });
+    }, orderedPermissionKeys);
   }
 
+  const allState = getCheckState(totalPermissions, selected.length);
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
         <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
           <div>
-            <h3 className="text-xl font-semibold text-slate-950 dark:text-white">
+            <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
               {mode === "create" ? "Thêm vai trò" : "Sửa vai trò"}
-            </h3>
+            </h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {mode === "create"
-                ? "Tạo vai trò mới cho hệ thống"
-                : "Cập nhật thông tin vai trò"}
+                ? "Tạo vai trò mới và gán quyền hệ thống."
+                : "Cập nhật thông tin vai trò và danh sách quyền."}
             </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
+            disabled={saving}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+            aria-label="Đóng"
           >
-            <X size={20} />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                Mã vai trò
-              </label>
-              <input
-                value={form.code}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    code: e.target.value,
-                  }))
-                }
-                disabled={mode === "edit"}
-                placeholder="VD: CONTENT_MANAGER"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-500 disabled:bg-slate-100 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-white/10"
-              />
-            </div>
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid gap-5">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/70">
+                <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                  Thông tin vai trò
+                </h3>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                Tên hiển thị
-              </label>
-              <input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
-                placeholder="VD: Quản lý nội dung"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-              />
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Tên vai trò <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      disabled={saving}
+                      placeholder="VD: Quản lý nội dung"
+                      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Mã vai trò <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      value={form.code}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          code: e.target.value,
+                        }))
+                      }
+                      disabled={saving || mode === "edit"}
+                      placeholder="VD: CONTENT_MANAGER"
+                      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold uppercase text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:bg-slate-100 disabled:opacity-80 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-white/10"
+                    />
+                    {mode === "edit" ? (
+                      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        Mã vai trò không thể thay đổi sau khi tạo.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Mô tả <span className="text-rose-600">*</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    disabled={saving}
+                    placeholder="Nhập mô tả vai trò"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/70">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Quyền
+                  </h3>
+                  <div className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    {selected.length} / {totalPermissions}
+                  </div>
+                </div>
+
+                <div className="mt-4 max-h-[360px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-slate-950">
+                  {groups.length > 0 ? (
+                    <div>
+                      <div className="flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => toggleGroupOpen("__all__")}
+                          disabled={saving}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:text-slate-300 dark:hover:bg-white/10"
+                          aria-label={
+                            collapsedGroups.has("__all__")
+                              ? "Mở nhóm quyền"
+                              : "Đóng nhóm quyền"
+                          }
+                        >
+                          {collapsedGroups.has("__all__") ? (
+                            <ChevronRight size={16} />
+                          ) : (
+                            <ChevronDown size={16} />
+                          )}
+                        </button>
+
+                        <CheckboxMark
+                          state={allState}
+                          ariaLabel="Chọn tất cả quyền"
+                          onClick={() => {
+                            if (!saving) setAllChecked(allState !== "checked");
+                          }}
+                        />
+
+                        <Folder className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-300" />
+
+                        <div className="min-w-0 flex-1 truncate text-sm font-semibold">
+                          Tổng quan{" "}
+                          <span className="font-medium text-sky-700 dark:text-sky-300">
+                            ({selected.length}/{totalPermissions})
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => setAllChecked(allState !== "checked")}
+                          className="shrink-0 text-xs font-semibold text-sky-700 transition hover:text-sky-900 disabled:opacity-60 dark:text-sky-300 dark:hover:text-sky-100"
+                        >
+                          {allState === "checked" ? "Xóa lọc" : "Chọn tất cả"}
+                        </button>
+                      </div>
+
+                      {!collapsedGroups.has("__all__") ? (
+                        <div className="ml-5 border-l border-slate-200 py-2 dark:border-white/10">
+                          {groups.map((group) => {
+                            const keys = group.items.map((item) => item.key);
+                            const selectedCount = keys.filter((key) =>
+                              selectedSet.has(key)
+                            ).length;
+                            const state = getCheckState(keys.length, selectedCount);
+                            const collapsed = collapsedGroups.has(group.groupKey);
+                            const nextChecked = state !== "checked";
+
+                            return (
+                              <div key={group.groupKey}>
+                                <div className="flex min-h-10 items-center gap-2 rounded-xl px-3 text-slate-900 hover:bg-white dark:text-slate-100 dark:hover:bg-white/5">
+                                  <button
+                                    type="button"
+                                    disabled={saving}
+                                    onClick={() => toggleGroupOpen(group.groupKey)}
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-60 dark:text-slate-300 dark:hover:bg-white/10"
+                                    aria-label={
+                                      collapsed ? "Mở nhóm quyền" : "Đóng nhóm quyền"
+                                    }
+                                  >
+                                    {collapsed ? (
+                                      <ChevronRight size={14} />
+                                    ) : (
+                                      <ChevronDown size={14} />
+                                    )}
+                                  </button>
+
+                                  <CheckboxMark
+                                    state={state}
+                                    ariaLabel={`Chọn nhóm ${permissionNodeLabel(group)}`}
+                                    onClick={() => {
+                                      if (!saving) setGroupChecked(keys, nextChecked);
+                                    }}
+                                  />
+
+                                  <Folder className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-300" />
+
+                                  <div className="min-w-0 flex-1 truncate text-sm font-semibold">
+                                    {permissionNodeLabel(group)}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    disabled={saving}
+                                    onClick={() =>
+                                      state === "checked"
+                                        ? clearGroup(keys)
+                                        : setGroupChecked(keys, true)
+                                    }
+                                    className="shrink-0 text-xs font-semibold text-sky-700 transition hover:text-sky-900 disabled:opacity-60 dark:text-sky-300 dark:hover:text-sky-100"
+                                  >
+                                    {state === "checked" ? "Xóa lọc" : "Chọn tất cả"}
+                                  </button>
+                                </div>
+
+                                {!collapsed ? (
+                                  <div className="ml-10 border-l border-slate-200 py-1 dark:border-white/10">
+                                    {group.items.map((item) => {
+                                      const checked = selectedSet.has(item.key);
+
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={item.key}
+                                          disabled={saving}
+                                          onClick={() => togglePermission(item.key)}
+                                          className={cn(
+                                            "flex min-h-9 w-full cursor-pointer items-center gap-3 rounded-xl px-4 py-1.5 text-left text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-200 dark:hover:bg-white/5",
+                                            checked &&
+                                            "bg-white text-slate-950 shadow-sm dark:bg-white/5 dark:text-white dark:shadow-none"
+                                          )}
+                                        >
+                                          <CheckboxMark
+                                            state={checked ? "checked" : "empty"}
+                                            ariaLabel={`Chọn quyền ${item.label}`}
+                                            onClick={() => {
+                                              if (!saving) togglePermission(item.key);
+                                            }}
+                                          />
+                                          <span className="min-w-0 flex-1 truncate">
+                                            {item.label}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                      Chưa có quyền để hiển thị
+                    </div>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              Mô tả
-            </label>
-            <textarea
-              rows={4}
-              value={form.description}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              placeholder="Nhập mô tả vai trò"
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm text-slate-800 outline-none focus:border-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-            />
-          </div>
-
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 dark:border-white/10 dark:bg-white/5">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  isActive: e.target.checked,
-                }))
-              }
-              className="h-4 w-4"
-            />
-            <span className="text-sm text-slate-700 dark:text-slate-200">Kích hoạt vai trò</span>
-          </label>
-
-          <div className="-mx-6 mt-6 flex items-center justify-end gap-3 border-t border-slate-200 px-6 pt-4 dark:border-white/10">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
+              disabled={saving}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
             >
               Đóng
@@ -280,10 +599,13 @@ function RoleFormModal({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving && <Loader2 size={16} className="animate-spin" />}
-              {mode === "create" ? "Tạo vai trò" : "Lưu thay đổi"}
+              {saving
+                ? "Đang lưu..."
+                : mode === "create"
+                  ? "Tạo vai trò"
+                  : "Lưu thay đổi"}
             </button>
           </div>
         </form>
@@ -300,10 +622,6 @@ export default function AdminRbacPage() {
   >({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const [openPermissionModal, setOpenPermissionModal] = useState(false);
-  const [activePermissionRole, setActivePermissionRole] =
-    useState<RoleItem | null>(null);
 
   const [openRoleForm, setOpenRoleForm] = useState(false);
   const [roleFormMode, setRoleFormMode] = useState<RoleFormMode>("create");
@@ -377,21 +695,6 @@ export default function AdminRbacPage() {
     };
   }
 
-  function handleOpenPermission(role: RoleItem) {
-    setActivePermissionRole(role);
-    setOpenPermissionModal(true);
-  }
-
-  function handleSavedPermissions(
-    roleCode: string,
-    permissionKeys: PermissionKey[]
-  ) {
-    setRolePermissionMap((prev) => ({
-      ...prev,
-      [roleCode]: permissionKeys,
-    }));
-  }
-
   function handleOpenCreate() {
     setRoleFormMode("create");
     setActiveEditRole(null);
@@ -404,7 +707,10 @@ export default function AdminRbacPage() {
     setOpenRoleForm(true);
   }
 
-  async function handleSubmitRole(values: RoleFormState) {
+  async function handleSubmitRole(
+    values: RoleFormState,
+    permissionKeys: PermissionKey[]
+  ) {
     if (!values.code.trim()) {
       toast.warning("Vui lòng nhập mã vai trò");
       return;
@@ -425,12 +731,20 @@ export default function AdminRbacPage() {
           description: values.description,
           isActive: values.isActive,
         });
+
+        if (permissionKeys.length > 0) {
+          await rbacApi.setRolePermissions(values.code, permissionKeys);
+        }
       } else {
-        await rbacApi.updateRole(activeEditRole?.code || values.code, {
+        const roleCode = activeEditRole?.code || values.code;
+
+        await rbacApi.updateRole(roleCode, {
           name: values.name,
           description: values.description,
           isActive: values.isActive,
         });
+
+        await rbacApi.setRolePermissions(roleCode, permissionKeys);
       }
 
       setOpenRoleForm(false);
@@ -552,7 +866,7 @@ export default function AdminRbacPage() {
                 <div
                   key={role._id}
                   className={cn(
-                    "grid min-h-[102px] grid-cols-[90px_360px_1fr_150px_90px_150px] items-center border-b border-slate-200 px-5 dark:border-white/10",
+                    "grid min-h-[102px] grid-cols-[90px_360px_1fr_150px_90px_110px] items-center border-b border-slate-200 px-5 dark:border-white/10",
                     theme.row
                   )}
                 >
@@ -644,15 +958,6 @@ export default function AdminRbacPage() {
                   <div className="flex items-center justify-center gap-4">
                     <button
                       type="button"
-                      onClick={() => handleOpenPermission(role)}
-                      className="text-[#7c4ed8] transition hover:scale-105"
-                      title="Phân quyền"
-                    >
-                      <KeyRound size={18} strokeWidth={1.9} />
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => handleOpenEdit(role)}
                       className="text-[#3b82f6] transition hover:scale-105"
                       title="Sửa"
@@ -693,28 +998,18 @@ export default function AdminRbacPage() {
         </div>
       </div>
 
-      <RolePermissionModal
-        open={openPermissionModal}
-        role={activePermissionRole}
-        permissionMeta={permissionMeta}
-        initialSelected={
-          activePermissionRole
-            ? rolePermissionMap[activePermissionRole.code] || []
-            : []
-        }
-        onClose={() => {
-          setOpenPermissionModal(false);
-          setActivePermissionRole(null);
-        }}
-        onSaved={handleSavedPermissions}
-      />
-
       <RoleFormModal
         key={`${roleFormMode}-${activeEditRole?.code ?? "new"}-${openRoleForm ? "open" : "close"
           }`}
         open={openRoleForm}
         mode={roleFormMode}
         initialValue={roleFormInitialValue}
+        permissionMeta={permissionMeta}
+        initialPermissionKeys={
+          activeEditRole
+            ? rolePermissionMap[activeEditRole.code] || []
+            : []
+        }
         saving={savingRole}
         onClose={() => {
           setOpenRoleForm(false);

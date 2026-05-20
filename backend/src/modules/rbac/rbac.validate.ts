@@ -4,6 +4,19 @@ export const roleCodeParamsSchema = z.object({
   roleCode: z.string().trim().min(1, "roleCode là bắt buộc"),
 });
 
+export const createRoleSchema = z.object({
+  code: z.string().trim().min(1, "Mã vai trò là bắt buộc"),
+  name: z.string().trim().min(1, "Tên vai trò là bắt buộc"),
+  description: z.string().trim().optional().default(""),
+  isActive: z.boolean().optional().default(true),
+});
+
+export const updateRoleSchema = z.object({
+  name: z.string().trim().min(1, "Tên vai trò là bắt buộc").optional(),
+  description: z.string().trim().optional().default(""),
+  isActive: z.boolean().optional(),
+});
+
 export const userIdParamsSchema = z.object({
   userId: z.string().trim().min(1, "userId là bắt buộc"),
 });

@@ -12,7 +12,10 @@ import {
   setToken,
   setUser,
 } from "@/lib/utils/storage";
-import { canAccessStudentPortal, hasRole } from "@/lib/helpers/auth/access";
+import {
+  canAccessStudentPortal,
+  getAdminEntryPath,
+} from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -198,13 +201,12 @@ export default function LoginPage() {
       setUser(res.user);
       setAccess(res.access);
 
-      const goAdmin =
-        hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
+      const adminEntryPath = getAdminEntryPath(res.access);
       const goStudent = canAccessStudentPortal(res.access);
       const redirectPath = getSafeRedirectPath();
       const nextPath =
         redirectPath ??
-        (goAdmin ? "/admin" : goStudent ? "/student/bang-tin" : "/");
+        (adminEntryPath ?? (goStudent ? "/student/bang-tin" : "/"));
 
       if (nextPath.startsWith("/admin")) {
         markAdminIntroIntent();

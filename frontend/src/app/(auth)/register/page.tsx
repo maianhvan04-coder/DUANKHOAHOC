@@ -12,7 +12,7 @@ import {
   setToken,
   setUser,
 } from "@/lib/utils/storage";
-import { hasRole } from "@/lib/helpers/auth/access";
+import { getAdminEntryPath } from "@/lib/helpers/auth/access";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -207,9 +207,7 @@ export default function RegisterPage() {
       setUser(res.user);
       setAccess(res.access);
 
-      const goAdmin =
-        hasRole(res.access, "ADMIN") || hasRole(res.access, "MANAGER");
-      const nextPath = goAdmin ? "/admin" : "/";
+      const nextPath = getAdminEntryPath(res.access) ?? "/";
 
       if (nextPath.startsWith("/admin")) {
         markAdminIntroIntent();

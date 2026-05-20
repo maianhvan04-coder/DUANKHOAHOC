@@ -70,11 +70,14 @@ function ModalBody({
   };
 
   const submit = () => {
+    const selectedRoles = filterSelectableRoles(roles, options);
+
     const payload: Partial<UserFormInitial> & { password?: string; roles?: string[] } = {
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
-      roles: filterSelectableRoles(roles, options),
+      role: selectedRoles[0] ?? "USER",
+      roles: selectedRoles,
       active,
     };
 

@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { userApi, type UserRow } from "@/app/api/user.api";
+import { rbacApi } from "@/app/api/rbac.api";
 import UserFormModal, { type UserFormInitial } from "@/components/ui/admin/users/UserFormModal";
 import AdminListTable, {
   AdminActionIconButton,
@@ -31,7 +32,7 @@ type ApiErrorBody = { message?: string };
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type TabKey = "USERS" | "DELETED";
-type FormRole = UserFormInitial["role"];
+type FormRole = string;
 type UserSortKey = "name" | "email" | "role" | "status" | "createdAt";
 
 const SYSTEM_ROLE_OPTIONS = ["USER", "STUDENT", "TEACHER", "MANAGER"];
@@ -60,17 +61,32 @@ type UserVM = {
   deleted: boolean;
 };
 
-function isFormRole(v: string): v is FormRole {
-  return SYSTEM_ROLE_OPTIONS.includes(v);
-}
-
 function toFormRole(input?: string): FormRole {
   const s = String(input ?? "").trim().toUpperCase();
-  return isFormRole(s) ? s : "USER";
+  return s || "USER";
 }
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+function normalizeRoleOptions(list: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const item of list) {
+    const role = String(item ?? "").trim().toUpperCase();
+    if (!role || seen.has(role)) continue;
+    seen.add(role);
+    out.push(role);
+  }
+
+  const defaultRoles = SYSTEM_ROLE_OPTIONS.filter((role) => seen.has(role));
+  const extras = out
+    .filter((role) => !SYSTEM_ROLE_OPTIONS.includes(role))
+    .sort((a, b) => a.localeCompare(b));
+
+  return [...defaultRoles, ...extras];
 }
 
 /** ====== safe readers (NO any) ====== */
@@ -272,6 +288,9 @@ export default function UsersPage() {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<UserFormInitial | null>(null);
   const [saving, setSaving] = useState(false);
+  const [availableRoleCodes, setAvailableRoleCodes] = useState<string[]>(
+    SYSTEM_ROLE_OPTIONS
+  );
 
   /** bulk selection */
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -280,6 +299,20 @@ export default function UsersPage() {
   const [statusBusy, setStatusBusy] = useState<Set<string>>(new Set());
 
   const clearSelected = useCallback(() => setSelected(new Set()), []);
+
+  const loadRoleOptions = useCallback(async () => {
+    try {
+      const roles = await rbacApi.getRoles();
+      const activeRoles = roles
+        .filter((role) => role.isActive !== false)
+        .map((role) => role.code);
+
+      setAvailableRoleCodes(normalizeRoleOptions(activeRoles));
+    } catch (error) {
+      console.error(error);
+      setAvailableRoleCodes((prev) => normalizeRoleOptions(prev));
+    }
+  }, []);
 
   const toggleOne = useCallback((id: string) => {
     setSelected((prev) => {
@@ -323,19 +356,20 @@ export default function UsersPage() {
   );
 
   useEffect(() => {
+    void loadRoleOptions();
+  }, [loadRoleOptions]);
+
+  useEffect(() => {
     clearSelected();
     void load(tab);
   }, [tab, load, clearSelected]);
 
   const roleOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const role of SYSTEM_ROLE_OPTIONS) set.add(role);
+    for (const role of availableRoleCodes) set.add(role);
     for (const u of items) for (const r of u.roles) set.add(r);
-    const extras = Array.from(set)
-      .filter((role) => !SYSTEM_ROLE_OPTIONS.includes(role))
-      .sort((a, b) => a.localeCompare(b));
-    return [...SYSTEM_ROLE_OPTIONS, ...extras];
-  }, [items]);
+    return normalizeRoleOptions(Array.from(set));
+  }, [availableRoleCodes, items]);
 
   const formRoleOptions = useMemo(
     () => roleOptions.filter((role) => !isBlockedFormRole(role)),
@@ -343,6 +377,7 @@ export default function UsersPage() {
   );
 
   const onCreate = () => {
+    void loadRoleOptions();
     setEditing(null);
     setOpenForm(true);
   };

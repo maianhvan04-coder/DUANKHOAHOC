@@ -1,5 +1,4 @@
 import "express";
-import type { Role } from "../constants/roles";
 import type { PermissionKey } from "../constants/permissions";
 
 declare global {
@@ -9,8 +8,8 @@ declare global {
         id: string;
         name?: string;
         email: string;
-        role: Role;
-        roles: Role[];
+        role: string;
+        roles: string[];
         permissions: PermissionKey[];
       };
     }

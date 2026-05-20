@@ -365,7 +365,7 @@ function StudentFormModal({
           <div className="grid gap-5 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {mode === "create" ? "Mật khẩu" : "Mật khẩu mới"}
+                {mode === "create" ? "Mật khẩu" : "Đổi mật khẩu"}
               </label>
               <input
                 type="password"
@@ -376,10 +376,15 @@ function StudentFormModal({
                 placeholder={
                   mode === "create"
                     ? "Nhập mật khẩu"
-                    : "Bỏ trống nếu không đổi"
+                    : "Nhập mật khẩu mới..."
                 }
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
               />
+              {mode === "edit" ? (
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  Bỏ trống nếu không muốn đổi mật khẩu.
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -681,26 +686,6 @@ export default function AdminStudentsPage() {
         },
       },
       {
-        id: "study",
-        label: "Học tập",
-        widthClassName: "w-[13%]",
-        render: (item) => (
-          <button
-            type="button"
-            onClick={() =>
-              setStudyStudent({
-                id: item._id,
-                name: item.name,
-              })
-            }
-            className="inline-flex h-8 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-500/10 hover:text-sky-600"
-          >
-            <BookOpen className="h-4 w-4" />
-            Học tập
-          </button>
-        ),
-      },
-      {
         id: "created",
         label: "Created",
         sortKey: "createdAt",
@@ -710,10 +695,21 @@ export default function AdminStudentsPage() {
       {
         id: "actions",
         label: <div className="text-right">Actions</div>,
-        widthClassName: "w-[16%]",
+        widthClassName: "w-[24%]",
         align: "right",
         render: (item) => (
           <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton
+              title="Gán học viên vào lớp"
+              onClick={() =>
+                setStudyStudent({
+                  id: item._id,
+                  name: item.name,
+                })
+              }
+            >
+              <BookOpen className="h-4 w-4" />
+            </AdminActionIconButton>
             <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
               <Pencil className="h-4 w-4" />
             </AdminActionIconButton>
@@ -964,7 +960,7 @@ export default function AdminStudentsPage() {
         <section className="hidden overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <div className="min-w-[1080px]">
-              <div className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_1fr_210px] items-center border-b border-slate-200 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <div className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_260px] items-center border-b border-slate-200 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                 <div>
                   <input
                     type="checkbox"
@@ -974,7 +970,6 @@ export default function AdminStudentsPage() {
                 <div>Student</div>
                 <div>Role</div>
                 <div>Status</div>
-                <div>Học tập</div>
                 <div>Created</div>
                 <div>Actions</div>
               </div>
@@ -991,7 +986,7 @@ export default function AdminStudentsPage() {
                 pagedItems.map((item) => (
                   <div
                     key={item._id}
-                    className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_1fr_210px] items-center border-b border-slate-200 px-6 py-5 last:border-b-0"
+                    className="grid grid-cols-[70px_2.2fr_1fr_1fr_1fr_260px] items-center border-b border-slate-200 px-6 py-5 last:border-b-0"
                   >
                     <div>
                       <input
@@ -1030,7 +1025,11 @@ export default function AdminStudentsPage() {
                       </span>
                     </div>
 
-                    <div>
+                    <div className="text-[14px] text-slate-700">
+                      {formatDate(item.createdAt)}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -1039,18 +1038,11 @@ export default function AdminStudentsPage() {
                             name: item.name,
                           })
                         }
-                        className="inline-flex items-center gap-2 rounded-[14px] px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-emerald-600"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+                        title="Gán học viên vào lớp"
                       >
                         <BookOpen className="h-4 w-4" />
-                        Học tập
                       </button>
-                    </div>
-
-                    <div className="text-[14px] text-slate-700">
-                      {formatDate(item.createdAt)}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
                       {viewMode === "active" ? (
                         <>
                           <button

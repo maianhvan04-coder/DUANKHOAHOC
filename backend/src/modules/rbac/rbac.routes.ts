@@ -26,6 +26,21 @@ rbacRouter.get(
 );
 
 /**
+ * Create role
+ */
+rbacRouter.post(
+  "/roles",
+  authGuard,
+  authorize({
+    permissionsAny: [
+      PERMISSIONS.RBAC_CREATE_ROLE,
+      PERMISSIONS.RBAC_MANAGE,
+    ],
+  }),
+  rbacController.createRole
+);
+
+/**
  * Read permissions
  */
 rbacRouter.get(
@@ -101,50 +116,35 @@ rbacRouter.put(
   rbacController.setUserRoles
 );
 
-// /**
-//  * Create role
-//  */
-// rbacRouter.post(
-//   "/roles",
-//   authGuard,
-//   authorize({
-//     permissionsAny: [
-//       PERMISSIONS.RBAC_CREATE_ROLE,
-//       PERMISSIONS.RBAC_MANAGE,
-//     ],
-//   }),
-//   rbacController.createRole
-// );
+/**
+ * Update role
+ */
+rbacRouter.put(
+  "/roles/:roleCode",
+  authGuard,
+  authorize({
+    permissionsAny: [
+      PERMISSIONS.RBAC_UPDATE_ROLE,
+      PERMISSIONS.RBAC_MANAGE,
+    ],
+  }),
+  rbacController.updateRole
+);
 
-// /**
-//  * Update role
-//  */
-// rbacRouter.put(
-//   "/roles/:roleCode",
-//   authGuard,
-//   authorize({
-//     permissionsAny: [
-//       PERMISSIONS.RBAC_UPDATE_ROLE,
-//       PERMISSIONS.RBAC_MANAGE,
-//     ],
-//   }),
-//   rbacController.updateRole
-// );
-
-// /**
-//  * Delete role
-//  */
-// rbacRouter.delete(
-//   "/roles/:roleCode",
-//   authGuard,
-//   authorize({
-//     permissionsAny: [
-//       PERMISSIONS.RBAC_DELETE_ROLE,
-//       PERMISSIONS.RBAC_MANAGE,
-//     ],
-//   }),
-//   rbacController.deleteRole
-// );
+/**
+ * Delete role
+ */
+rbacRouter.delete(
+  "/roles/:roleCode",
+  authGuard,
+  authorize({
+    permissionsAny: [
+      PERMISSIONS.RBAC_DELETE_ROLE,
+      PERMISSIONS.RBAC_MANAGE,
+    ],
+  }),
+  rbacController.deleteRole
+);
 
 /**
  * Seed RBAC

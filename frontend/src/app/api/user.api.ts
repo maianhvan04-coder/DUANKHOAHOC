@@ -1,5 +1,4 @@
 import { http } from "@/lib/utils/http";
-import type { Role } from "@/app/api/auth.api";
 import {
   readPaginationMeta,
   type ListResult,
@@ -10,15 +9,11 @@ export type UserRow = {
   id: string;
   name: string;
   email: string;
-  role: Role; // default USER nếu thiếu
-
-  // ✅ status
+  role: string;
+  roles?: string[];
   active: boolean;
-
   createdAt?: string;
   updatedAt?: string;
-
-  // ✅ soft delete
   deletedAt?: string | null;
 };
 
@@ -33,17 +28,32 @@ function pickArray(raw: unknown): unknown[] {
     if (Array.isArray(o.users)) return o.users as unknown[];
     if (Array.isArray(o.items)) return o.items as unknown[];
   }
+
   return [];
 }
 
-function parseRole(x: unknown): Role {
-  return x === "ADMIN" ||
-    x === "MANAGER" ||
-    x === "TEACHER" ||
-    x === "STUDENT" ||
-    x === "USER"
-    ? (x as Role)
-    : "USER";
+function parseRole(x: unknown): string {
+  return typeof x === "string" && x.trim() ? x.trim().toUpperCase() : "USER";
+}
+
+function parseRoles(raw: unknown, fallbackRole: string): string[] {
+  if (!Array.isArray(raw)) return [fallbackRole];
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const role = parseRole(item);
+    const key = role.toLowerCase();
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(role);
+    }
+  }
+
+  return out.length ? out : [fallbackRole];
 }
 
 function parseUser(it: unknown): UserRow | null {
@@ -54,28 +64,29 @@ function parseUser(it: unknown): UserRow | null {
     typeof o._id === "string"
       ? o._id
       : typeof o.id === "string"
-      ? o.id
-      : null;
+        ? o.id
+        : null;
 
   const email = typeof o.email === "string" ? o.email : "";
   const name = typeof o.name === "string" ? o.name : "";
 
   if (!id || !email) return null;
 
+  const role = parseRole(o.role);
   const active = typeof o.active === "boolean" ? o.active : true;
-
   const deletedAt =
     o.deletedAt === null
       ? null
       : typeof o.deletedAt === "string"
-      ? o.deletedAt
-      : undefined;
+        ? o.deletedAt
+        : undefined;
 
   return {
     id,
     name,
     email,
-    role: parseRole(o.role),
+    role,
+    roles: parseRoles(o.roles, role),
     active,
     createdAt: typeof o.createdAt === "string" ? o.createdAt : undefined,
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
@@ -84,7 +95,6 @@ function parseUser(it: unknown): UserRow | null {
 }
 
 export const userApi = {
-  // Users tab: list({deleted:false}) | Deleted tab: list({deleted:true})
   list: async (opts?: {
     deleted?: boolean;
     q?: string;
@@ -106,7 +116,12 @@ export const userApi = {
 
     return {
       items,
-      pagination: readPaginationMeta(res.data, items.length, opts?.page, opts?.limit),
+      pagination: readPaginationMeta(
+        res.data,
+        items.length,
+        opts?.page,
+        opts?.limit
+      ),
     };
   },
 
@@ -115,7 +130,11 @@ export const userApi = {
     return parseUser(res.data);
   },
 
-  create: async (payload: Partial<Pick<UserRow, "name" | "email" | "role">>): Promise<UserRow> => {
+  create: async (
+    payload: Partial<Pick<UserRow, "name" | "email" | "role" | "roles">> & {
+      password?: string;
+    }
+  ): Promise<UserRow> => {
     const res = await http.post<unknown>("/api/users", payload);
     const parsed = parseUser(res.data);
     if (!parsed) throw new Error("Invalid user data");
@@ -124,7 +143,9 @@ export const userApi = {
 
   update: async (
     id: string,
-    payload: Partial<Pick<UserRow, "name" | "email" | "role">>
+    payload: Partial<Pick<UserRow, "name" | "email" | "role" | "roles">> & {
+      password?: string;
+    }
   ): Promise<UserRow> => {
     const res = await http.patch<unknown>(`/api/users/${id}`, payload);
     const parsed = parseUser(res.data);
@@ -132,7 +153,6 @@ export const userApi = {
     return parsed;
   },
 
-  // ✅ đổi ACTIVE/INACTIVE (tab Users)
   setActive: async (id: string, active: boolean): Promise<UserRow> => {
     const res = await http.patch<unknown>(`/api/users/${id}/active`, { active });
     const parsed = parseUser(res.data);
@@ -140,17 +160,14 @@ export const userApi = {
     return parsed;
   },
 
-  // ✅ soft delete (Users tab) => BE sẽ set deletedAt + active=false
   remove: async (id: string): Promise<void> => {
     await http.delete(`/api/users/${id}`);
   },
 
-  // ✅ hard delete (Deleted tab)
   hardRemove: async (id: string): Promise<void> => {
     await http.delete(`/api/users/${id}/hard`);
   },
 
-  // ✅ restore (Deleted tab) => BE set deletedAt=null + active=true
   restore: async (id: string): Promise<void> => {
     await http.patch(`/api/users/${id}/restore`);
   },
