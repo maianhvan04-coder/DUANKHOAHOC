@@ -15,16 +15,19 @@ import {
   ChevronDown,
   Eye,
   Info,
+  Loader2,
   Pencil,
   Plus,
   Search,
   Send,
+  Sparkles,
   Trash2,
   X,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { aiApi } from "@/app/api/ai.api";
 import {
   adminNotificationApi,
   type NotificationItem,
@@ -238,6 +241,9 @@ export default function AdminNotificationPage() {
   const [recipientSearch, setRecipientSearch] = useState("");
   const [recipientOpen, setRecipientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [aiDraftPrompt, setAiDraftPrompt] = useState("");
+  const [aiDraftLoading, setAiDraftLoading] = useState(false);
+  const [aiDraftNotes, setAiDraftNotes] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<NotificationItem | null>(null);
@@ -424,6 +430,8 @@ export default function AdminNotificationPage() {
     setSelectedUserIds([getNotificationUserId(item.userId)].filter(Boolean));
     setRecipientSearch("");
     setRecipientOpen(false);
+    setAiDraftPrompt("");
+    setAiDraftNotes([]);
     setModalOpen(true);
   }, []);
 
@@ -534,6 +542,8 @@ export default function AdminNotificationPage() {
     setSelectedUserIds([]);
     setRecipientSearch("");
     setRecipientOpen(false);
+    setAiDraftPrompt("");
+    setAiDraftNotes([]);
   }
 
   function openCreateModal() {
@@ -558,6 +568,33 @@ export default function AdminNotificationPage() {
   function toggleAllRecipients() {
     const ids = activeUsers.map((user) => user._id);
     setSelectedUserIds((prev) => (prev.length === ids.length ? [] : ids));
+  }
+
+  async function handleGenerateAiDraft() {
+    const prompt = aiDraftPrompt.trim();
+
+    if (!prompt) {
+      toast.warning("Vui long nhap yeu cau cho AI");
+      return;
+    }
+
+    try {
+      setAiDraftLoading(true);
+      setAiDraftNotes([]);
+
+      const result = await aiApi.draftNotification(prompt);
+      setForm({
+        title: result.data.title,
+        message: result.data.message,
+        type: result.data.type,
+      });
+      setAiDraftNotes(result.data.notes || []);
+      toast.success("AI da tao ban nhap thong bao");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "AI chua tao duoc ban nhap thong bao"));
+    } finally {
+      setAiDraftLoading(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -708,6 +745,52 @@ export default function AdminNotificationPage() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-6">
+              <div className="mb-5 rounded-2xl border border-sky-100 bg-sky-50/80 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-sky-700 ring-1 ring-sky-100 dark:bg-slate-900 dark:text-sky-200 dark:ring-sky-500/20">
+                      <Sparkles className="h-4 w-4" />
+                      AI soan ban nhap
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      Nhap yeu cau ngan gon, AI se tao tieu de, noi dung va loai
+                      thong bao. Ban van kiem tra truoc khi luu hoac gui.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
+                  <input
+                    value={aiDraftPrompt}
+                    onChange={(event) => setAiDraftPrompt(event.target.value)}
+                    placeholder="Vi du: Soan thong bao nghi hoc ngay 2/9 cho lop TOEIC Foundation"
+                    className="h-11 w-full rounded-xl border border-sky-100 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                    maxLength={800}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleGenerateAiDraft()}
+                    disabled={aiDraftLoading}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {aiDraftLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {aiDraftLoading ? "Dang tao..." : "Dung AI"}
+                  </button>
+                </div>
+
+                {aiDraftNotes.length ? (
+                  <div className="mt-3 space-y-1 text-xs font-semibold text-sky-700 dark:text-sky-200">
+                    {aiDraftNotes.map((note) => (
+                      <div key={note}>- {note}</div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
               <div className="grid gap-5 md:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">

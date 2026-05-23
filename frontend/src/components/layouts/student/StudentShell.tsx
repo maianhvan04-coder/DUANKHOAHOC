@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useStudentPreferences, type StudentMessageKey } from "@/i18n";
+import AiChatWidget from "@/components/ai/AiChatWidget";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { clearAuth } from "@/lib/utils/storage";
 
@@ -329,6 +330,7 @@ export default function StudentShell({ children }: { children: ReactNode }) {
 
         <div className="min-h-[calc(100vh-88px)]">{children}</div>
       </div>
+      <AiChatWidget role="student" />
     </div>
   );
 }

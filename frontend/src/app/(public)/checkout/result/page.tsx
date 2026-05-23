@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 function Info({ label, value }: { label: string; value: string }) {
@@ -12,7 +13,7 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function CheckoutResultPage() {
+function CheckoutResultContent() {
   const searchParams = useSearchParams();
 
   const provider = searchParams.get("provider") || "vnpay";
@@ -83,5 +84,13 @@ export default function CheckoutResultPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutResultPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckoutResultContent />
+    </Suspense>
   );
 }

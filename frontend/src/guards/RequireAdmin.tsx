@@ -30,7 +30,7 @@ export default function RequireAdmin({
   }, [hydrated, isLoading, user, access, router, pathname]);
 
   if (!hydrated || isLoading) {
-    return <div style={{ padding: 16 }}>Loading...</div>;
+    return null;
   }
 
   if (!user) return null;

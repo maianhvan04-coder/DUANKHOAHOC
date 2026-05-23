@@ -18,6 +18,7 @@ import securityAuditRouter from "../modules/audit/security/security-audit.route"
 import dashboardRouter from "../modules/dashboard/dashboard.route";
 import accountRouter  from "../modules/account/account.route";
 import blogRouter from "../modules/blog/blog.route";
+import { aiRouter } from "../modules/ai/ai.route";
 import {
   adminNotificationRouter,
   userNotificationRouter,
@@ -35,6 +36,7 @@ router.use("/users", authGuard, requireRole(ROLES.ADMIN), userRouter);
 
 // public
 router.get("/health", (_req, res) => res.json({ ok: true }));
+router.use("/ai", aiRouter);
 router.use("/categories", categoryRouter);
 router.use("/products", productRouter);
 router.use("/rbac", rbacRouter);

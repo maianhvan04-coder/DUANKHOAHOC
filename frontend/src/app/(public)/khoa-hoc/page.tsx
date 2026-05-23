@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { BookOpen, Heart, Search, Star, Users, X } from "lucide-react";
 
@@ -495,7 +495,7 @@ const statusOptions: Array<{ value: "" | ProductStatus; label: string }> = [
   { value: "FULL", label: "Đã đầy" },
 ];
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const selectedCategoryId = searchParams.get("categoryId") || "";
 
@@ -687,5 +687,13 @@ export default function ProductsPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductsContent />
+    </Suspense>
   );
 }
