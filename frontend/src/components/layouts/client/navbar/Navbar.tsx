@@ -17,6 +17,7 @@ import {
   LogOut,
   Search,
   User,
+  Wallet,
   X,
   XCircle,
   type LucideIcon,
@@ -40,6 +41,8 @@ import {
   emitNotificationChanged,
   NOTIFICATION_CHANGED_EVENT,
 } from "@/lib/utils/notification-events";
+import { walletApi } from "@/app/api/wallet.api";
+import { WALLET_BALANCE_CHANGED_EVENT } from "@/lib/utils/wallet-events";
 import {
   USER_LOCALES,
   useUserPreferences,
@@ -116,6 +119,10 @@ function readFavoriteCourseCount() {
   } catch {
     return 0;
   }
+}
+
+function formatWalletBalance(value: number | null) {
+  return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 }
 
 function formatNotificationDate(value?: string | null) {
@@ -263,6 +270,7 @@ export default function Navbar() {
     string | null
   >(null);
   const [favoriteCourseCount, setFavoriteCourseCount] = useState(0);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const checkingAuth = !hydrated || isLoading;
   const isLoggedIn = !!user;
@@ -300,6 +308,20 @@ export default function Navbar() {
       setNotificationLoading(false);
     }
   }, [checkingAuth, isLoggedIn, t]);
+
+  const loadWalletBalance = useCallback(async () => {
+    if (checkingAuth || !isLoggedIn) {
+      setWalletBalance(null);
+      return;
+    }
+
+    try {
+      const data = await walletApi.getMine();
+      setWalletBalance(Number(data.balance || 0));
+    } catch {
+      setWalletBalance(null);
+    }
+  }, [checkingAuth, isLoggedIn]);
 
   useEffect(() => {
     let rafId = 0;
@@ -360,6 +382,23 @@ export default function Navbar() {
   useEffect(() => {
     void loadNotificationSummary();
   }, [loadNotificationSummary, pathname]);
+
+  useEffect(() => {
+    void loadWalletBalance();
+
+    const handleWalletChanged = () => {
+      void loadWalletBalance();
+    };
+
+    window.addEventListener(WALLET_BALANCE_CHANGED_EVENT, handleWalletChanged);
+
+    return () => {
+      window.removeEventListener(
+        WALLET_BALANCE_CHANGED_EVENT,
+        handleWalletChanged
+      );
+    };
+  }, [loadWalletBalance, pathname]);
 
   useEffect(() => {
     const syncFavoriteCourseCount = () => {
@@ -650,7 +689,7 @@ export default function Navbar() {
                     </div>
 
                     <Link
-                      href="/khoa-hoc"
+                      href="/#khoa-hoc"
                       className="relative inline-flex h-10 w-10 items-center justify-center rounded-[10px] transition hover:bg-[#F5F9FF]"
                       aria-label={t("favorites.label")}
                     >
@@ -678,22 +717,32 @@ export default function Navbar() {
                         type="button"
                         title={user?.name || user?.email || t("profile.account")}
                         onClick={() => setOpenProfileMenu((prev) => !prev)}
-                        className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-[#0B2C5F] transition hover:bg-slate-200"
+                        className="flex h-12 max-w-[250px] items-center gap-2 rounded-full border border-slate-200 bg-white px-1.5 pr-4 text-left text-[#0B2C5F] shadow-[0_8px_22px_rgba(15,23,42,0.10)] transition hover:border-[#cbe7fb] hover:bg-[#F5F9FF]"
                         aria-label={t("profile.openMenu")}
                       >
-                        {userAvatar ? (
-                          <img
-                            src={userAvatar}
-                            alt={user?.name || "Avatar"}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : user?.name || user?.email ? (
-                          <span className="text-[14px] font-bold">
-                            {userInitial}
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E6F4FF] text-[#0D56A6] ring-1 ring-[#cbe7fb]">
+                          {userAvatar ? (
+                            <img
+                              src={userAvatar}
+                              alt={user?.name || "Avatar"}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : user?.name || user?.email ? (
+                            <span className="text-[14px] font-black">
+                              {userInitial}
+                            </span>
+                          ) : (
+                            <User className="h-5 w-5" strokeWidth={2} />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block max-w-[175px] truncate text-[12px] font-black leading-4">
+                            {user?.email || user?.name || t("profile.user")}
                           </span>
-                        ) : (
-                          <User className="h-5 w-5" strokeWidth={2} />
-                        )}
+                          <span className="mt-0.5 block text-[12px] font-black leading-4 text-[#0D56A6]">
+                            {formatWalletBalance(walletBalance)}
+                          </span>
+                        </span>
                       </button>
 
                       <div
@@ -739,6 +788,15 @@ export default function Navbar() {
                           >
                             <User className="h-4 w-4" />
                             <span>{t("profile.account")}</span>
+                          </Link>
+
+                          <Link
+                            href="/nap-tien"
+                            onClick={() => setOpenProfileMenu(false)}
+                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
+                          >
+                            <Wallet className="h-4 w-4" />
+                            <span>Ví học tập</span>
                           </Link>
 
                           {canAccessStudent && (
@@ -829,7 +887,7 @@ export default function Navbar() {
                   ))}
 
                   <Link
-                    href="/khoa-hoc"
+                    href="/#khoa-hoc"
                     className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
                   >
                     {t("nav.courses")}

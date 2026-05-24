@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { authApi } from "@/app/api/auth.api";
 import {
@@ -34,19 +35,15 @@ function getSafeRedirectPath(): string | null {
 
 function Logo() {
   return (
-    <Link href="/" className="mx-auto flex w-fit items-center gap-3 lg:mx-0">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-sky-200 bg-sky-50">
-        <BookOpen className="h-6 w-6 text-[#0b2f6c]" />
-      </div>
-
-      <div>
-        <div className="text-[18px] font-extrabold leading-none text-[#0b2f6c]">
-          Everest
-        </div>
-        <div className="mt-1 text-[8px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-          Learning • Leadership • Peak Performance
-        </div>
-      </div>
+    <Link href="/" className="mx-auto block w-fit lg:mx-0">
+      <Image
+        src="/Logo-horizontal-clean.png"
+        alt="Everest"
+        width={286}
+        height={64}
+        priority
+        className="h-auto w-[286px] max-w-full object-contain"
+      />
     </Link>
   );
 }
@@ -138,27 +135,24 @@ function Divider() {
 
 function SocialButton({
   type,
-  text,
 }: {
   type: "google" | "facebook";
   text: string;
 }) {
-  const isGoogle = type === "google";
+  if (type === "facebook") return null;
 
   return (
     <button
       type="button"
-      className="flex h-[42px] w-full items-center rounded-[6px] border border-slate-300 bg-white px-4 text-[14px] font-medium text-slate-700 transition hover:bg-slate-50"
+      className="flex h-16 w-full items-center justify-center gap-3 rounded-full border border-slate-300 bg-white px-5 text-[18px] font-semibold text-slate-900 transition hover:bg-slate-50"
     >
-      <span
-        className={cn(
-          "mr-4 flex w-5 items-center justify-center text-[18px] font-bold",
-          isGoogle ? "text-[#EA4335]" : "text-[#1877F2]"
-        )}
-      >
-        {isGoogle ? "G" : "f"}
-      </span>
-      <span>{text}</span>
+      <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M21.6 12.23c0-.78-.07-1.53-.2-2.23H12v4.22h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.52Z" />
+        <path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.24-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.81-1.76-5.6-4.12H3.05v2.59A10 10 0 0 0 12 22Z" />
+        <path fill="#FBBC05" d="M6.4 13.9A6.01 6.01 0 0 1 6.08 12c0-.66.11-1.3.32-1.9V7.51H3.05A10 10 0 0 0 2 12c0 1.61.38 3.13 1.05 4.49L6.4 13.9Z" />
+        <path fill="#EA4335" d="M12 5.98c1.47 0 2.8.51 3.84 1.5l2.87-2.87C16.96 2.98 14.7 2 12 2a10 10 0 0 0-8.95 5.51L6.4 10.1C7.19 7.74 9.4 5.98 12 5.98Z" />
+      </svg>
+      <span>Tiếp tục với Google</span>
     </button>
   );
 }

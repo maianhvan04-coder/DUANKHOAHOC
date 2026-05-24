@@ -40,7 +40,7 @@ export default function AboutHeroSection() {
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link
-                  href="/khoa-hoc"
+                  href="/#khoa-hoc"
                   className="inline-flex h-12 items-center justify-center rounded-xl bg-[#0b4b84] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#08365f]"
                 >
                   Khám phá khóa học

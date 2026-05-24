@@ -13,6 +13,7 @@ import {
   FileText,
   FolderLock,
   GraduationCap,
+  Landmark,
   LayoutDashboard,
   LogOut,
   NotebookPen,
@@ -152,6 +153,13 @@ const menuGroups: SidebarGroup[] = [
   {
     labelKey: "sidebar.group.audit",
     items: [
+      {
+        href: "/admin/payment-methods",
+        textKey: "sidebar.paymentMethods",
+        icon: Landmark,
+        requiredGroupKeys: ["AUDIT"],
+        requiredRolesAny: ["ADMIN", "MANAGER"],
+      },
       {
         href: "/admin/payment-audits",
         textKey: "sidebar.paymentHistory",

@@ -31,6 +31,7 @@ const ADMIN_PAGE_TITLES = [
   { path: "/admin/notification", titleKey: "page.notification" },
   { path: "/admin/my-notifications", titleKey: "page.myNotifications" },
   { path: "/admin/rbac", titleKey: "page.rbac" },
+  { path: "/admin/payment-methods", titleKey: "page.paymentMethods" },
   { path: "/admin/payment-audits", titleKey: "page.paymentAudits" },
   { path: "/admin/security-audits", titleKey: "page.securityAudits" },
   { path: "/admin/setting", titleKey: "page.setting" },

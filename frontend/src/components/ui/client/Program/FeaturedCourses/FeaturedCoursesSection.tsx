@@ -139,7 +139,7 @@ function FeaturedCourseCard({
         </p>
 
         <Link
-          href="/khoa-hoc"
+          href="/#khoa-hoc"
           className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-full bg-[#0f2f63] text-[13px] font-semibold text-white transition hover:bg-[#0c2753]"
         >
           Xem chi tiết

@@ -5,15 +5,12 @@ import type {
   OrderItemSnapshot,
 } from "./payment.types";
 import { createVnpayCheckout } from "./vnpay.service";
-import Cart from "../cart/cart.model";
 
-type CartItemLike = {
+type CheckoutItemLike = {
   courseId: string;
   title: string;
-  quantity: number;
-  selected?: boolean;
+  quantity?: number;
   unitPrice: number;
-  isAvailable?: boolean;
 };
 
 type AppError = Error & { statusCode?: number };
@@ -28,15 +25,20 @@ function asObjectId(id: string) {
   return new Types.ObjectId(id);
 }
 
-function buildCheckoutItems(items: CartItemLike[]): OrderItemSnapshot[] {
+function buildCheckoutItems(items: CheckoutItemLike[]): OrderItemSnapshot[] {
   return items
-    .filter((item) => item.selected !== false)
-    .filter((item) => (item.isAvailable ?? true) === true)
+    .map((item) => ({
+      ...item,
+      quantity: Number(item.quantity || 1),
+      unitPrice: Number(item.unitPrice),
+    }))
+    .filter((item) => String(item.courseId || "").trim())
+    .filter((item) => String(item.title || "").trim())
     .filter((item) => Number(item.quantity) > 0)
     .filter((item) => Number(item.unitPrice) >= 0)
     .map((item) => ({
       courseId: String(item.courseId),
-      title: String(item.title || "Khóa học"),
+      title: String(item.title || "Khoa hoc"),
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
       subtotal: Number(item.quantity) * Number(item.unitPrice),
@@ -57,33 +59,27 @@ async function createUniquePaymentCode() {
     if (!exists) return code;
   }
 
-  throw new Error("Không tạo được paymentCode duy nhất");
+  throw new Error("Khong tao duoc paymentCode duy nhat");
 }
 
-export async function getSelectedCartForCheckout(userId: string) {
-  const cart: any = await Cart.findOne({ user: asObjectId(userId) }).lean();
-
-  if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
-    throw badRequest("Giỏ hàng trống");
-  }
-
-  const items = buildCheckoutItems(cart.items);
+export function buildDirectCheckout(inputItems: CheckoutItemLike[]) {
+  const items = buildCheckoutItems(inputItems || []);
 
   if (!items.length) {
-    throw badRequest("Chưa có sản phẩm nào được chọn để thanh toán");
+    throw badRequest("Chua co khoa hoc nao de thanh toan");
   }
 
   const amount = items.reduce((sum, item) => sum + item.subtotal, 0);
 
   if (amount <= 0) {
-    throw badRequest("Tổng tiền không hợp lệ");
+    throw badRequest("Tong tien khong hop le");
   }
 
   return { items, amount };
 }
 
 export async function createCheckoutSession(input: CreateCheckoutSessionInput) {
-  const { items, amount } = await getSelectedCartForCheckout(input.userId);
+  const { items, amount } = buildDirectCheckout(input.items);
   const paymentCode = await createUniquePaymentCode();
 
   const order = await PaymentOrderModel.create({
@@ -136,19 +132,6 @@ export async function markOrderFailed(
   return order;
 }
 
-async function clearPurchasedItemsFromCart(userId: string, courseIds: string[]) {
-  await Cart.updateOne(
-    { user: asObjectId(userId) },
-    {
-      $pull: {
-        items: {
-          courseId: { $in: courseIds },
-        },
-      },
-    }
-  );
-}
-
 async function grantPurchasedCourses(userId: string, items: OrderItemSnapshot[]) {
   void userId;
   void items;
@@ -176,10 +159,6 @@ export async function markOrderPaid(params: {
   await order.save();
 
   await grantPurchasedCourses(String(order.user), order.items);
-  await clearPurchasedItemsFromCart(
-    String(order.user),
-    order.items.map((item) => item.courseId)
-  );
 
   return order;
 }

@@ -107,7 +107,7 @@ function CourseCard({ item, index, categories }: {
           {formatPrice(item.price)}
         </p>
         <Link
-          href="/khoa-hoc"
+          href="/#khoa-hoc"
           className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[8px] bg-[#0D56A6] text-[13px] font-bold text-white transition hover:bg-[#0B4A8E]"
         >
           Xem chi tiết

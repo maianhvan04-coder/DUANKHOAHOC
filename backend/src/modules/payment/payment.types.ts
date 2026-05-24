@@ -13,4 +13,10 @@ export type CreateCheckoutSessionInput = {
   userId: string;
   provider: PaymentProvider;
   ipAddr?: string;
+  items: Array<{
+    courseId: string;
+    title: string;
+    quantity?: number;
+    unitPrice: number;
+  }>;
 };

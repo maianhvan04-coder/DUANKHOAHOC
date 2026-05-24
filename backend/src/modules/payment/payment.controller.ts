@@ -63,6 +63,7 @@ export async function createCheckoutSessionController(
       userId,
       provider: "vnpay",
       ipAddr: req.ip,
+      items: req.body.items,
     });
 
     return res.json({

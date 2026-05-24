@@ -11,7 +11,6 @@ import { rbacRouter } from "../modules/rbac/rbac.routes";
 import { teacherRouter } from "../modules/teacher/teacher.routes";
 import { studentRouter } from "../modules/student/student.route";
 import { classRoomRouter } from "../modules/classroom/classroom.route";
-import cartRouter from "../modules/cart/cart.route";
 import paymentRoutes from "../modules/payment/payment.routes";
 import paymentAuditRouter from "../modules/audit/payment/payment-audit.route";
 import securityAuditRouter from "../modules/audit/security/security-audit.route";
@@ -19,6 +18,8 @@ import dashboardRouter from "../modules/dashboard/dashboard.route";
 import accountRouter  from "../modules/account/account.route";
 import blogRouter from "../modules/blog/blog.route";
 import { aiRouter } from "../modules/ai/ai.route";
+import { walletRouter } from "../modules/wallet/wallet.route";
+import { paymentMethodRouter } from "../modules/payment-method/payment-method.route";
 import {
   adminNotificationRouter,
   userNotificationRouter,
@@ -43,8 +44,9 @@ router.use("/rbac", rbacRouter);
 router.use("/teachers", teacherRouter);
 router.use("/students", studentRouter);
 router.use("/classes", classRoomRouter);
-router.use("/cart", cartRouter);
 router.use("/blogs", blogRouter);
+router.use("/wallet", walletRouter);
+router.use("/payment-methods", paymentMethodRouter);
 
 // dashboard
 router.use("/dashboard", dashboardRouter);

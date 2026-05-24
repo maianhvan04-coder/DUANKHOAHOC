@@ -1,230 +1,151 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
-const newsLinks = [
-  "Quy định - Hướng dẫn",
-  "Thư viện",
-  "Tin tức",
-  "Sự kiện",
-  "Thành tích học viên",
+const companyLinks = [
+  "Giới thiệu",
+  "Phòng truyền thông",
+  "Học sinh tiêu biểu",
+  "Điều khoản chính sách",
+  "Quy chế hoạt động",
+  "Tuyển dụng",
 ];
 
 const programLinks = [
-  "Luyện thi TOEIC",
-  "Luyện thi TOEFL",
-  "Luyện thi Tin học",
-  "Các khóa học khác",
+  "Luyện thi chứng chỉ ngoại ngữ",
+  "Luyện thi tin học văn phòng",
+  "Lập trình Online",
+  "Lớp 1 - Lớp 12",
+  "Luyện thi THPT",
+  "Luyện thi vào lớp 10",
+  "Hệ thống trung tâm Everest",
+  "Kho học liệu trực tuyến",
 ];
 
-const policyLinks = [
-  "Chính sách bảo mật",
-  "Thanh toán",
-  "Tuyển dụng",
-  "Về chúng tôi",
+const supportLinks = [
+  "Cập nhật tin tức - sự kiện Everest",
+  "Diễn đàn học tập",
+  "Thư viện học liệu",
+  "Thông tin tuyển sinh",
+  "Chia sẻ kinh nghiệm học tập THPT",
+  "Chia sẻ kinh nghiệm học tập THCS",
+  "Kiểm tra, thi thử",
 ];
 
-function SocialIcon({
-  src,
-  alt,
-  href = "/",
-}: {
-  src: string;
-  alt: string;
-  href?: string;
-}) {
+const partnerLinks = ["Liên hệ", "Góp ý về dịch vụ", "Giải đáp thắc mắc"];
+
+function LinkList({ items }: { items: string[] }) {
+  return (
+    <ul className="space-y-2 text-sm leading-6 text-slate-700">
+      {items.map((item) => (
+        <li key={item}>
+          <Link href="/" className="transition hover:text-[#0D56A6]">
+            {item}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function StoreBadge({ children }: { children: ReactNode }) {
   return (
     <Link
-      href={href}
-      aria-label={alt}
-      className="inline-flex items-center justify-center transition hover:opacity-80"
+      href="/"
+      className="flex h-12 w-40 items-center justify-center rounded-[4px] bg-black px-4 text-white shadow-sm transition hover:bg-slate-900"
     >
-      <Image
-        src={src}
-        alt={alt}
-        width={42}
-        height={42}
-        className="h-10.5 w-10.5 object-contain"
-      />
+      {children}
     </Link>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SocialIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="mb-5">
-      <h3 className="text-[15px] font-semibold uppercase tracking-[0.02em] text-white/85">
-        {children}
-      </h3>
-      <div className="mt-3 h-px w-full bg-white/45" />
-    </div>
+    <Link href="/" aria-label={alt} className="transition hover:opacity-80">
+      <Image src={src} alt={alt} width={34} height={34} className="h-8.5 w-8.5" />
+    </Link>
   );
 }
 
 export default function Footer() {
   return (
-    <footer className="bg-[#002654] text-white">
-      <div className="mx-auto max-w-310 px-6 pb-10 pt-10 md:px-8 lg:px-10">
-        <div className="grid gap-10 lg:grid-cols-[1.35fr_0.65fr_0.65fr]">
-          <div>
-            <div className="mb-8 flex h-24 items-center justify-center lg:justify-start">
-              <Link href="/" className="-ml-12 inline-block lg:-ml-14">
-                <Image
-                  src="/Logo.png"
-                  alt="Everest"
-                  width={240}
-                  height={100}
-                  className="h-auto w-40 object-contain brightness-0 invert md:w-46.25 lg:w-52.5"
-                  priority
-                />
-              </Link>
-            </div>
-
-            <div className="mt-2">
-              <SectionTitle>THÔNG TIN LIÊN HỆ</SectionTitle>
-
-              <div className="space-y-3 text-[16px] leading-7 text-white">
-                <p>
-                  <span className="font-bold">Hotline:</span>{" "}
-                  <span className="font-semibold">1900 636 929</span>
-                </p>
-                <p>
-                  <span className="font-bold">Email:</span>{" "}
-                  <Link
-                    href="mailto:info@iigvietnam.edu.vn"
-                    className="font-medium hover:underline"
-                  >
-                    info@everestvietnam.edu.vn
-                  </Link>
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <SectionTitle>ĐỊA CHỈ VĂN PHÒNG</SectionTitle>
-
-              <div className="space-y-4 text-[16px] leading-7 text-white">
-                <p>
-                  <span className="font-bold">Trụ sở chính:</span> 75 Giang Văn
-                  Minh, Phường Ngọc Hà, Hà Nội
-                </p>
-
-                <p>
-                  <span className="font-bold">Văn Phòng Trung Yên:</span> Tầng
-                  3, Trung Yên Plaza, 1 Trung Hòa, Phường Yên Hòa, Hà Nội
-                </p>
-
-                <p>
-                  <span className="font-bold">Chi nhánh TP.Đà Nẵng:</span> 161
-                  Núi Thành, Phường Hòa Cường, TP. Đà Nẵng
-                </p>
-
-                <p>
-                  <span className="font-bold">Chi nhánh TP.Hồ Chí Minh:</span>{" "}
-                  Tầng 1, Tháp 1, The Sun Avenue, 28 Mai Chí Thọ, Phường Bình
-                  Trưng, TP. HCM
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <p className="text-[16px] font-semibold text-white">
-                Theo dõi Everest Việt Nam tại
-              </p>
-
-              <div className="mt-4 flex items-center gap-4">
-                <SocialIcon
-                  src="/footer/facebook.svg"
-                  alt="Facebook"
-                  href="/"
-                />
-                <SocialIcon src="/footer/tiktok.svg" alt="TikTok" href="/" />
-                <SocialIcon src="/footer/youtube.svg" alt="YouTube" href="/" />
-                <SocialIcon src="/footer/zalo.svg" alt="Zalo" href="/" />
-              </div>
-            </div>
-
-            <div className="mt-8">
-              <p className="text-[16px] font-semibold text-white">
-                Chúng tôi kết nối thanh toán qua
-              </p>
-
-              <div className="mt-4">
-                <Image
-                  src="/footer/VNPayLogo.png"
-                  alt="VNPAY"
-                  width={170}
-                  height={52}
-                  className="h-auto w-42.5"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:pt-32">
-            <SectionTitle>TIN TỨC</SectionTitle>
-
-            <ul className="space-y-3">
-              {newsLinks.map((item) => (
-                <li key={item}>
-                  <Link
-                    href="/"
-                    className="text-[16px] font-semibold leading-7 text-white transition hover:text-white/75"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="lg:pt-32">
-            <SectionTitle>CHƯƠNG TRÌNH HỌC</SectionTitle>
-
-            <ul className="space-y-3">
-              {programLinks.map((item) => (
-                <li key={item}>
-                  <Link
-                    href="/"
-                    className="text-[16px] font-semibold leading-7 text-white transition hover:text-white/75"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+    <footer className="border-t border-slate-200 bg-white text-slate-800">
+      <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-[170px_1.35fr_1fr_0.65fr_180px]">
+        <div>
+          <Link href="/" className="inline-flex">
+            <Image
+              src="/Logo-icon.png"
+              alt="Everest"
+              width={110}
+              height={110}
+              className="h-24 w-24 object-contain"
+            />
+          </Link>
+          <div className="mt-5">
+            <LinkList items={companyLinks} />
           </div>
         </div>
 
-        <div className="mt-10 h-px w-full bg-white/35" />
+        <div>
+          <h3 className="mb-4 text-base font-bold">Chương trình học tiêu biểu</h3>
+          <LinkList items={programLinks} />
+        </div>
 
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-3 text-[15px] font-semibold leading-7 text-white">
-            <p>© 2024 Everest-Learning. All rights reserved.</p>
-            <p>Công ty cổ phần Công nghệ giáo dục Everest</p>
-            <p>Mã số thuế: 9856345677</p>
+        <div>
+          <h3 className="mb-4 text-base font-bold">Dịch vụ hỗ trợ học tập</h3>
+          <LinkList items={supportLinks} />
+        </div>
 
-            <div className="pt-3">
-              <Image
-                src="/footer/bo-cong-thuong.svg"
-                alt="Đã thông báo Bộ Công Thương"
-                width={150}
-                height={58}
-                className="h-auto w-37.5"
-              />
-            </div>
+        <div>
+          <h3 className="mb-4 text-base font-bold">Khách hàng/Đối tác</h3>
+          <LinkList items={partnerLinks} />
+        </div>
+
+        <div>
+          <h3 className="mb-4 text-base font-bold uppercase">Tải ứng dụng</h3>
+          <div className="space-y-3">
+            <StoreBadge>
+              <span className="mr-3 text-lg">▶</span>
+              <span>
+                <span className="block text-[10px] leading-none">GET IT ON</span>
+                <span className="block text-lg font-semibold leading-5">Google Play</span>
+              </span>
+            </StoreBadge>
+            <StoreBadge>
+              <span className="mr-3 text-lg font-bold">A</span>
+              <span>
+                <span className="block text-[10px] leading-none">Available on the</span>
+                <span className="block text-lg font-semibold leading-5">App Store</span>
+              </span>
+            </StoreBadge>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200">
+        <div className="mx-auto grid max-w-[1180px] gap-6 px-4 py-5 text-xs leading-5 text-slate-500 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p>Cơ quan chủ quản: Công ty Cổ phần Công nghệ Giáo dục Everest</p>
+            <p>MST: 012183602 do Sở kế hoạch và Đầu tư thành phố Hà Nội cấp ngày 13 tháng 03 năm 2007</p>
+            <p>
+              Địa chỉ: Tầng 4, Tòa nhà 25T2, Đường Nguyễn Thị Thập, Phường Trung Hòa,
+              Quận Cầu Giấy, Hà Nội.
+            </p>
+            <p>Hotline: 19006933 - Email: hotro@everest.edu.vn</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-1 text-[15px] font-medium text-white/90 lg:justify-end">
-            {policyLinks.map((item, index) => (
-              <div key={item} className="flex items-center">
-                <Link href="/" className="transition hover:text-white">
-                  {item}
-                </Link>
-                {index !== policyLinks.length - 1 && (
-                  <span className="mx-3 text-white/55">|</span>
-                )}
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            <SocialIcon src="/footer/zalo.svg" alt="Zalo" />
+            <SocialIcon src="/footer/facebook.svg" alt="Facebook" />
+            <SocialIcon src="/footer/youtube.svg" alt="YouTube" />
+            <SocialIcon src="/footer/tiktok.svg" alt="TikTok" />
+            <Image
+              src="/footer/bo-cong-thuong.svg"
+              alt="Đã thông báo Bộ Công Thương"
+              width={130}
+              height={50}
+              className="h-auto w-32"
+            />
           </div>
         </div>
       </div>

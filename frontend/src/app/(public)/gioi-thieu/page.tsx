@@ -424,7 +424,7 @@ export default function Page() {
           </h2>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
-              href="/khoa-hoc"
+              href="/#khoa-hoc"
               className="inline-flex h-11 items-center justify-center rounded-[8px] bg-white px-6 text-[14px] font-black text-[#0D56A6] transition hover:bg-[#EEF7FF]"
             >
               Xem khóa học
