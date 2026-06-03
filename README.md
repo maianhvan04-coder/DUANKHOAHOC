@@ -71,6 +71,15 @@ Frontend mac dinh chay tai:
 http://localhost:3000
 ```
 
+Chay nhanh tu root neu may local van co `package.json` o root:
+
+```powershell
+npm install
+npm run dev
+```
+
+Lenh root `npm run dev` se chay ca backend va frontend cung luc. Neu clone repo moi ma khong co root `package.json`, hay chay 2 lenh `--prefix` rieng nhu tren.
+
 ## Seed RBAC
 
 Sau khi backend ket noi MongoDB thanh cong, can seed RBAC de co role va permission mac dinh.
@@ -108,6 +117,78 @@ npm run build --prefix frontend
 
 ```powershell
 npm run lint --prefix frontend
+```
+
+## Lenh Co Ban Khi Gap Loi
+
+Kiem tra phien ban Node va npm:
+
+```powershell
+node -v
+npm -v
+```
+
+Cai lai dependency cho tung phan:
+
+```powershell
+npm install --prefix backend
+npm install --prefix frontend
+```
+
+Neu chay tu root bi thieu `concurrently` hoac dependency root:
+
+```powershell
+npm install
+```
+
+Kiem tra loi TypeScript/backend:
+
+```powershell
+npm run build --prefix backend
+```
+
+Kiem tra loi build/frontend:
+
+```powershell
+npm run build --prefix frontend
+```
+
+Kiem tra lint frontend:
+
+```powershell
+npm run lint --prefix frontend
+```
+
+Xoa cache build Next.js khi frontend hien loi cache la:
+
+```powershell
+Remove-Item -Recurse -Force frontend\.next
+npm run dev --prefix frontend
+```
+
+Kiem tra port 3000 hoac 8080 dang bi ung dung nao chiem:
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000,8080 | Select-Object LocalAddress,LocalPort,OwningProcess
+```
+
+Dung process dang chiem port, thay `<PID>` bang `OwningProcess` tim duoc:
+
+```powershell
+Stop-Process -Id <PID> -Force
+```
+
+Kiem tra backend co doc dung env va ket noi MongoDB khong:
+
+```powershell
+npm run dev --prefix backend
+```
+
+Seed lai RBAC khi role/permission bi thieu:
+
+```powershell
+cd backend
+npx ts-node src/seeds/seed.rbac.base.ts
 ```
 
 ## Ghi Chu Git
