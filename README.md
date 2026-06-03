@@ -1,51 +1,51 @@
 # Everest Education Platform
 
-Du an gom 2 ung dung chinh:
+Dự án gồm 2 ứng dụng chính:
 
 - `backend`: REST API Express + TypeScript + MongoDB.
 - `frontend`: Next.js client/admin/student portal.
 
-## Yeu Cau
+## Yêu Cầu
 
-- Node.js 20 tro len.
+- Node.js 20 trở lên.
 - npm.
-- MongoDB dang chay local hoac MongoDB Atlas.
-- Tai khoan dich vu neu dung cac tinh nang lien quan: Cloudinary, VNPAY, Gemini.
+- MongoDB đang chạy local hoặc MongoDB Atlas.
+- Tài khoản dịch vụ nếu dùng các tính năng liên quan: Cloudinary, VNPAY, Gemini.
 
-## Cau Hinh Moi Truong
+## Cấu Hình Môi Trường
 
-Tao file env that tu file mau:
+Tạo file env thật từ file mẫu:
 
 ```powershell
 Copy-Item backend\.env.example backend\.env
 Copy-Item frontend\.env.example frontend\.env
 ```
 
-Cap nhat cac gia tri quan trong trong `backend/.env`:
+Cập nhật các giá trị quan trọng trong `backend/.env`:
 
-- `MONGODB_URI`: chuoi ket noi MongoDB.
-- `JWT_ACCESS_SECRET`: chuoi bi mat dai, khong dung gia tri mau.
-- `CORS_ORIGIN`: URL frontend, mac dinh `http://localhost:3000`.
-- `PUBLIC_API_URL`: URL public cua backend, can dung khi thanh toan VNPAY.
-- `CLOUDINARY_*`: bat buoc neu upload anh qua Cloudinary.
-- `VNPAY_*`: bat buoc neu dung thanh toan VNPAY.
-- `GEMINI_API_KEY` hoac `GEMINI_API_KEYS`: bat buoc neu dung AI.
+- `MONGODB_URI`: chuỗi kết nối MongoDB.
+- `JWT_ACCESS_SECRET`: chuỗi bí mật dài, không dùng giá trị mẫu.
+- `CORS_ORIGIN`: URL frontend, mặc định `http://localhost:3000`.
+- `PUBLIC_API_URL`: URL public của backend, cần dùng khi thanh toán VNPAY.
+- `CLOUDINARY_*`: bắt buộc nếu upload ảnh qua Cloudinary.
+- `VNPAY_*`: bắt buộc nếu dùng thanh toán VNPAY.
+- `GEMINI_API_KEY` hoặc `GEMINI_API_KEYS`: bắt buộc nếu dùng AI.
 
-Cap nhat `frontend/.env`:
+Cập nhật `frontend/.env`:
 
-- `NEXT_PUBLIC_API_URL`: URL backend, mac dinh `http://localhost:8080`.
-- `NEXT_PUBLIC_API_BASE_URL`: alias cho mot so trang cu, nen de giong `NEXT_PUBLIC_API_URL`.
+- `NEXT_PUBLIC_API_URL`: URL backend, mặc định `http://localhost:8080`.
+- `NEXT_PUBLIC_API_BASE_URL`: alias cho một số trang cũ, nên để giống `NEXT_PUBLIC_API_URL`.
 
-## Cai Dat Dependency
+## Cài Đặt Dependency
 
 ```powershell
 npm install --prefix backend
 npm install --prefix frontend
 ```
 
-## Chay Development
+## Chạy Development
 
-Mo 2 terminal rieng.
+Mở 2 terminal riêng.
 
 Terminal 1 - backend:
 
@@ -53,7 +53,7 @@ Terminal 1 - backend:
 npm run dev --prefix backend
 ```
 
-Backend mac dinh chay tai:
+Backend mặc định chạy tại:
 
 ```text
 http://localhost:8080
@@ -65,39 +65,39 @@ Terminal 2 - frontend:
 npm run dev --prefix frontend
 ```
 
-Frontend mac dinh chay tai:
+Frontend mặc định chạy tại:
 
 ```text
 http://localhost:3000
 ```
 
-Chay nhanh tu root neu may local van co `package.json` o root:
+Chạy nhanh từ root nếu máy local vẫn có `package.json` ở root:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Lenh root `npm run dev` se chay ca backend va frontend cung luc. Neu clone repo moi ma khong co root `package.json`, hay chay 2 lenh `--prefix` rieng nhu tren.
+Lệnh root `npm run dev` sẽ chạy cả backend và frontend cùng lúc. Nếu clone repo mới mà không có root `package.json`, hãy chạy 2 lệnh `--prefix` riêng như trên.
 
 ## Seed RBAC
 
-Sau khi backend ket noi MongoDB thanh cong, can seed RBAC de co role va permission mac dinh.
+Sau khi backend kết nối MongoDB thành công, cần seed RBAC để có role và permission mặc định.
 
-Neu da co tai khoan admin co quyen `rbac:manage`, goi endpoint:
+Nếu đã có tài khoản admin có quyền `rbac:manage`, gọi endpoint:
 
 ```text
 POST /api/rbac/seed
 ```
 
-Hoac chay seed truc tiep trong backend:
+Hoặc chạy seed trực tiếp trong backend:
 
 ```powershell
 cd backend
 npx ts-node src/seeds/seed.rbac.base.ts
 ```
 
-Luu y: script seed doc `MONGO_DB_URL` hoac `MONGO_URI`, nen file `backend/.env` nen co cac bien nay neu chay script truc tiep.
+Lưu ý: script seed đọc `MONGO_DB_URL` hoặc `MONGO_URI`, nên file `backend/.env` nên có các biến này nếu chạy script trực tiếp.
 
 ## Build
 
@@ -119,83 +119,83 @@ npm run build --prefix frontend
 npm run lint --prefix frontend
 ```
 
-## Lenh Co Ban Khi Gap Loi
+## Lệnh Cơ Bản Khi Gặp Lỗi
 
-Kiem tra phien ban Node va npm:
+Kiểm tra phiên bản Node và npm:
 
 ```powershell
 node -v
 npm -v
 ```
 
-Cai lai dependency cho tung phan:
+Cài lại dependency cho từng phần:
 
 ```powershell
 npm install --prefix backend
 npm install --prefix frontend
 ```
 
-Neu chay tu root bi thieu `concurrently` hoac dependency root:
+Nếu chạy từ root bị thiếu `concurrently` hoặc dependency root:
 
 ```powershell
 npm install
 ```
 
-Kiem tra loi TypeScript/backend:
+Kiểm tra lỗi TypeScript/backend:
 
 ```powershell
 npm run build --prefix backend
 ```
 
-Kiem tra loi build/frontend:
+Kiểm tra lỗi build/frontend:
 
 ```powershell
 npm run build --prefix frontend
 ```
 
-Kiem tra lint frontend:
+Kiểm tra lint frontend:
 
 ```powershell
 npm run lint --prefix frontend
 ```
 
-Xoa cache build Next.js khi frontend hien loi cache la:
+Xóa cache build Next.js khi frontend hiện lỗi cache lạ:
 
 ```powershell
 Remove-Item -Recurse -Force frontend\.next
 npm run dev --prefix frontend
 ```
 
-Kiem tra port 3000 hoac 8080 dang bi ung dung nao chiem:
+Kiểm tra port 3000 hoặc 8080 đang bị ứng dụng nào chiếm:
 
 ```powershell
 Get-NetTCPConnection -LocalPort 3000,8080 | Select-Object LocalAddress,LocalPort,OwningProcess
 ```
 
-Dung process dang chiem port, thay `<PID>` bang `OwningProcess` tim duoc:
+Dừng process đang chiếm port, thay `<PID>` bằng `OwningProcess` tìm được:
 
 ```powershell
 Stop-Process -Id <PID> -Force
 ```
 
-Kiem tra backend co doc dung env va ket noi MongoDB khong:
+Kiểm tra backend có đọc đúng env và kết nối MongoDB không:
 
 ```powershell
 npm run dev --prefix backend
 ```
 
-Seed lai RBAC khi role/permission bi thieu:
+Seed lại RBAC khi role/permission bị thiếu:
 
 ```powershell
 cd backend
 npx ts-node src/seeds/seed.rbac.base.ts
 ```
 
-## Ghi Chu Git
+## Ghi Chú Git
 
-- Khong commit `.env` that.
-- Duoc commit `backend/.env.example` va `frontend/.env.example`.
-- Cac file log dev `frontend-dev.err.log`, `frontend-dev.out.log` khong dua len Git.
-- Root `package.json` va `package-lock.json` khong dua len Git.
-- Cac file root-level local/config trong `backend` va `frontend` cung khong dua len Git theo yeu cau, chi giu lai `.env.example` cho moi phan.
-- Khi chay tren may khac, can co lai cac file package/config local tu ban sao luu rieng truoc khi cai dependency va build.
+- Không commit `.env` thật.
+- Được commit `backend/.env.example` và `frontend/.env.example`.
+- Các file log dev `frontend-dev.err.log`, `frontend-dev.out.log` không đưa lên Git.
+- Root `package.json` và `package-lock.json` không đưa lên Git.
+- Các file root-level local/config trong `backend` và `frontend` cũng không đưa lên Git theo yêu cầu, chỉ giữ lại `.env.example` cho mỗi phần.
+- Khi chạy trên máy khác, cần có lại các file package/config local từ bản sao lưu riêng trước khi cài dependency và build.
