@@ -46,7 +46,9 @@ export function hasAnyRole(
   roles: readonly string[]
 ) {
   if (!access) return false;
-  return roles.some((role) => access.primaryRole === role || access.roles.includes(role));
+  return roles.some(
+    (role) => access.primaryRole === role || access.roles.includes(role)
+  );
 }
 
 export function hasPermission(
@@ -76,13 +78,16 @@ export function canAccessStudentPortal(access: UserAccess | null | undefined) {
 
 export function canAccessAdmin(access: UserAccess | null | undefined) {
   if (!access) return false;
+
+  const hasAdminPermission = access.permissions.some(isAdminPermission);
+  if (!hasAdminPermission) return false;
+
   if (hasAnyRole(access, ADMIN_ENTRY_ROLES)) return true;
-  return hasCustomAdminRole(access) && access.permissions.some(isAdminPermission);
+  return hasCustomAdminRole(access);
 }
 
 export function getAdminEntryPath(access: UserAccess | null | undefined) {
   if (!access || !canAccessAdmin(access)) return null;
-  if (hasAnyRole(access, ADMIN_ENTRY_ROLES)) return "/admin/dashboard";
 
   const permissions = access.permissions.filter(isAdminPermission);
   const route = ADMIN_PERMISSION_ROUTES.find((item) =>
@@ -91,5 +96,5 @@ export function getAdminEntryPath(access: UserAccess | null | undefined) {
     )
   );
 
-  return route?.href ?? "/admin/dashboard";
+  return route?.href ?? null;
 }

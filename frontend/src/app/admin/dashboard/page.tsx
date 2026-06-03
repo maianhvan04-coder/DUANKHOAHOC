@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
@@ -23,6 +24,11 @@ import {
 import AdminPanel from "@/components/layouts/admin/sidebar/AdminPanel";
 import AdminStatCard from "@/components/layouts/admin/sidebar/AdminStatCard";
 import { useAdminTheme } from "@/providers/admin/AdminDarkmodeProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  getAdminEntryPath,
+  hasPermission,
+} from "@/lib/helpers/auth/access";
 import {
   dashboardApi,
   type DashboardCard,
@@ -124,8 +130,11 @@ const EMPTY_QUICK_STATS: DashboardCard[] = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { theme } = useAdminTheme();
+  const { access, hydrated, isLoading } = useAuth();
   const dark = theme === "dark";
+  const canViewDashboard = hasPermission(access, "dashboard:read");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -142,6 +151,13 @@ export default function DashboardPage() {
     useState<DashboardCard[]>(EMPTY_QUICK_STATS);
 
   useEffect(() => {
+    if (!hydrated || isLoading) return;
+
+    if (!canViewDashboard) {
+      router.replace(getAdminEntryPath(access) ?? "/403");
+      return;
+    }
+
     let mounted = true;
 
     async function loadDashboard() {
@@ -193,7 +209,7 @@ export default function DashboardPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [access, canViewDashboard, hydrated, isLoading, router]);
 
   const chartTheme = useMemo(
     () => ({
@@ -216,6 +232,10 @@ export default function DashboardPage() {
       revenue: statCards.find((x) => x.key === "revenue") || EMPTY_STATS[3],
     };
   }, [statCards]);
+
+  if (hydrated && !isLoading && access && !canViewDashboard) {
+    return null;
+  }
 
   return (
     <div className="space-y-5">
