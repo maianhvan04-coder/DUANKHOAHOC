@@ -46,6 +46,7 @@ export const userController = {
     // nếu tạo user với role khác USER thì cần quyền gán role
     if (
       requiresSetRolePermission(payload) &&
+      !req.user?.permissions.includes(PERMISSIONS.USER_UPDATE) &&
       !req.user?.permissions.includes(PERMISSIONS.USER_SET_ROLES)
     ) {
       return res.status(403).json({
@@ -63,6 +64,7 @@ export const userController = {
     // nếu update role thì cần quyền set role
     if (
       requiresSetRolePermission(payload) &&
+      !req.user?.permissions.includes(PERMISSIONS.USER_UPDATE) &&
       !req.user?.permissions.includes(PERMISSIONS.USER_SET_ROLES)
     ) {
       return res.status(403).json({

@@ -56,48 +56,47 @@ router.get(
     PERMISSIONS.BLOG_READ,
     PERMISSIONS.BLOG_CREATE,
     PERMISSIONS.BLOG_UPDATE,
-    PERMISSIONS.BLOG_CATEGORY_MANAGE,
   ]),
   blogCategoryController.getAdminAll
 );
 router.get(
   "/categories/deleted",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_DELETE]),
   blogCategoryController.getDeleted
 );
 router.post(
   "/categories",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_CREATE]),
   validate(createBlogCategorySchema),
   blogCategoryController.create
 );
 router.put(
   "/categories/:id",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_UPDATE]),
   validate(updateBlogCategorySchema),
   blogCategoryController.update
 );
 router.patch(
   "/categories/:id/restore",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_UPDATE]),
   validate(blogCategoryIdSchema),
   blogCategoryController.restore
 );
 router.delete(
   "/categories/:id",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_DELETE]),
   validate(blogCategoryIdSchema),
   blogCategoryController.softDelete
 );
 router.delete(
   "/categories/:id/force",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_CATEGORY_MANAGE]),
+  allowAdminOrPermission([PERMISSIONS.BLOG_DELETE]),
   validate(blogCategoryIdSchema),
   blogCategoryController.forceDelete
 );
@@ -116,7 +115,10 @@ router.post(
 router.put(
   "/:id",
   authGuard,
-  allowAdminOrPermission([PERMISSIONS.BLOG_UPDATE, PERMISSIONS.BLOG_PUBLISH]),
+  allowAdminOrPermission([
+    PERMISSIONS.BLOG_UPDATE,
+    PERMISSIONS.BLOG_CHANGE_STATUS,
+  ]),
   upload.single("image"),
   validate(updateBlogSchema),
   blogController.update

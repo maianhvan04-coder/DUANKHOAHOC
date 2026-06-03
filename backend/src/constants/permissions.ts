@@ -46,6 +46,7 @@ export const PERMISSIONS = Object.freeze({
 
   ENROLLMENT_READ: "enrollment:read",
   ENROLLMENT_CREATE: "enrollment:create",
+  ENROLLMENT_CHANGE_STATUS: "enrollment:status",
   ENROLLMENT_APPROVE: "enrollment:approve",
   ENROLLMENT_CANCEL: "enrollment:cancel",
   ENROLLMENT_DELETE: "enrollment:delete",
@@ -57,12 +58,14 @@ export const PERMISSIONS = Object.freeze({
 
   NOTIFICATION_READ: "notification:read",
   NOTIFICATION_CREATE: "notification:create",
+  NOTIFICATION_UPDATE: "notification:update",
   NOTIFICATION_DELETE: "notification:delete",
 
   BLOG_READ: "blog:read",
   BLOG_CREATE: "blog:create",
   BLOG_UPDATE: "blog:update",
   BLOG_DELETE: "blog:delete",
+  BLOG_CHANGE_STATUS: "blog:status",
   BLOG_PUBLISH: "blog:publish",
   BLOG_CATEGORY_MANAGE: "blog_category:manage",
 

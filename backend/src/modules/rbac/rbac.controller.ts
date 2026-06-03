@@ -2,11 +2,13 @@ import type { Request, Response } from "express";
 import { Types } from "mongoose";
 
 import { asyncHandler } from "../../utils/asyncHandler";
-import { PERMISSIONS, type PermissionKey } from "../../constants/permissions";
+import type { PermissionKey } from "../../constants/permissions";
 import {
   ADMIN_SCREENS,
-  DEFAULT_ROLE_PERMISSIONS,
-  PERMISSION_META_LIST,
+  SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS,
+  SIMPLIFIED_PERMISSION_META_LIST,
+  expandPermissionKeys,
+  simplifyPermissionKeys,
 } from "../../constants/rbac.catalog";
 import { ROLES } from "../../constants/roles";
 
@@ -40,9 +42,9 @@ export const rbacController = {
   getCatalog: asyncHandler(async (_req: Request, res: Response) => {
     res.json({
       roles: Object.values(ROLES),
-      permissions: Object.values(PERMISSIONS),
-      permissionMeta: PERMISSION_META_LIST,
-      defaultRolePermissions: DEFAULT_ROLE_PERMISSIONS,
+      permissions: SIMPLIFIED_PERMISSION_META_LIST.map((item) => item.key),
+      permissionMeta: SIMPLIFIED_PERMISSION_META_LIST,
+      defaultRolePermissions: SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS,
       screens: ADMIN_SCREENS,
     });
   }),
@@ -115,7 +117,9 @@ export const rbacController = {
       });
     }
 
-    const permissionKeys = await rbacRepo.getRolePermissionKeys(role._id);
+    const permissionKeys = simplifyPermissionKeys(
+      (await rbacRepo.getRolePermissionKeys(role._id)) as PermissionKey[]
+    );
     const permissions = await rbacRepo.findPermissionsByKeys(permissionKeys);
 
     res.json({
@@ -138,13 +142,15 @@ export const rbacController = {
     }
 
     const normalizedKeys = normalizePermissionKeys(body.permissions);
-    const savedKeys = await setPermissionsForRoleCode(roleCode, normalizedKeys);
-    const permissions = await rbacRepo.findPermissionsByKeys(savedKeys);
+    const expandedKeys = expandPermissionKeys(normalizedKeys);
+    const savedKeys = await setPermissionsForRoleCode(roleCode, expandedKeys);
+    const simplifiedKeys = simplifyPermissionKeys(savedKeys);
+    const permissions = await rbacRepo.findPermissionsByKeys(simplifiedKeys);
 
     res.json({
       message: "Cập nhật quyền cho vai trò thành công",
       roleCode: String(role.code).trim().toUpperCase(),
-      permissionKeys: savedKeys,
+      permissionKeys: simplifiedKeys,
       permissions,
     });
   }),

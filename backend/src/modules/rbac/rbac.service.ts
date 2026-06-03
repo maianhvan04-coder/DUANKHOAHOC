@@ -3,6 +3,8 @@ import { PERMISSIONS, type PermissionKey } from "../../constants/permissions";
 import {
   DEFAULT_ROLE_PERMISSIONS,
   PERMISSION_META_LIST,
+  expandPermissionKeys,
+  simplifyPermissionKeys,
 } from "../../constants/rbac.catalog";
 import { ROLES, type Role } from "../../constants/roles";
 import { SEED_ROLES } from "../../constants/sendRoles";
@@ -125,9 +127,10 @@ export async function setPermissionsForRoleCode(
     throw badRequest(`Không tìm thấy vai trò ${normalizedRoleCode}`);
   }
 
-  const normalizedKeys = unique(
+  const requestedKeys = unique(
     permissionKeys.map((item) => normalizePermissionKey(String(item)))
   );
+  const normalizedKeys = expandPermissionKeys(requestedKeys);
 
   await syncPermissionCatalog();
 
@@ -298,11 +301,15 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
       const permissions = await getPermissionsByRoleIds(
         sortedRoles.map((role) => role._id as Types.ObjectId)
       );
+      const accessPermissions = unique([
+        ...permissions,
+        ...simplifyPermissionKeys(permissions),
+      ]);
 
       return {
         primaryRole: roleCodes[0] ?? ROLES.USER,
         roles: roleCodes,
-        permissions,
+        permissions: accessPermissions,
       };
     }
   }
@@ -319,11 +326,15 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
     const permissions = await getPermissionsByRoleIds([
       roleDoc._id as Types.ObjectId,
     ]);
+    const accessPermissions = unique([
+      ...permissions,
+      ...simplifyPermissionKeys(permissions),
+    ]);
 
     return {
       primaryRole: legacyRole,
       roles: [legacyRole],
-      permissions,
+      permissions: accessPermissions,
     };
   }
 

@@ -20,7 +20,13 @@ rbacRouter.get(
   "/roles",
   authGuard,
   authorize({
-    permissionsAny: [PERMISSIONS.RBAC_READ, PERMISSIONS.RBAC_MANAGE],
+    permissionsAny: [
+      PERMISSIONS.RBAC_READ,
+      PERMISSIONS.RBAC_CREATE_ROLE,
+      PERMISSIONS.RBAC_UPDATE_ROLE,
+      PERMISSIONS.RBAC_DELETE_ROLE,
+      PERMISSIONS.RBAC_MANAGE,
+    ],
   }),
   rbacController.listRoles
 );
@@ -48,6 +54,8 @@ rbacRouter.get(
   authGuard,
   authorize({
     permissionsAny: [
+      PERMISSIONS.RBAC_READ,
+      PERMISSIONS.RBAC_UPDATE_ROLE,
       PERMISSIONS.RBAC_READ_PERMISSION,
       PERMISSIONS.RBAC_MANAGE,
     ],
@@ -63,6 +71,8 @@ rbacRouter.get(
   authGuard,
   authorize({
     permissionsAny: [
+      PERMISSIONS.RBAC_READ,
+      PERMISSIONS.RBAC_UPDATE_ROLE,
       PERMISSIONS.RBAC_READ_PERMISSION,
       PERMISSIONS.RBAC_MANAGE,
     ],
@@ -78,6 +88,7 @@ rbacRouter.put(
   authGuard,
   authorize({
     permissionsAny: [
+      PERMISSIONS.RBAC_UPDATE_ROLE,
       PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS,
       PERMISSIONS.RBAC_MANAGE,
     ],
@@ -94,6 +105,7 @@ rbacRouter.get(
   authorize({
     permissionsAny: [
       PERMISSIONS.RBAC_READ,
+      PERMISSIONS.RBAC_UPDATE_ROLE,
       PERMISSIONS.RBAC_SET_USER_ROLES,
       PERMISSIONS.RBAC_MANAGE,
     ],
@@ -109,6 +121,7 @@ rbacRouter.put(
   authGuard,
   authorize({
     permissionsAny: [
+      PERMISSIONS.RBAC_UPDATE_ROLE,
       PERMISSIONS.RBAC_SET_USER_ROLES,
       PERMISSIONS.RBAC_MANAGE,
     ],
@@ -153,7 +166,7 @@ rbacRouter.post(
   "/seed",
   authGuard,
   authorize({
-    permissionsAny: [PERMISSIONS.RBAC_MANAGE],
+    permissionsAny: [PERMISSIONS.RBAC_UPDATE_ROLE, PERMISSIONS.RBAC_MANAGE],
   }),
   rbacController.seed
 );
@@ -165,7 +178,11 @@ rbacRouter.post(
   "/sync-admin",
   authGuard,
   authorize({
-    permissionsAny: [PERMISSIONS.RBAC_SYNC_ADMIN, PERMISSIONS.RBAC_MANAGE],
+    permissionsAny: [
+      PERMISSIONS.RBAC_UPDATE_ROLE,
+      PERMISSIONS.RBAC_SYNC_ADMIN,
+      PERMISSIONS.RBAC_MANAGE,
+    ],
   }),
   rbacController.syncAdmin
 );
@@ -177,7 +194,7 @@ rbacRouter.post(
   "/sync-legacy-users",
   authGuard,
   authorize({
-    permissionsAny: [PERMISSIONS.RBAC_MANAGE],
+    permissionsAny: [PERMISSIONS.RBAC_UPDATE_ROLE, PERMISSIONS.RBAC_MANAGE],
   }),
   rbacController.syncLegacyUsers
 );
