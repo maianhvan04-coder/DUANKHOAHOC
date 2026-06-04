@@ -7,6 +7,8 @@ import {
   ADMIN_SCREENS,
   SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS,
   SIMPLIFIED_PERMISSION_META_LIST,
+  STUDENT_PORTAL_SCREENS,
+  TEACHER_PORTAL_SCREENS,
   expandPermissionKeys,
   simplifyPermissionKeys,
 } from "../../constants/rbac.catalog";
@@ -46,6 +48,8 @@ export const rbacController = {
       permissionMeta: SIMPLIFIED_PERMISSION_META_LIST,
       defaultRolePermissions: SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS,
       screens: ADMIN_SCREENS,
+      studentScreens: STUDENT_PORTAL_SCREENS,
+      teacherScreens: TEACHER_PORTAL_SCREENS,
     });
   }),
 

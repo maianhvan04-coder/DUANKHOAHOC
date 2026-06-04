@@ -14,7 +14,7 @@ import {
   setUser,
 } from "@/lib/utils/storage";
 import {
-  canAccessStudentPortal,
+  getStudentEntryPath,
   getTeacherEntryPath,
   getAdminEntryPath,
 } from "@/lib/helpers/auth/access";
@@ -197,13 +197,12 @@ export default function LoginPage() {
       setAccess(res.access);
 
       const teacherEntryPath = getTeacherEntryPath(res.access);
+      const studentEntryPath = getStudentEntryPath(res.access);
       const adminEntryPath = getAdminEntryPath(res.access);
-      const goStudent = canAccessStudentPortal(res.access);
       const redirectPath = getSafeRedirectPath();
       const nextPath =
         redirectPath ??
-        (teacherEntryPath ??
-          (adminEntryPath ?? (goStudent ? "/student/bang-tin" : "/")));
+        (teacherEntryPath ?? (adminEntryPath ?? (studentEntryPath ?? "/")));
 
       if (nextPath.startsWith("/admin")) {
         markAdminIntroIntent();

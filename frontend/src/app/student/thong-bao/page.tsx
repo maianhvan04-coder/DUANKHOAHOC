@@ -25,6 +25,10 @@ import {
   type StudentLocale,
   type StudentMessageKey,
 } from "@/i18n";
+import {
+  hasStudentPortalPermission,
+  STUDENT_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 import { emitNotificationChanged } from "@/lib/utils/notification-events";
 
 type ReadFilter = "" | "true" | "false";
@@ -153,8 +157,12 @@ function NotificationTypeBadge({
 }
 
 export default function StudentNotificationsPage() {
-  const { user, hydrated, isLoading } = useAuth();
+  const { user, access, hydrated, isLoading } = useAuth();
   const { locale, t } = useStudentPreferences();
+  const canUpdateNotifications = hasStudentPortalPermission(
+    access,
+    STUDENT_PORTAL_PERMISSIONS.NOTIFICATION_UPDATE
+  );
 
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +238,7 @@ export default function StudentNotificationsPage() {
   }
 
   async function markAsRead(item: NotificationItem) {
-    if (item.isRead) return;
+    if (!canUpdateNotifications || item.isRead) return;
 
     try {
       setActionLoading(item._id);
@@ -442,19 +450,21 @@ export default function StudentNotificationsPage() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 justify-end">
-                        <button
-                          type="button"
-                          onClick={() => void markAsRead(item)}
-                          disabled={item.isRead || actionLoading === item._id}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cbe7fb] bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-[#F4FAFF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          {actionLoading === item._id
-                            ? t("notifications.updating")
-                            : t("notifications.markRead")}
-                        </button>
-                      </div>
+                      {canUpdateNotifications ? (
+                        <div className="flex shrink-0 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => void markAsRead(item)}
+                            disabled={item.isRead || actionLoading === item._id}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#cbe7fb] bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-[#F4FAFF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                            {actionLoading === item._id
+                              ? t("notifications.updating")
+                              : t("notifications.markRead")}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 );

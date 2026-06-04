@@ -2,10 +2,14 @@
 
 import { type ReactNode, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { canAccessTeacherPortal } from "@/lib/helpers/auth/access";
+import {
+  canAccessTeacherPath,
+  canAccessTeacherPortal,
+  getTeacherEntryPath,
+} from "@/lib/helpers/auth/access";
 
 function ForbiddenTeacherRoute() {
   return (
@@ -20,7 +24,7 @@ function ForbiddenTeacherRoute() {
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-          Vui lòng đăng nhập bằng tài khoản giáo viên hoặc liên hệ quản trị viên.
+          Vui lòng liên hệ quản trị viên để được cấp quyền màn giáo viên phù hợp.
         </p>
 
         <Link
@@ -36,10 +40,13 @@ function ForbiddenTeacherRoute() {
 
 export default function TeacherGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, access, hydrated, isLoading } = useAuth();
 
   const ready = hydrated && !isLoading;
   const canAccessTeacher = canAccessTeacherPortal(access);
+  const canAccessPath = canAccessTeacherPath(access, pathname);
+  const entryPath = getTeacherEntryPath(access);
 
   useEffect(() => {
     if (!ready) return;
@@ -50,8 +57,13 @@ export default function TeacherGuard({ children }: { children: ReactNode }) {
           : "/teacher/bang-tin";
 
       router.replace(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+      return;
     }
-  }, [ready, router, user]);
+
+    if (canAccessTeacher && !canAccessPath && entryPath) {
+      router.replace(entryPath);
+    }
+  }, [canAccessPath, canAccessTeacher, entryPath, ready, router, user]);
 
   if (!ready || !user) {
     return null;
@@ -59,6 +71,10 @@ export default function TeacherGuard({ children }: { children: ReactNode }) {
 
   if (!canAccessTeacher) {
     return <ForbiddenTeacherRoute />;
+  }
+
+  if (!canAccessPath) {
+    return null;
   }
 
   return <>{children}</>;

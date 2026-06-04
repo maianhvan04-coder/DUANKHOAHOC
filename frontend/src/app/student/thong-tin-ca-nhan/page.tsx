@@ -11,6 +11,10 @@ import { Toaster, toast } from "sonner";
 import { accountApi } from "@/app/api/account.api";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useStudentPreferences, type StudentLocale } from "@/i18n";
+import {
+  hasStudentPortalPermission,
+  STUDENT_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 
 const copy = {
   vi: {
@@ -107,6 +111,10 @@ export default function StudentProfilePage() {
   const email = user?.email ?? "";
   const role = access?.primaryRole ?? "STUDENT";
   const avatarUrl = avatarPreview ?? resolveAvatarUrl(user?.avatar);
+  const canUpdateProfile = hasStudentPortalPermission(
+    access,
+    STUDENT_PORTAL_PERMISSIONS.PROFILE_UPDATE
+  );
 
   const initials = useMemo(() => {
     const trimmed = name.trim();
@@ -120,6 +128,8 @@ export default function StudentProfilePage() {
   }, [name]);
 
   function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    if (!canUpdateProfile) return;
+
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -134,6 +144,7 @@ export default function StudentProfilePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canUpdateProfile) return;
 
     setIsSaving(true);
 
@@ -188,21 +199,25 @@ export default function StudentProfilePage() {
                   </div>
                 )}
 
-                <label
-                  htmlFor="student-avatar-upload"
-                  className="absolute bottom-2 right-2 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white text-[#0D56A6] shadow-md ring-1 ring-[#cbe7fb] transition hover:bg-[#F4FAFF] dark:bg-slate-900 dark:text-slate-100 dark:ring-white/10 dark:hover:bg-white/10"
-                  aria-label={text.avatar}
-                >
-                  <Camera className="h-5 w-5" />
-                </label>
+                {canUpdateProfile ? (
+                  <>
+                    <label
+                      htmlFor="student-avatar-upload"
+                      className="absolute bottom-2 right-2 inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-white text-[#0D56A6] shadow-md ring-1 ring-[#cbe7fb] transition hover:bg-[#F4FAFF] dark:bg-slate-900 dark:text-slate-100 dark:ring-white/10 dark:hover:bg-white/10"
+                      aria-label={text.avatar}
+                    >
+                      <Camera className="h-5 w-5" />
+                    </label>
 
-                <input
-                  id="student-avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="hidden"
-                />
+                    <input
+                      id="student-avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                  </>
+                ) : null}
               </div>
 
               <p className="mt-5 text-base font-bold text-slate-950 dark:text-slate-100">
@@ -230,7 +245,8 @@ export default function StudentProfilePage() {
                   value={name}
                   onChange={(event) => setNameDraft(event.target.value)}
                   placeholder={text.fullNamePlaceholder}
-                  className="h-14 w-full rounded-xl border border-[#cbe7fb] bg-white px-5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0D56A6] focus:ring-4 focus:ring-[#0D56A6]/10 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  disabled={!canUpdateProfile}
+                  className="h-14 w-full rounded-xl border border-[#cbe7fb] bg-white px-5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0D56A6] focus:ring-4 focus:ring-[#0D56A6]/10 disabled:cursor-not-allowed disabled:bg-[#F8FCFF] disabled:text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-300"
                 />
               </label>
 
@@ -238,20 +254,22 @@ export default function StudentProfilePage() {
               <ReadOnlyField label={text.primaryRole} value={role} />
             </div>
 
-            <div className="mt-8 flex justify-end">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="inline-flex h-14 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#0D56A6] px-6 text-sm font-bold text-white transition hover:bg-[#0B4B92] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-                {isSaving ? text.saving : text.save}
-              </button>
-            </div>
+            {canUpdateProfile ? (
+              <div className="mt-8 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="inline-flex h-14 min-w-36 items-center justify-center gap-2 rounded-xl bg-[#0D56A6] px-6 text-sm font-bold text-white transition hover:bg-[#0B4B92] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSaving ? text.saving : text.save}
+                </button>
+              </div>
+            ) : null}
           </div>
         </form>
       </section>

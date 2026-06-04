@@ -10,6 +10,8 @@ import {
 import {
   AlertCircle,
   BookOpen,
+  ChevronDown,
+  Eye,
   Loader2,
   Lock,
   LockOpen,
@@ -21,12 +23,16 @@ import {
 import { Toaster, toast } from "sonner";
 import {
   classroomApi,
+  type AttendanceStatus,
   type ClassroomItem,
   type ClassroomStudentStudyItem,
   type CourseOption,
   type CreateClassroomPayload,
+  type HomeworkStatus,
   type StudyStatus,
   type UpdateClassroomPayload,
+  type UpdateStudentSessionPayload,
+  type UpdateStudentTestsPayload,
 } from "@/app/api/classroom.api";
 import { teacherApi, type TeacherItem } from "@/app/api/teacher.api";
 import AdminListTable, {
@@ -45,15 +51,20 @@ import {
   getStudentName,
   getTeacherName,
 } from "@/lib/helpers/teacher/classroom";
+import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  hasTeacherPortalPermission,
+  TEACHER_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 
 type StatusFilter = "all" | "active" | "inactive";
 type ClassSortKey = "className" | "course" | "teacher" | "status" | "createdAt";
 type StudentSortKey =
   | "student"
-  | "status"
   | "attendance"
-  | "progress"
-  | "average";
+  | "homework"
+  | "date"
+  | "tests";
 type StudentStatusFilter = "all" | StudyStatus;
 type FormMode = "create" | "edit";
 
@@ -116,12 +127,27 @@ function toIsoFromDateInput(value: string) {
   return new Date(`${value}T12:00:00`).toISOString();
 }
 
+function getTodayInputValue() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 10);
+}
+
 function clampNonNegative(value: string) {
   if (value.trim() === "") return "0";
 
   const num = Number(value);
   if (!Number.isFinite(num)) return "0";
   return String(Math.max(0, Math.trunc(num)));
+}
+
+function clampScore(value: string, min = 0, max = 10) {
+  if (value.trim() === "") return String(min);
+
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(min);
+
+  return String(Math.max(min, Math.min(max, num)));
 }
 
 function makeFormFromClass(item: ClassroomItem): ClassFormState {
@@ -150,6 +176,73 @@ function getClassStatusLabel(item: ClassroomItem) {
   return item.isActive ? "ACTIVE" : "LOCKED";
 }
 
+function getAttendanceLabel(value?: AttendanceStatus | string) {
+  switch (value) {
+    case "PRESENT":
+      return "Present";
+    case "LATE":
+      return "Late";
+    case "ABSENT":
+      return "Absent";
+    default:
+      return "--";
+  }
+}
+
+function getHomeworkLabel(value?: HomeworkStatus | string) {
+  switch (value) {
+    case "DONE":
+      return "Done";
+    case "MISSING":
+      return "Not done";
+    default:
+      return "--";
+  }
+}
+
+function getAttendanceStyle(value?: AttendanceStatus | string) {
+  switch (value) {
+    case "PRESENT":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "LATE":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "ABSENT":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-500";
+  }
+}
+
+function getHomeworkStyle(value?: HomeworkStatus | string) {
+  switch (value) {
+    case "DONE":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "MISSING":
+      return "border-rose-200 bg-rose-50 text-rose-700";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-500";
+  }
+}
+
+function getSessionByNo(item: ClassroomStudentStudyItem, sessionNo: number) {
+  if (Array.isArray(item.sessions)) {
+    const found = item.sessions.find(
+      (session) => Number(session.sessionNo || 0) === Number(sessionNo)
+    );
+
+    if (found) return found;
+  }
+
+  return {
+    sessionNo,
+    date: null,
+    attendanceStatus: "ABSENT" as AttendanceStatus,
+    homeworkStatus: "MISSING" as HomeworkStatus,
+    progressScore: 0,
+    teacherNote: "",
+  };
+}
+
 function getInitials(name?: string, email?: string) {
   const source = (name || email || "").trim();
   if (!source) return "--";
@@ -163,8 +256,8 @@ function getInitials(name?: string, email?: string) {
 }
 
 function compareStudentValues(
-  left: string | number,
-  right: string | number,
+  left: string | number | null | undefined,
+  right: string | number | null | undefined,
   direction: SortDirection
 ) {
   const modifier = direction === "asc" ? 1 : -1;
@@ -181,7 +274,116 @@ function compareStudentValues(
   );
 }
 
+function SessionStatusSelect({
+  value,
+  type,
+  disabled,
+  onChange,
+}: {
+  value?: AttendanceStatus | HomeworkStatus;
+  type: "attendance" | "homework";
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const isAttendance = type === "attendance";
+  const label = isAttendance
+    ? getAttendanceLabel(value as AttendanceStatus | undefined)
+    : getHomeworkLabel(value as HomeworkStatus | undefined);
+  const style = isAttendance
+    ? getAttendanceStyle(value as AttendanceStatus | undefined)
+    : getHomeworkStyle(value as HomeworkStatus | undefined);
+
+  return (
+    <div className="relative flex w-full">
+      <select
+        value={value || ""}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className={`h-11 w-full min-w-0 appearance-none rounded-xl border px-3 pr-8 text-center text-xs font-bold outline-none transition ${style} ${
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+        }`}
+      >
+        <option value="" disabled>
+          {label}
+        </option>
+
+        {isAttendance ? (
+          <>
+            <option value="PRESENT">Present</option>
+            <option value="LATE">Late</option>
+            <option value="ABSENT">Absent</option>
+          </>
+        ) : (
+          <>
+            <option value="DONE">Done</option>
+            <option value="MISSING">Not done</option>
+          </>
+        )}
+      </select>
+
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-current opacity-70" />
+    </div>
+  );
+}
+
+function ScoreInput({
+  label,
+  value,
+  disabled,
+  onChange,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  return (
+    <label className="min-w-0">
+      <span className="mb-1 block text-[10px] font-bold uppercase text-slate-400">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        max={10}
+        step="0.1"
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onSave}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            onSave();
+          }
+        }}
+        className="h-11 w-full min-w-0 rounded-xl border border-slate-200 px-2 text-center text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-500 disabled:opacity-60 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+      />
+    </label>
+  );
+}
+
 export default function TeacherClassesPage() {
+  const { access } = useAuth();
+  const canCreateClass = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.CLASS_CREATE
+  );
+  const canUpdateClass = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.CLASS_UPDATE
+  );
+  const canChangeClassStatus = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.CLASS_CHANGE_STATUS
+  );
+  const canUpdateStudents = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.STUDENT_UPDATE
+  );
+
   const [items, setItems] = useState<ClassroomItem[]>([]);
   const [courses, setCourses] = useState<CourseOption[]>([]);
   const [teacherMe, setTeacherMe] = useState<TeacherItem | null>(null);
@@ -249,11 +451,15 @@ export default function TeacherClassesPage() {
   }
 
   function openCreate() {
+    if (!canCreateClass) return;
+
     resetForm();
     setModalOpen(true);
   }
 
   function openEdit(item: ClassroomItem) {
+    if (!canUpdateClass) return;
+
     setFormMode("edit");
     setEditingItem(item);
     setForm(makeFormFromClass(item));
@@ -262,6 +468,9 @@ export default function TeacherClassesPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (formMode === "create" && !canCreateClass) return;
+    if (formMode === "edit" && !canUpdateClass) return;
 
     if (formMode === "create" && !teacherMe?._id) {
       toast.warning("Không tìm thấy hồ sơ giáo viên của tài khoản này");
@@ -292,7 +501,7 @@ export default function TeacherClassesPage() {
           startedAt: toIsoFromDateInput(form.startedAt),
           endedAt: toIsoFromDateInput(form.endedAt),
           maxStudents: clampNonNegative(form.maxStudents),
-          isActive: form.isActive,
+          isActive: canChangeClassStatus ? form.isActive : true,
         };
 
         await classroomApi.create(payload);
@@ -306,7 +515,7 @@ export default function TeacherClassesPage() {
           startedAt: toIsoFromDateInput(form.startedAt) ?? null,
           endedAt: toIsoFromDateInput(form.endedAt) ?? null,
           maxStudents: clampNonNegative(form.maxStudents),
-          isActive: form.isActive,
+          isActive: canChangeClassStatus ? form.isActive : editingItem.isActive,
         };
 
         await classroomApi.update(editingItem._id, payload);
@@ -324,6 +533,8 @@ export default function TeacherClassesPage() {
   }
 
   async function handleToggleActive(item: ClassroomItem) {
+    if (!canChangeClassStatus) return;
+
     try {
       const nextActive = !item.isActive;
       const updated = await classroomApi.update(item._id, {
@@ -380,10 +591,7 @@ export default function TeacherClassesPage() {
     [statusFilter]
   );
 
-  const tableColumns = useMemo<
-    AdminTableColumn<ClassroomItem, ClassSortKey>[]
-  >(
-    () => [
+  const tableColumns: AdminTableColumn<ClassroomItem, ClassSortKey>[] = [
       {
         id: "className",
         label: "Class",
@@ -429,18 +637,34 @@ export default function TeacherClassesPage() {
         label: <div className="text-right">Action</div>,
         widthClassName: "w-[170px]",
         align: "right",
-        render: (item) => (
-          <div className="flex items-center justify-end gap-1">
-            <AdminActionIconButton
+        render: (item) => {
+          const hasVisibleAction =
+            canUpdateStudents || canUpdateClass || canChangeClassStatus;
+
+          if (!hasVisibleAction) {
+            return <span className="text-sm text-slate-400">--</span>;
+          }
+
+          return (
+            <div className="flex items-center justify-end gap-1">
+              {canUpdateStudents ? (
+                <AdminActionIconButton
               title="Quản lí học viên"
               onClick={() => setSelectedClass(item)}
             >
               <BookOpen className="h-4 w-4" />
-            </AdminActionIconButton>
-            <AdminActionIconButton title="Edit" onClick={() => openEdit(item)}>
+                </AdminActionIconButton>
+              ) : null}
+              {canUpdateClass ? (
+                <AdminActionIconButton
+                  title="Edit"
+                  onClick={() => openEdit(item)}
+                >
               <Pencil className="h-4 w-4" />
-            </AdminActionIconButton>
-            <AdminActionIconButton
+                </AdminActionIconButton>
+              ) : null}
+              {canChangeClassStatus ? (
+                <AdminActionIconButton
               title={item.isActive ? "Lock" : "Unlock"}
               onClick={() => void handleToggleActive(item)}
             >
@@ -449,13 +673,13 @@ export default function TeacherClassesPage() {
               ) : (
                 <LockOpen className="h-4 w-4" />
               )}
-            </AdminActionIconButton>
-          </div>
-        ),
+                </AdminActionIconButton>
+              ) : null}
+            </div>
+          );
+        },
       },
-    ],
-    []
-  );
+  ];
 
   return (
     <>
@@ -490,14 +714,16 @@ export default function TeacherClassesPage() {
           }}
           onReload={() => void fetchClassrooms()}
           toolbarEnd={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
-            >
-              <Plus className="h-4 w-4" />
-              Add class
-            </button>
+            canCreateClass ? (
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add class
+              </button>
+            ) : null
           }
           pagination={{
             currentPage: pagination.page,
@@ -534,6 +760,7 @@ export default function TeacherClassesPage() {
           teacher={teacherMe}
           editingItem={editingItem}
           saving={saving}
+          canChangeClassStatus={canChangeClassStatus}
           onChange={setForm}
           onClose={() => {
             setModalOpen(false);
@@ -546,6 +773,7 @@ export default function TeacherClassesPage() {
       {selectedClass ? (
         <StudentDrawer
           classroom={selectedClass}
+          canUpdateStudents={canUpdateStudents}
           onClose={() => setSelectedClass(null)}
         />
       ) : null}
@@ -560,6 +788,7 @@ function ClassModal({
   teacher,
   editingItem,
   saving,
+  canChangeClassStatus,
   onChange,
   onClose,
   onSubmit,
@@ -570,6 +799,7 @@ function ClassModal({
   teacher: TeacherItem | null;
   editingItem: ClassroomItem | null;
   saving: boolean;
+  canChangeClassStatus: boolean;
   onChange: (form: ClassFormState) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -742,15 +972,19 @@ function ClassModal({
             </label>
           </div>
 
-          <label className="mt-5 inline-flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(event) => updateField("isActive", event.target.checked)}
-              className="h-5 w-5 rounded border-slate-300 text-sky-600"
-            />
-            Activate after saving
-          </label>
+          {canChangeClassStatus ? (
+            <label className="mt-5 inline-flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(event) =>
+                  updateField("isActive", event.target.checked)
+                }
+                className="h-5 w-5 rounded border-slate-300 text-sky-600"
+              />
+              Activate after saving
+            </label>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-5 dark:border-white/10">
@@ -790,9 +1024,11 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 
 function StudentDrawer({
   classroom,
+  canUpdateStudents,
   onClose,
 }: {
   classroom: ClassroomItem;
+  canUpdateStudents: boolean;
   onClose: () => void;
 }) {
   const [items, setItems] = useState<ClassroomStudentStudyItem[]>([]);
@@ -805,8 +1041,46 @@ function StudentDrawer({
     useState<StudentSortKey>("student");
   const [studentSortDirection, setStudentSortDirection] =
     useState<SortDirection>("asc");
-  const [studentRowsPerPage, setStudentRowsPerPage] = useState(5);
+  const [studentRowsPerPage, setStudentRowsPerPage] = useState(10);
   const [studentPage, setStudentPage] = useState(1);
+  const [selectedSessionNo, setSelectedSessionNo] = useState(1);
+  const [selectedSessionDate, setSelectedSessionDate] =
+    useState(getTodayInputValue());
+  const [savingSessionKey, setSavingSessionKey] = useState<string | null>(null);
+  const [savingTestsKey, setSavingTestsKey] = useState<string | null>(null);
+  const [togglingStudentKey, setTogglingStudentKey] = useState<string | null>(
+    null
+  );
+  const [testDrafts, setTestDrafts] = useState<
+    Record<string, { test1: string; test2: string; test3: string }>
+  >({});
+
+  const syncStudents = useCallback((data: ClassroomStudentStudyItem[]) => {
+    setItems(data);
+
+    const drafts: Record<
+      string,
+      { test1: string; test2: string; test3: string }
+    > = {};
+
+    for (const item of data) {
+      drafts[item._id] = {
+        test1: String(item.test1 ?? 0),
+        test2: String(item.test2 ?? 0),
+        test3: String(item.test3 ?? 0),
+      };
+    }
+
+    setTestDrafts(drafts);
+
+    const firstHasDate = data
+      .map((item) => getSessionByNo(item, selectedSessionNo))
+      .find((session) => Boolean(session.date));
+
+    if (firstHasDate?.date) {
+      setSelectedSessionDate(toDateInputValue(firstHasDate.date));
+    }
+  }, [selectedSessionNo]);
 
   async function reloadStudents() {
     try {
@@ -814,7 +1088,7 @@ function StudentDrawer({
       setErrorText("");
 
       const data = await classroomApi.listStudents(classroom._id);
-      setItems(data);
+      syncStudents(data);
     } catch (error) {
       setItems([]);
       setErrorText(getErrorMessage(error, "Không tải được học viên trong lớp"));
@@ -834,7 +1108,7 @@ function StudentDrawer({
         const data = await classroomApi.listStudents(classroom._id);
 
         if (!mounted) return;
-        setItems(data);
+        syncStudents(data);
       } catch (error) {
         if (!mounted) return;
         setItems([]);
@@ -849,12 +1123,123 @@ function StudentDrawer({
     return () => {
       mounted = false;
     };
-  }, [classroom._id]);
+  }, [classroom._id, syncStudents]);
+
+  function handleSessionNoChange(nextSessionNo: number) {
+    setSelectedSessionNo(nextSessionNo);
+    setStudentPage(1);
+
+    const firstHasDate = items
+      .map((item) => getSessionByNo(item, nextSessionNo))
+      .find((session) => Boolean(session.date));
+
+    setSelectedSessionDate(
+      firstHasDate?.date ? toDateInputValue(firstHasDate.date) : getTodayInputValue()
+    );
+  }
+
+  async function handleQuickSessionChange(
+    item: ClassroomStudentStudyItem,
+    field: "attendanceStatus" | "homeworkStatus",
+    value: string
+  ) {
+    if (!canUpdateStudents || !value) return;
+
+    const session = getSessionByNo(item, selectedSessionNo);
+    const savingKey = `${item._id}-${field}`;
+
+    try {
+      setSavingSessionKey(savingKey);
+
+      const payload: UpdateStudentSessionPayload = {
+        sessionNo: selectedSessionNo,
+        date: toIsoFromDateInput(selectedSessionDate),
+        attendanceStatus:
+          field === "attendanceStatus"
+            ? (value as AttendanceStatus)
+            : (session.attendanceStatus ?? "ABSENT"),
+        homeworkStatus:
+          field === "homeworkStatus"
+            ? (value as HomeworkStatus)
+            : (session.homeworkStatus ?? "MISSING"),
+        progressScore: Number(session.progressScore || 0),
+        teacherNote: session.teacherNote || "",
+      };
+
+      await classroomApi.updateStudentSession(item._id, payload);
+      await reloadStudents();
+      toast.success(`Đã cập nhật buổi ${selectedSessionNo}`);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Cập nhật trạng thái thất bại"));
+    } finally {
+      setSavingSessionKey(null);
+    }
+  }
+
+  function handleTestDraftChange(
+    itemId: string,
+    field: "test1" | "test2" | "test3",
+    value: string
+  ) {
+    if (!canUpdateStudents) return;
+
+    setTestDrafts((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] ?? { test1: "0", test2: "0", test3: "0" }),
+        [field]: clampScore(value),
+      },
+    }));
+  }
+
+  async function handleSaveTests(item: ClassroomStudentStudyItem) {
+    if (!canUpdateStudents) return;
+
+    const draft = testDrafts[item._id];
+    if (!draft) return;
+
+    try {
+      setSavingTestsKey(item._id);
+
+      const payload: UpdateStudentTestsPayload = {
+        test1: Number(clampScore(draft.test1)),
+        test2: Number(clampScore(draft.test2)),
+        test3: Number(clampScore(draft.test3)),
+      };
+
+      await classroomApi.updateStudentTests(item._id, payload);
+      await reloadStudents();
+      toast.success("Đã lưu điểm kiểm tra");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Lưu điểm kiểm tra thất bại"));
+    } finally {
+      setSavingTestsKey(null);
+    }
+  }
+
+  async function handleToggleStudentActive(item: ClassroomStudentStudyItem) {
+    if (!canUpdateStudents) return;
+
+    try {
+      setTogglingStudentKey(item._id);
+      await classroomApi.updateStudentStudy(item._id, {
+        isActive: !item.isActive,
+      });
+      await reloadStudents();
+      toast.success(item.isActive ? "Đã khóa học viên" : "Đã mở khóa học viên");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Cập nhật trạng thái học viên thất bại"));
+    } finally {
+      setTogglingStudentKey(null);
+    }
+  }
 
   const filteredStudents = useMemo(() => {
     const keyword = studentSearch.trim().toLowerCase();
 
     const rows = items.filter((item) => {
+      const currentSession = getSessionByNo(item, selectedSessionNo);
+
       if (studentStatusFilter !== "all" && item.status !== studentStatusFilter) {
         return false;
       }
@@ -865,6 +1250,7 @@ function StudentDrawer({
         getStudentName(item),
         getStudentEmail(item),
         STUDY_STATUS_LABELS[item.status] ?? item.status,
+        currentSession.teacherNote,
         item.note,
       ]
         .join(" ")
@@ -873,31 +1259,48 @@ function StudentDrawer({
     });
 
     return [...rows].sort((left, right) => {
+      const leftSession = getSessionByNo(left, selectedSessionNo);
+      const rightSession = getSessionByNo(right, selectedSessionNo);
+
       switch (studentSortKey) {
         case "attendance":
           return compareStudentValues(
-            left.attendancePercent,
-            right.attendancePercent,
+            getAttendanceLabel(leftSession.attendanceStatus),
+            getAttendanceLabel(rightSession.attendanceStatus),
             studentSortDirection
           );
-        case "progress":
+        case "homework":
           return compareStudentValues(
-            left.progressPercent,
-            right.progressPercent,
+            getHomeworkLabel(leftSession.homeworkStatus),
+            getHomeworkLabel(rightSession.homeworkStatus),
             studentSortDirection
           );
-        case "average":
+        case "date":
           return compareStudentValues(
-            left.finalAverage,
-            right.finalAverage,
+            leftSession.date || left.updatedAt,
+            rightSession.date || right.updatedAt,
             studentSortDirection
           );
-        case "status":
+        case "tests": {
+          const leftDraft = testDrafts[left._id];
+          const rightDraft = testDrafts[right._id];
+          const leftAverage =
+            (Number(leftDraft?.test1 ?? left.test1 ?? 0) +
+              Number(leftDraft?.test2 ?? left.test2 ?? 0) +
+              Number(leftDraft?.test3 ?? left.test3 ?? 0)) /
+            3;
+          const rightAverage =
+            (Number(rightDraft?.test1 ?? right.test1 ?? 0) +
+              Number(rightDraft?.test2 ?? right.test2 ?? 0) +
+              Number(rightDraft?.test3 ?? right.test3 ?? 0)) /
+            3;
+
           return compareStudentValues(
-            STUDY_STATUS_LABELS[left.status] ?? left.status,
-            STUDY_STATUS_LABELS[right.status] ?? right.status,
+            leftAverage,
+            rightAverage,
             studentSortDirection
           );
+        }
         case "student":
         default:
           return compareStudentValues(
@@ -910,9 +1313,11 @@ function StudentDrawer({
   }, [
     items,
     studentSearch,
+    selectedSessionNo,
     studentSortDirection,
     studentSortKey,
     studentStatusFilter,
+    testDrafts,
   ]);
 
   const studentPagination = useMemo<PaginationMeta>(() => {
@@ -982,13 +1387,44 @@ function StudentDrawer({
     [studentStatusFilter]
   );
 
-  const studentColumns = useMemo<
-    AdminTableColumn<ClassroomStudentStudyItem, StudentSortKey>[]
-  >(
-    () => [
+  const studentToolbarStart = (
+    <>
+      <div className="relative w-[164px]">
+        <select
+          value={selectedSessionNo}
+          onChange={(event) => handleSessionNoChange(Number(event.target.value))}
+          className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-9 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+        >
+          {Array.from({ length: 30 }, (_, index) => index + 1).map(
+            (sessionNo) => (
+              <option key={sessionNo} value={sessionNo}>
+                Session {sessionNo}
+              </option>
+            )
+          )}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      </div>
+
+      <input
+        type="date"
+        value={selectedSessionDate}
+        onChange={(event) => {
+          setSelectedSessionDate(event.target.value);
+          setStudentPage(1);
+        }}
+        className="h-11 w-[200px] rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+      />
+    </>
+  );
+
+  const studentColumns: AdminTableColumn<
+    ClassroomStudentStudyItem,
+    StudentSortKey
+  >[] = [
       {
         id: "student",
-        label: "Student",
+        label: "Students",
         sortKey: "student",
         widthClassName: "w-[28%]",
         render: (item) => {
@@ -1005,55 +1441,149 @@ function StudentDrawer({
         },
       },
       {
-        id: "status",
-        label: "Status",
-        sortKey: "status",
-        widthClassName: "w-[18%]",
-        render: (item) => (
-          <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-            {STUDY_STATUS_LABELS[item.status] ?? item.status}
-          </span>
-        ),
-      },
-      {
         id: "attendance",
         label: "Attendance",
         sortKey: "attendance",
-        widthClassName: "w-[18%]",
-        align: "center",
-        render: (item) => (
-          <span className="font-bold text-sky-700">
-            {formatPercent(item.attendancePercent)}
-          </span>
-        ),
+        widthClassName: "w-[16%]",
+        render: (item) => {
+          const currentSession = getSessionByNo(item, selectedSessionNo);
+
+          return (
+            <SessionStatusSelect
+              type="attendance"
+              value={currentSession.attendanceStatus}
+              disabled={
+                !canUpdateStudents ||
+                savingSessionKey === `${item._id}-attendanceStatus`
+              }
+              onChange={(value) =>
+                void handleQuickSessionChange(item, "attendanceStatus", value)
+              }
+            />
+          );
+        },
       },
       {
-        id: "progress",
-        label: "Progress",
-        sortKey: "progress",
-        widthClassName: "w-[18%]",
-        align: "center",
-        render: (item) => (
-          <span className="font-bold text-sky-700">
-            {formatPercent(item.progressPercent)}
-          </span>
-        ),
+        id: "homework",
+        label: "BTVN",
+        sortKey: "homework",
+        widthClassName: "w-[16%]",
+        render: (item) => {
+          const currentSession = getSessionByNo(item, selectedSessionNo);
+
+          return (
+            <SessionStatusSelect
+              type="homework"
+              value={currentSession.homeworkStatus}
+              disabled={
+                !canUpdateStudents ||
+                savingSessionKey === `${item._id}-homeworkStatus`
+              }
+              onChange={(value) =>
+                void handleQuickSessionChange(item, "homeworkStatus", value)
+              }
+            />
+          );
+        },
       },
       {
-        id: "average",
-        label: "Average",
-        sortKey: "average",
-        widthClassName: "w-[18%]",
+        id: "date",
+        label: "Date",
+        sortKey: "date",
+        widthClassName: "w-[12%]",
+        render: (item) => {
+          const currentSession = getSessionByNo(item, selectedSessionNo);
+          const displayDate = selectedSessionDate
+            ? toIsoFromDateInput(selectedSessionDate)
+            : currentSession.date || item.updatedAt;
+
+          return (
+            <div className="font-semibold text-slate-900 dark:text-white">
+              {displayDate ? new Date(displayDate).toLocaleDateString("vi-VN") : "--"}
+            </div>
+          );
+        },
+      },
+      {
+        id: "tests",
+        label: "Grade KT",
+        sortKey: "tests",
+        widthClassName: "w-[28%]",
+        render: (item) => {
+          const currentDraft = testDrafts[item._id] ?? {
+            test1: String(item.test1 ?? 0),
+            test2: String(item.test2 ?? 0),
+            test3: String(item.test3 ?? 0),
+          };
+          const disabled = !canUpdateStudents || savingTestsKey === item._id;
+
+          return (
+            <div className="grid min-w-0 grid-cols-3 gap-2">
+              <ScoreInput
+                label="KT1"
+                value={currentDraft.test1}
+                disabled={disabled}
+                onChange={(value) =>
+                  handleTestDraftChange(item._id, "test1", value)
+                }
+                onSave={() => void handleSaveTests(item)}
+              />
+              <ScoreInput
+                label="KT2"
+                value={currentDraft.test2}
+                disabled={disabled}
+                onChange={(value) =>
+                  handleTestDraftChange(item._id, "test2", value)
+                }
+                onSave={() => void handleSaveTests(item)}
+              />
+              <ScoreInput
+                label="KT3"
+                value={currentDraft.test3}
+                disabled={disabled}
+                onChange={(value) =>
+                  handleTestDraftChange(item._id, "test3", value)
+                }
+                onSave={() => void handleSaveTests(item)}
+              />
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        label: "Hành động",
+        widthClassName: "w-[10%]",
         align: "right",
         render: (item) => (
-          <span className="font-bold text-slate-950 dark:text-white">
-            {formatScore(item.finalAverage)}
-          </span>
+          <div className="flex items-center justify-end gap-1">
+            <AdminActionIconButton
+              title="Xem nhanh"
+              onClick={() =>
+                toast.info(
+                  `${getStudentName(item)} · TB ${formatScore(item.finalAverage)}`
+                )
+              }
+            >
+              <Eye className="h-4 w-4" />
+            </AdminActionIconButton>
+            {canUpdateStudents ? (
+              <AdminActionIconButton
+              title={item.isActive ? "Khóa học viên" : "Mở khóa học viên"}
+              disabled={togglingStudentKey === item._id}
+              onClick={() => void handleToggleStudentActive(item)}
+            >
+              {item.isActive ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <LockOpen className="h-4 w-4" />
+              )}
+              </AdminActionIconButton>
+            ) : null}
+          </div>
         ),
       },
-    ],
-    []
-  );
+    ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
@@ -1113,6 +1643,7 @@ function StudentDrawer({
               setStudentPage(1);
             }}
             onReload={() => void reloadStudents()}
+            toolbarStart={studentToolbarStart}
             pagination={{
               currentPage: studentPagination.page,
               totalPages: studentPagination.totalPages,
@@ -1136,7 +1667,7 @@ function StudentDrawer({
               loading: "Đang tải danh sách học viên...",
               noData: "Không có dữ liệu",
             }}
-            tableMinWidthClassName="min-w-[900px]"
+            tableMinWidthClassName="min-w-[1360px]"
           />
 
           <section className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950/50">

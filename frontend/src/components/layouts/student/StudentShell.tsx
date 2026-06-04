@@ -20,6 +20,11 @@ import {
 import { useStudentPreferences, type StudentMessageKey } from "@/i18n";
 import AiChatWidget from "@/components/ai/AiChatWidget";
 import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  getStudentEntryPath,
+  hasAnyStudentPortalPermission,
+  STUDENT_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 import { clearAuth } from "@/lib/utils/storage";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -37,6 +42,10 @@ const navItems = [
     labelKey: "nav.dashboard",
     href: "/student/bang-tin",
     icon: Home,
+    requiredPermissions: [
+      STUDENT_PORTAL_PERMISSIONS.ACCESS,
+      STUDENT_PORTAL_PERMISSIONS.DASHBOARD_READ,
+    ],
     match: (pathname: string) =>
       pathname === "/student" || pathname.startsWith("/student/bang-tin"),
   },
@@ -44,18 +53,21 @@ const navItems = [
     labelKey: "nav.schedule",
     href: "/student/lich-hoc",
     icon: CalendarDays,
+    requiredPermissions: [STUDENT_PORTAL_PERMISSIONS.SCHEDULE_READ],
     match: (pathname: string) => pathname.startsWith("/student/lich-hoc"),
   },
   {
     labelKey: "nav.grades",
     href: "/student/xem-diem",
     icon: BarChart3,
+    requiredPermissions: [STUDENT_PORTAL_PERMISSIONS.GRADE_READ],
     match: (pathname: string) => pathname.startsWith("/student/xem-diem"),
   },
 ] satisfies Array<{
   labelKey: StudentMessageKey;
   href: string;
   icon: typeof Home;
+  requiredPermissions: string[];
   match: (pathname: string) => boolean;
 }>;
 
@@ -71,7 +83,7 @@ function getPageTitle(pathname: string, t: (key: StudentMessageKey) => string) {
 export default function StudentShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, access } = useAuth();
   const { t } = useStudentPreferences();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const profileActive = pathname.startsWith("/student/thong-tin-ca-nhan");
@@ -79,6 +91,28 @@ export default function StudentShell({ children }: { children: ReactNode }) {
   const settingsActive = pathname.startsWith("/student/cai-dat");
 
   const avatarUrl = resolveAvatarUrl(user?.avatar);
+  const visibleNavItems = useMemo(
+    () =>
+      navItems.filter((item) =>
+        hasAnyStudentPortalPermission(access, item.requiredPermissions)
+      ),
+    [access]
+  );
+  const canViewNotifications = hasAnyStudentPortalPermission(access, [
+    STUDENT_PORTAL_PERMISSIONS.NOTIFICATION_READ,
+    STUDENT_PORTAL_PERMISSIONS.NOTIFICATION_UPDATE,
+  ]);
+  const canViewProfile = hasAnyStudentPortalPermission(access, [
+    STUDENT_PORTAL_PERMISSIONS.PROFILE_READ,
+    STUDENT_PORTAL_PERMISSIONS.PROFILE_UPDATE,
+  ]);
+  const canViewSettings = hasAnyStudentPortalPermission(access, [
+    STUDENT_PORTAL_PERMISSIONS.SETTING_READ,
+    STUDENT_PORTAL_PERMISSIONS.SETTING_UPDATE,
+  ]);
+  const studentEntryPath = getStudentEntryPath(access);
+  const canViewLearningSection =
+    visibleNavItems.length > 0 || canViewNotifications;
   const userInitial = useMemo(() => {
     return (
       user?.name?.trim()?.charAt(0)?.toUpperCase() ||
@@ -147,115 +181,129 @@ export default function StudentShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-5">
-        <div className="px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
-          {t("section.learning")}
-        </div>
+        {canViewLearningSection ? (
+          <>
+            <div className="px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
+              {t("section.learning")}
+            </div>
 
-        <div className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.match(pathname);
+            <div className="space-y-1">
+              {visibleNavItems.map((item) => {
+                const Icon = item.icon;
+                const active = item.match(pathname);
 
-            return (
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeSidebar}
+                    className={cn(
+                      "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
+                      active
+                        ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-5 w-5",
+                        active
+                          ? "text-[#0D56A6] dark:text-sky-200"
+                          : "text-slate-400 dark:text-slate-500"
+                      )}
+                    />
+                    <span>{t(item.labelKey)}</span>
+                  </Link>
+                );
+              })}
+
+              {canViewNotifications ? (
+                <Link
+                  href="/student/thong-bao"
+                  onClick={closeSidebar}
+                  className={cn(
+                    "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
+                    notificationsActive
+                      ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                  )}
+                >
+                  <Bell
+                    className={cn(
+                      "h-5 w-5",
+                      notificationsActive
+                        ? "text-[#0D56A6] dark:text-sky-200"
+                        : "text-slate-400 dark:text-slate-500"
+                    )}
+                  />
+                  <span>{t("nav.notifications")}</span>
+                </Link>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+
+        {canViewProfile ? (
+          <>
+            <div className="mt-7 px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
+              {t("section.account")}
+            </div>
+
+            <div className="space-y-1">
               <Link
-                key={item.href}
-                href={item.href}
+                href="/student/thong-tin-ca-nhan"
                 onClick={closeSidebar}
                 className={cn(
                   "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-                  active
+                  profileActive
                     ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                 )}
               >
-                <Icon
+                <User2
                   className={cn(
                     "h-5 w-5",
-                    active
+                    profileActive
                       ? "text-[#0D56A6] dark:text-sky-200"
                       : "text-slate-400 dark:text-slate-500"
                   )}
                 />
-                <span>{t(item.labelKey)}</span>
+                <span>{t("nav.profile")}</span>
               </Link>
-            );
-          })}
+            </div>
+          </>
+        ) : null}
 
-          <Link
-            href="/student/thong-bao"
-            onClick={closeSidebar}
-            className={cn(
-              "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-              notificationsActive
-                ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-            )}
-          >
-            <Bell
-              className={cn(
-                "h-5 w-5",
-                notificationsActive
-                  ? "text-[#0D56A6] dark:text-sky-200"
-                  : "text-slate-400 dark:text-slate-500"
-              )}
-            />
-            <span>{t("nav.notifications")}</span>
-          </Link>
-        </div>
+        {canViewSettings ? (
+          <>
+            <div className="mt-7 px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
+              {t("section.system")}
+            </div>
 
-        <div className="mt-7 px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
-          {t("section.account")}
-        </div>
-
-        <div className="space-y-1">
-          <Link
-            href="/student/thong-tin-ca-nhan"
-            onClick={closeSidebar}
-            className={cn(
-              "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-              profileActive
-                ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-            )}
-          >
-            <User2
-              className={cn(
-                "h-5 w-5",
-                profileActive
-                  ? "text-[#0D56A6] dark:text-sky-200"
-                  : "text-slate-400 dark:text-slate-500"
-              )}
-            />
-            <span>{t("nav.profile")}</span>
-          </Link>
-        </div>
-
-        <div className="mt-7 px-3 pb-2 text-xs font-bold uppercase tracking-[0.08em] text-slate-400">
-          {t("section.system")}
-        </div>
-
-        <div className="space-y-1">
-          <Link
-            href="/student/cai-dat"
-            onClick={closeSidebar}
-            className={cn(
-              "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
-              settingsActive
-                ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-            )}
-          >
-            <Settings
-              className={cn(
-                "h-5 w-5",
-                settingsActive
-                  ? "text-[#0D56A6] dark:text-sky-200"
-                  : "text-slate-400 dark:text-slate-500"
-              )}
-            />
-            <span>{t("nav.settings")}</span>
-          </Link>
-        </div>
+            <div className="space-y-1">
+              <Link
+                href="/student/cai-dat"
+                onClick={closeSidebar}
+                className={cn(
+                  "flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition",
+                  settingsActive
+                    ? "bg-[#EAF2FF] text-[#0D56A6] dark:bg-sky-500/15 dark:text-sky-200"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                )}
+              >
+                <Settings
+                  className={cn(
+                    "h-5 w-5",
+                    settingsActive
+                      ? "text-[#0D56A6] dark:text-sky-200"
+                      : "text-slate-400 dark:text-slate-500"
+                  )}
+                />
+                <span>{t("nav.settings")}</span>
+              </Link>
+            </div>
+          </>
+        ) : null}
       </nav>
 
       <div className="border-t border-slate-100 p-4 dark:border-white/10">
@@ -319,13 +367,15 @@ export default function StudentShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <Link
-            href="/student/bang-tin"
-            className="hidden h-10 items-center gap-2 rounded-xl bg-[#0D56A6] px-4 text-sm font-bold text-white transition hover:bg-[#0B4A8E] md:inline-flex"
-          >
-            <BookOpenCheck className="h-4 w-4" />
-            {t("shell.student")}
-          </Link>
+          {studentEntryPath ? (
+            <Link
+              href={studentEntryPath}
+              className="hidden h-10 items-center gap-2 rounded-xl bg-[#0D56A6] px-4 text-sm font-bold text-white transition hover:bg-[#0B4A8E] md:inline-flex"
+            >
+              <BookOpenCheck className="h-4 w-4" />
+              {t("shell.student")}
+            </Link>
+          ) : null}
         </header>
 
         <div className="min-h-[calc(100vh-88px)]">{children}</div>

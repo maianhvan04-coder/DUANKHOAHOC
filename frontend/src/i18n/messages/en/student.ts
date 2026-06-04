@@ -37,7 +37,7 @@ export const studentEnMessages = {
   "guard.redirecting": "Redirecting to login...",
   "guard.forbiddenTitle": "Access denied",
   "guard.forbiddenDescription":
-    "This area requires the STUDENT role or student_portal:access permission.",
+    "This area requires a matching student portal permission.",
   "guard.home": "Back to home",
   "notifications.all": "All",
   "notifications.allTypes": "All types",

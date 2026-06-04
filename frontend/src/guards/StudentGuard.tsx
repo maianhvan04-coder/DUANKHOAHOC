@@ -2,11 +2,15 @@
 
 import { type ReactNode, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useStudentPreferences } from "@/i18n";
-import { canAccessStudentPortal } from "@/lib/helpers/auth/access";
+import {
+  canAccessStudentPath,
+  canAccessStudentPortal,
+  getStudentEntryPath,
+} from "@/lib/helpers/auth/access";
 
 function ForbiddenStudentRoute() {
   const { t } = useStudentPreferences();
@@ -39,10 +43,13 @@ function ForbiddenStudentRoute() {
 
 export default function StudentGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, access, hydrated, isLoading } = useAuth();
 
   const ready = hydrated && !isLoading;
   const canAccessStudent = canAccessStudentPortal(access);
+  const canAccessPath = canAccessStudentPath(access, pathname);
+  const entryPath = getStudentEntryPath(access);
 
   useEffect(() => {
     if (!ready) return;
@@ -53,8 +60,13 @@ export default function StudentGuard({ children }: { children: ReactNode }) {
           : "/student/bang-tin";
 
       router.replace(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+      return;
     }
-  }, [ready, router, user]);
+
+    if (canAccessStudent && !canAccessPath && entryPath) {
+      router.replace(entryPath);
+    }
+  }, [canAccessPath, canAccessStudent, entryPath, ready, router, user]);
 
   if (!ready || !user) {
     return null;
@@ -62,6 +74,10 @@ export default function StudentGuard({ children }: { children: ReactNode }) {
 
   if (!canAccessStudent) {
     return <ForbiddenStudentRoute />;
+  }
+
+  if (!canAccessPath) {
+    return null;
   }
 
   return <>{children}</>;

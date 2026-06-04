@@ -67,6 +67,8 @@ export type RbacCatalogResponse = {
   permissionMeta: PermissionMetaItem[];
   defaultRolePermissions: Record<string, PermissionKey[]>;
   screens: Record<string, unknown>;
+  studentScreens?: Record<string, unknown>;
+  teacherScreens?: Record<string, unknown>;
 };
 
 export type RolePermissionsResponse = {

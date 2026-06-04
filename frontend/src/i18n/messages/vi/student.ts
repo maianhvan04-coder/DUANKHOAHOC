@@ -35,7 +35,7 @@ export const studentViMessages = {
   "guard.redirecting": "Đang chuyển đến trang đăng nhập...",
   "guard.forbiddenTitle": "Không có quyền truy cập",
   "guard.forbiddenDescription":
-    "Khu vực này yêu cầu role STUDENT hoặc permission student_portal:access.",
+    "Khu vực này yêu cầu quyền truy cập trang học viên phù hợp.",
   "guard.home": "Về trang chủ",
   "notifications.all": "Tất cả",
   "notifications.allTypes": "Tất cả loại",

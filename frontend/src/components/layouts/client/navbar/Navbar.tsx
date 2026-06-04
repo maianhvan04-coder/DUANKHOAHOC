@@ -31,8 +31,8 @@ import {
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
   getAdminEntryPath,
-  canAccessTeacherPortal,
-  canAccessStudentPortal,
+  getStudentEntryPath,
+  getTeacherEntryPath,
 } from "@/lib/helpers/auth/access";
 import {
   notificationApi,
@@ -278,9 +278,11 @@ export default function Navbar() {
   const isLoggedIn = !!user;
 
   const adminEntryPath = getAdminEntryPath(access);
+  const studentEntryPath = getStudentEntryPath(access);
+  const teacherEntryPath = getTeacherEntryPath(access);
   const canAccessAdmin = !!adminEntryPath;
-  const canAccessTeacher = canAccessTeacherPortal(access);
-  const canAccessStudent = canAccessStudentPortal(access);
+  const canAccessTeacher = !!teacherEntryPath;
+  const canAccessStudent = !!studentEntryPath;
 
   const loadNotificationSummary = useCallback(async () => {
     if (checkingAuth || !isLoggedIn) {
@@ -804,7 +806,7 @@ export default function Navbar() {
 
                           {canAccessStudent && (
                             <Link
-                              href="/student/bang-tin"
+                              href={studentEntryPath ?? "/student"}
                               onClick={() => setOpenProfileMenu(false)}
                               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
                             >
@@ -815,7 +817,7 @@ export default function Navbar() {
 
                           {canAccessTeacher && (
                             <Link
-                              href="/teacher/bang-tin"
+                              href={teacherEntryPath ?? "/teacher"}
                               onClick={() => setOpenProfileMenu(false)}
                               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
                             >

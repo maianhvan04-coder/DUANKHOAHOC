@@ -20,6 +20,10 @@ import {
 } from "lucide-react";
 import AiChatWidget from "@/components/ai/AiChatWidget";
 import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  hasAnyTeacherPortalPermission,
+  TEACHER_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 import { clearAuth } from "@/lib/utils/storage";
 
 function cn(...classes: Array<string | false | null | undefined>) {
@@ -40,6 +44,10 @@ const navGroups = [
         label: "Bảng tin",
         href: "/teacher/bang-tin",
         icon: Home,
+        requiredPermissions: [
+          TEACHER_PORTAL_PERMISSIONS.ACCESS,
+          TEACHER_PORTAL_PERMISSIONS.DASHBOARD_READ,
+        ],
         match: (pathname: string) =>
           pathname === "/teacher" || pathname.startsWith("/teacher/bang-tin"),
       },
@@ -52,12 +60,20 @@ const navGroups = [
         label: "Lịch dạy",
         href: "/teacher/lich-day",
         icon: CalendarDays,
+        requiredPermissions: [TEACHER_PORTAL_PERMISSIONS.SCHEDULE_READ],
         match: (pathname: string) => pathname.startsWith("/teacher/lich-day"),
       },
       {
         label: "Lớp học",
         href: "/teacher/lop-hoc",
         icon: UsersRound,
+        requiredPermissions: [
+          TEACHER_PORTAL_PERMISSIONS.CLASS_READ,
+          TEACHER_PORTAL_PERMISSIONS.CLASS_CREATE,
+          TEACHER_PORTAL_PERMISSIONS.CLASS_UPDATE,
+          TEACHER_PORTAL_PERMISSIONS.CLASS_CHANGE_STATUS,
+          TEACHER_PORTAL_PERMISSIONS.STUDENT_UPDATE,
+        ],
         match: (pathname: string) => pathname.startsWith("/teacher/lop-hoc"),
       },
     ],
@@ -69,12 +85,20 @@ const navGroups = [
         label: "Thông báo",
         href: "/teacher/thong-bao",
         icon: Bell,
+        requiredPermissions: [
+          TEACHER_PORTAL_PERMISSIONS.NOTIFICATION_READ,
+          TEACHER_PORTAL_PERMISSIONS.NOTIFICATION_UPDATE,
+        ],
         match: (pathname: string) => pathname.startsWith("/teacher/thong-bao"),
       },
       {
         label: "Cài đặt",
         href: "/teacher/cai-dat",
         icon: Settings,
+        requiredPermissions: [
+          TEACHER_PORTAL_PERMISSIONS.SETTING_READ,
+          TEACHER_PORTAL_PERMISSIONS.SETTING_UPDATE,
+        ],
         match: (pathname: string) => pathname.startsWith("/teacher/cai-dat"),
       },
     ],
@@ -92,11 +116,28 @@ function getPageTitle(pathname: string) {
 export default function TeacherShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, access } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   const avatarUrl = resolveAvatarUrl(user?.avatar);
+  const visibleNavGroups = useMemo(
+    () =>
+      navGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) =>
+            hasAnyTeacherPortalPermission(access, item.requiredPermissions)
+          ),
+        }))
+        .filter((group) => group.items.length > 0),
+    [access]
+  );
+  const canViewNotifications = hasAnyTeacherPortalPermission(access, [
+    TEACHER_PORTAL_PERMISSIONS.NOTIFICATION_READ,
+    TEACHER_PORTAL_PERMISSIONS.NOTIFICATION_UPDATE,
+  ]);
+
   const userInitial = useMemo(() => {
     return (
       user?.name?.trim()?.charAt(0)?.toUpperCase() ||
@@ -165,7 +206,7 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-5 pb-5">
-        {navGroups.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.title} className="mb-7">
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
               {group.title}
@@ -278,13 +319,15 @@ export default function TeacherShell({ children }: { children: ReactNode }) {
               {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
-            <Link
-              href="/teacher/thong-bao"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-              aria-label="Thông báo"
-            >
-              <Bell className="h-5 w-5" />
-            </Link>
+            {canViewNotifications ? (
+              <Link
+                href="/teacher/thong-bao"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                aria-label="Thông báo"
+              >
+                <Bell className="h-5 w-5" />
+              </Link>
+            ) : null}
 
             <button
               type="button"

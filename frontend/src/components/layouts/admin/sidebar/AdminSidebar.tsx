@@ -157,7 +157,7 @@ const menuGroups: SidebarGroup[] = [
         href: "/admin/payment-methods",
         textKey: "sidebar.paymentMethods",
         icon: Landmark,
-        requiredGroupKeys: ["AUDIT"],
+        requiredGroupKeys: ["PAYMENT_METHODS"],
         requiredRolesAny: ["ADMIN", "MANAGER"],
       },
       {

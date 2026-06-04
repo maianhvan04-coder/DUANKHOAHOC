@@ -11,13 +11,21 @@ import {
   UserRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  hasTeacherPortalPermission,
+  TEACHER_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
 export default function TeacherSettingsPage() {
-  const { user } = useAuth();
+  const { user, access } = useAuth();
+  const canUpdateSettings = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.SETTING_UPDATE
+  );
   const [scheduleEmail, setScheduleEmail] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState(true);
   const [compactTable, setCompactTable] = useState(false);
@@ -36,13 +44,15 @@ export default function TeacherSettingsPage() {
             </h2>
           </div>
 
-          <button
+          {canUpdateSettings ? (
+            <button
             type="button"
             className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-[#0D56A6] px-5 text-sm font-bold text-white transition hover:bg-[#0B4B92]"
           >
             <Save className="h-4 w-4" />
             Lưu thay đổi
-          </button>
+            </button>
+          ) : null}
         </div>
       </section>
 
@@ -73,6 +83,7 @@ export default function TeacherSettingsPage() {
               title="Bảng lớp học gọn"
               description="Giảm khoảng cách dòng khi xem nhiều lớp học."
               enabled={compactTable}
+              disabled={!canUpdateSettings}
               onChange={() => setCompactTable((prev) => !prev)}
             />
           </SettingBlock>
@@ -82,12 +93,14 @@ export default function TeacherSettingsPage() {
               title="Email lịch dạy"
               description="Nhận email khi lớp học hoặc lịch dạy thay đổi."
               enabled={scheduleEmail}
+              disabled={!canUpdateSettings}
               onChange={() => setScheduleEmail((prev) => !prev)}
             />
             <ToggleRow
               title="Email thông báo"
               description="Nhận email khi trung tâm gửi thông báo mới."
               enabled={notificationEmail}
+              disabled={!canUpdateSettings}
               onChange={() => setNotificationEmail((prev) => !prev)}
             />
           </SettingBlock>
@@ -97,6 +110,7 @@ export default function TeacherSettingsPage() {
               title="Cảnh báo đăng nhập"
               description="Nhận cảnh báo khi tài khoản đăng nhập trên thiết bị mới."
               enabled={loginAlert}
+              disabled={!canUpdateSettings}
               onChange={() => setLoginAlert((prev) => !prev)}
             />
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -159,11 +173,13 @@ function ToggleRow({
   title,
   description,
   enabled,
+  disabled = false,
   onChange,
 }: {
   title: string;
   description: string;
   enabled: boolean;
+  disabled?: boolean;
   onChange: () => void;
 }) {
   return (
@@ -177,9 +193,12 @@ function ToggleRow({
 
       <button
         type="button"
-        onClick={onChange}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) onChange();
+        }}
         className={cn(
-          "relative h-7 w-12 shrink-0 rounded-full transition",
+          "relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-60",
           enabled ? "bg-[#0D56A6]" : "bg-slate-300 dark:bg-slate-700"
         )}
         aria-pressed={enabled}

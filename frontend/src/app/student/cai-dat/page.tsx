@@ -17,6 +17,11 @@ import {
   type StudentLocale,
   type StudentTheme,
 } from "@/i18n";
+import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  hasStudentPortalPermission,
+  STUDENT_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 
 type SettingTab = "general" | "security" | "notification";
 
@@ -207,10 +212,15 @@ const copy = {
 } as const satisfies Record<StudentLocale, Record<string, unknown>>;
 
 export default function StudentSettingsPage() {
+  const { access } = useAuth();
   const { locale, setLocale, setTheme, theme, toggleTheme } =
     useStudentPreferences();
   const text = copy[locale];
   const [activeTab, setActiveTab] = useState<SettingTab>("general");
+  const canUpdateSettings = hasStudentPortalPermission(
+    access,
+    STUDENT_PORTAL_PERMISSIONS.SETTING_UPDATE
+  );
 
   const [syncCalendar, setSyncCalendar] = useState(true);
   const [showProgress, setShowProgress] = useState(true);
@@ -280,13 +290,15 @@ export default function StudentSettingsPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#0D56A6] transition hover:bg-[#F4FAFF]"
-            >
-              <Save className="h-4 w-4" />
-              {text.save}
-            </button>
+            {canUpdateSettings ? (
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#0D56A6] transition hover:bg-[#F4FAFF]"
+              >
+                <Save className="h-4 w-4" />
+                {text.save}
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -359,6 +371,7 @@ export default function StudentSettingsPage() {
                       value={locale}
                       onChange={(value) => setLocale(value as StudentLocale)}
                       options={languageOptions}
+                      disabled={!canUpdateSettings}
                     />
 
                     <SelectField
@@ -366,6 +379,7 @@ export default function StudentSettingsPage() {
                       value={theme}
                       onChange={(value) => setTheme(value as StudentTheme)}
                       options={themeOptions}
+                      disabled={!canUpdateSettings}
                     />
                   </div>
                 </SettingCard>
@@ -381,18 +395,21 @@ export default function StudentSettingsPage() {
                       description={text.display.darkModeDescription}
                       enabled={theme === "dark"}
                       onChange={toggleTheme}
+                      disabled={!canUpdateSettings}
                     />
                     <ToggleRow
                       title={text.display.syncCalendar}
                       description={text.display.syncCalendarDescription}
                       enabled={syncCalendar}
                       onChange={() => setSyncCalendar((prev) => !prev)}
+                      disabled={!canUpdateSettings}
                     />
                     <ToggleRow
                       title={text.display.showProgress}
                       description={text.display.showProgressDescription}
                       enabled={showProgress}
                       onChange={() => setShowProgress((prev) => !prev)}
+                      disabled={!canUpdateSettings}
                     />
 
                     <ThemePreview
@@ -422,6 +439,7 @@ export default function StudentSettingsPage() {
                       description={text.security.twoFactorDescription}
                       enabled={twoFactor}
                       onChange={() => setTwoFactor((prev) => !prev)}
+                      disabled={!canUpdateSettings}
                     />
 
                     <ToggleRow
@@ -429,12 +447,14 @@ export default function StudentSettingsPage() {
                       description={text.security.loginAlertDescription}
                       enabled={loginAlert}
                       onChange={() => setLoginAlert((prev) => !prev)}
+                      disabled={!canUpdateSettings}
                     />
 
                     <SelectField
                       label={text.security.timeout}
                       value={sessionTimeout}
                       onChange={setSessionTimeout}
+                      disabled={!canUpdateSettings}
                       options={[
                         { label: "15 phút", value: "15" },
                         { label: "30 phút", value: "30" },
@@ -471,18 +491,21 @@ export default function StudentSettingsPage() {
                     description={text.notification.scheduleDescription}
                     enabled={emailSchedule}
                     onChange={() => setEmailSchedule((prev) => !prev)}
+                    disabled={!canUpdateSettings}
                   />
                   <ToggleRow
                     title={text.notification.grades}
                     description={text.notification.gradesDescription}
                     enabled={emailGrades}
                     onChange={() => setEmailGrades((prev) => !prev)}
+                    disabled={!canUpdateSettings}
                   />
                   <ToggleRow
                     title={text.notification.system}
                     description={text.notification.systemDescription}
                     enabled={emailSystem}
                     onChange={() => setEmailSystem((prev) => !prev)}
+                    disabled={!canUpdateSettings}
                   />
                 </div>
               </SettingCard>
@@ -532,11 +555,13 @@ function SelectField({
   value,
   onChange,
   options,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: Array<{ label: string; value: string }>;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -545,8 +570,9 @@ function SelectField({
       </span>
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-xl border border-[#cbe7fb] bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#0D56A6] focus:ring-4 focus:ring-[#0D56A6]/10 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+        onChange={(event) => !disabled && onChange(event.target.value)}
+        disabled={disabled}
+        className="h-12 w-full rounded-xl border border-[#cbe7fb] bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-[#0D56A6] focus:ring-4 focus:ring-[#0D56A6]/10 disabled:cursor-not-allowed disabled:bg-[#F8FCFF] disabled:text-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-white/5 dark:disabled:text-slate-400"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -563,11 +589,13 @@ function ToggleRow({
   description,
   enabled,
   onChange,
+  disabled = false,
 }: {
   title: string;
   description: string;
   enabled: boolean;
   onChange: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-[#cbe7fb] bg-[#F8FCFF] px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -582,10 +610,12 @@ function ToggleRow({
 
       <button
         type="button"
-        onClick={onChange}
+        onClick={() => !disabled && onChange()}
+        disabled={disabled}
         className={cn(
           "relative h-7 w-12 shrink-0 rounded-full transition",
-          enabled ? "bg-[#0D56A6]" : "bg-slate-300 dark:bg-slate-700"
+          enabled ? "bg-[#0D56A6]" : "bg-slate-300 dark:bg-slate-700",
+          disabled && "cursor-not-allowed opacity-60"
         )}
         aria-pressed={enabled}
       >

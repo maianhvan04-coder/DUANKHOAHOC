@@ -20,6 +20,11 @@ import {
   type NotificationItem,
   type NotificationType,
 } from "@/app/api/notification.api";
+import { useAuth } from "@/hooks/auth/useAuth";
+import {
+  hasTeacherPortalPermission,
+  TEACHER_PORTAL_PERMISSIONS,
+} from "@/lib/helpers/auth/access";
 import { emitNotificationChanged } from "@/lib/utils/notification-events";
 
 type ReadFilter = "" | "true" | "false";
@@ -93,6 +98,12 @@ function formatDate(value?: string | null) {
 }
 
 export default function TeacherNotificationsPage() {
+  const { access } = useAuth();
+  const canUpdateNotifications = hasTeacherPortalPermission(
+    access,
+    TEACHER_PORTAL_PERMISSIONS.NOTIFICATION_UPDATE
+  );
+
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -133,7 +144,7 @@ export default function TeacherNotificationsPage() {
   }, [loadData]);
 
   async function markAsRead(item: NotificationItem) {
-    if (item.isRead) return;
+    if (!canUpdateNotifications || item.isRead) return;
 
     try {
       setActionLoading(item._id);
@@ -278,15 +289,19 @@ export default function TeacherNotificationsPage() {
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => void markAsRead(item)}
-                        disabled={item.isRead || actionLoading === item._id}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        {actionLoading === item._id ? "Đang cập nhật" : "Đã đọc"}
-                      </button>
+                      {canUpdateNotifications ? (
+                        <button
+                          type="button"
+                          onClick={() => void markAsRead(item)}
+                          disabled={item.isRead || actionLoading === item._id}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          {actionLoading === item._id
+                            ? "Đang cập nhật"
+                            : "Đã đọc"}
+                        </button>
+                      ) : null}
                     </div>
                   </article>
                 );
