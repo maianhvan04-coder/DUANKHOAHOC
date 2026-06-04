@@ -1,6 +1,6 @@
 import { http } from "@/lib/utils/http";
 
-export type AiRole = "public" | "student" | "admin";
+export type AiRole = "public" | "student" | "teacher" | "admin";
 
 export type AiChatHistoryItem = {
   role: "user" | "assistant";
@@ -44,6 +44,7 @@ export type AiApiResponse = {
 const endpointByRole: Record<AiRole, string> = {
   public: "/api/ai/public-advisor",
   student: "/api/ai/student-assistant",
+  teacher: "/api/ai/teacher-assistant",
   admin: "/api/ai/admin-assistant",
 };
 

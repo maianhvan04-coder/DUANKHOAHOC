@@ -23,6 +23,14 @@ aiRouter.post(
 );
 
 aiRouter.post(
+  "/teacher-assistant",
+  authGuard,
+  authorize({ rolesAny: [ROLES.TEACHER] }),
+  validate(aiMessageSchema),
+  aiController.teacherAssistant
+);
+
+aiRouter.post(
   "/admin-assistant",
   authGuard,
   authorize({ rolesAny: [ROLES.ADMIN, ROLES.MANAGER, ROLES.TEACHER] }),

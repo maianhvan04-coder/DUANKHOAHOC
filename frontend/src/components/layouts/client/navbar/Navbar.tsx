@@ -15,6 +15,7 @@ import {
   Info,
   Loader2,
   LogOut,
+  School,
   Search,
   User,
   Wallet,
@@ -30,6 +31,7 @@ import {
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
   getAdminEntryPath,
+  canAccessTeacherPortal,
   canAccessStudentPortal,
 } from "@/lib/helpers/auth/access";
 import {
@@ -277,6 +279,7 @@ export default function Navbar() {
 
   const adminEntryPath = getAdminEntryPath(access);
   const canAccessAdmin = !!adminEntryPath;
+  const canAccessTeacher = canAccessTeacherPortal(access);
   const canAccessStudent = canAccessStudentPortal(access);
 
   const loadNotificationSummary = useCallback(async () => {
@@ -807,6 +810,17 @@ export default function Navbar() {
                             >
                               <GraduationCap className="h-4 w-4" />
                               <span>{t("profile.studentPage")}</span>
+                            </Link>
+                          )}
+
+                          {canAccessTeacher && (
+                            <Link
+                              href="/teacher/bang-tin"
+                              onClick={() => setOpenProfileMenu(false)}
+                              className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-[#0B2C5F] transition hover:bg-[#F5F9FF] hover:text-[#0D56A6]"
+                            >
+                              <School className="h-4 w-4" />
+                              <span>Trang giáo viên</span>
                             </Link>
                           )}
 

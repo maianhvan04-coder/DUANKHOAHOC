@@ -1,8 +1,9 @@
 import type { UserAccess } from "@/app/api/auth.api";
 
 export const STUDENT_PORTAL_ACCESS_PERMISSION = "student_portal:access";
-export const ADMIN_ENTRY_ROLES = ["ADMIN", "MANAGER", "TEACHER"] as const;
-const PUBLIC_ONLY_ROLES = new Set(["USER", "STUDENT"]);
+export const TEACHER_PORTAL_ENTRY_PATH = "/teacher/bang-tin";
+export const ADMIN_ENTRY_ROLES = ["ADMIN", "MANAGER"] as const;
+const PUBLIC_ONLY_ROLES = new Set(["USER", "STUDENT", "TEACHER"]);
 
 const ADMIN_PERMISSION_ROUTES: Array<{
   href: string;
@@ -74,6 +75,14 @@ export function canAccessStudentPortal(access: UserAccess | null | undefined) {
     hasRole(access, "STUDENT") ||
     hasPermission(access, STUDENT_PORTAL_ACCESS_PERMISSION)
   );
+}
+
+export function canAccessTeacherPortal(access: UserAccess | null | undefined) {
+  return hasRole(access, "TEACHER");
+}
+
+export function getTeacherEntryPath(access: UserAccess | null | undefined) {
+  return canAccessTeacherPortal(access) ? TEACHER_PORTAL_ENTRY_PATH : null;
 }
 
 export function canAccessAdmin(access: UserAccess | null | undefined) {

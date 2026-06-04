@@ -4,6 +4,7 @@ import { StudentStudyModel } from "../student/student-study.model";
 import { NotificationModel } from "../notification/notification.model";
 import { PaymentOrderModel } from "../payment/payment.model";
 import { ClassRoomModel } from "../classroom/classroom.model";
+import { TeacherModel } from "../teacher/teacher.model";
 import { getDashboardService } from "../dashboard/dashboard.service";
 
 function compactCurrency(value: unknown) {
@@ -192,6 +193,115 @@ export async function buildStudentAiContext(userId: string) {
         : [],
       paidAt: toDateText(item.paidAt),
       createdAt: toDateText(item.createdAt),
+    })),
+  };
+}
+
+export async function buildTeacherAiContext(userId: string) {
+  const teacher = await TeacherModel.findOne({
+    user: userId,
+    isDeleted: false,
+  })
+    .populate("user", "name email")
+    .lean();
+
+  const notificationsPromise = NotificationModel.find({
+    userId,
+    $or: [{ isSent: true }, { isSent: { $exists: false } }],
+  })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .select("title message type isRead sentAt createdAt")
+    .lean();
+
+  if (!teacher) {
+    const notifications = await notificationsPromise;
+
+    return {
+      currentDateTime: new Date().toLocaleString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+      teacher: null,
+      classes: [],
+      notifications: notifications.map((item) => ({
+        title: item.title,
+        message: item.message,
+        type: item.type,
+        isRead: item.isRead,
+        sentAt: toDateText(item.sentAt || item.createdAt),
+      })),
+    };
+  }
+
+  const [classes, notifications] = await Promise.all([
+    ClassRoomModel.find({
+      teacher: teacher._id,
+      isDeleted: false,
+    })
+      .select("className mode scheduleText room maxStudents startedAt endedAt isActive course updatedAt")
+      .populate("course", "title shortDescription level status durationText")
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .lean(),
+    notificationsPromise,
+  ]);
+
+  const classIds = classes.map((item) => item._id).filter(Boolean);
+  const studentCounts = await StudentStudyModel.aggregate([
+    {
+      $match: {
+        classRoom: { $in: classIds },
+        isActive: true,
+      },
+    },
+    {
+      $group: {
+        _id: "$classRoom",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const countMap = new Map(
+    studentCounts.map((item) => [String(item._id), Number(item.count || 0)])
+  );
+
+  return {
+    currentDateTime: new Date().toLocaleString("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+    }),
+    teacher: {
+      id: String(teacher._id || ""),
+      name:
+        teacher.user && typeof teacher.user === "object"
+          ? String((teacher.user as { name?: unknown }).name || "")
+          : "",
+      email:
+        teacher.user && typeof teacher.user === "object"
+          ? String((teacher.user as { email?: unknown }).email || "")
+          : "",
+      specialty: teacher.specialty || "",
+      active: Boolean(teacher.isActive),
+    },
+    classes: classes.map((item: any) => ({
+      id: String(item._id || ""),
+      className: item.className || "",
+      courseTitle: item.course?.title || "",
+      mode: item.mode || "",
+      scheduleText: item.scheduleText || "",
+      room: item.room || "",
+      startedAt: toDateText(item.startedAt),
+      endedAt: toDateText(item.endedAt),
+      active: Boolean(item.isActive),
+      maxStudents: Number(item.maxStudents || 0),
+      currentStudents: countMap.get(String(item._id)) || 0,
+    })),
+    notifications: notifications.map((item) => ({
+      title: item.title,
+      message: item.message,
+      type: item.type,
+      isRead: item.isRead,
+      sentAt: toDateText(item.sentAt || item.createdAt),
     })),
   };
 }

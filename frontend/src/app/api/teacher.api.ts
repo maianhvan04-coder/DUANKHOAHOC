@@ -242,6 +242,11 @@ export const teacherApi = {
     return pickTeacher(res.data);
   },
 
+  getMe: async () => {
+    const res = await http.get("/api/teachers/me");
+    return pickTeacher(res.data);
+  },
+
   create: async (payload: CreateTeacherPayload) => {
     const formData = buildCreateTeacherFormData(payload);
     const res = await http.post("/api/teachers", formData);

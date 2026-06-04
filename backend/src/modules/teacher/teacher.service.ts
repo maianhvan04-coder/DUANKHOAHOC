@@ -45,6 +45,10 @@ export const teacherService = {
     return teacherRepo.findById(id);
   },
 
+  async getMe(userId: string) {
+    return teacherRepo.findByUserId(userId);
+  },
+
   async create(payload: CreateTeacherInput, avatarFile?: Express.Multer.File) {
     const existed = await teacherRepo.findUserByEmail(payload.email);
     if (existed) {

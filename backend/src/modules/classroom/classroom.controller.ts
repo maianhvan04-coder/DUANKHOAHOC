@@ -44,6 +44,29 @@ export const classRoomController = {
     }
   },
 
+  async getMine(
+    req: Request<Record<string, never>, unknown, unknown, ClassRoomQuery>,
+    res: Response
+  ) {
+    try {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "Chưa đăng nhập" });
+      }
+
+      const result = await classRoomService.getMineByTeacherUser(
+        userId,
+        req.query
+      );
+      return res.json(result);
+    } catch (error) {
+      return res.status(500).json({
+        message: getErrorMessage(error, "Server error"),
+      });
+    }
+  },
+
   async getDeleted(
     req: Request<Record<string, never>, unknown, unknown, ClassRoomQuery>,
     res: Response

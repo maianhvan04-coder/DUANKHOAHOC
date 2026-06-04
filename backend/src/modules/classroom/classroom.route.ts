@@ -7,6 +7,7 @@ export const classRoomRouter = Router();
 
 // classroom list / detail
 classRoomRouter.get("/", authGuard, classRoomController.getAll);
+classRoomRouter.get("/mine", authGuard, classRoomController.getMine);
 classRoomRouter.get("/deleted", authGuard, classRoomController.getDeleted);
 classRoomRouter.get("/:id", authGuard, classRoomController.getById);
 classRoomRouter.get("/:id/students", authGuard, classRoomController.getStudents);

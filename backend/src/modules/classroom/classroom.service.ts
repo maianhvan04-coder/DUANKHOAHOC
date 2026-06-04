@@ -209,6 +209,40 @@ export const classRoomService = {
     );
   },
 
+  async getMineByTeacherUser(userId: string, query: ListQueryInput & {
+    courseId?: string;
+    isActive?: string;
+    status?: string;
+  }) {
+    if (!isValidObjectId(userId)) {
+      const pagination = parsePagination(query);
+      return makeListResponse([], 0, pagination);
+    }
+
+    const teacher = await TeacherModel.findOne({
+      user: userId,
+      isDeleted: false,
+    }).select("_id");
+
+    const pagination = parsePagination(query);
+
+    if (!teacher) {
+      return makeListResponse([], 0, pagination);
+    }
+
+    const items = await classRoomRepository.findAll({
+      ...query,
+      teacherId: String(teacher._id),
+    });
+    const sorted = filterAndSortClassRooms(items as any[], query, false);
+
+    return makeListResponse(
+      paginateArray(sorted, pagination),
+      sorted.length,
+      pagination
+    );
+  },
+
   async getDeleted(query: ListQueryInput = {}) {
     const items = await classRoomRepository.findDeleted(query);
     const sorted = filterAndSortClassRooms(items as any[], query, true);

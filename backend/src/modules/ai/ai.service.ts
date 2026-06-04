@@ -2,11 +2,12 @@ import {
   buildAdminAiContext,
   buildPublicAiContext,
   buildStudentAiContext,
+  buildTeacherAiContext,
 } from "./ai.context";
 import { AI_SCOPE_REFUSAL, isOutsideAiScope } from "./ai.scope";
 import { generateGeminiJson } from "./gemini.client";
 
-export type AiRole = "public" | "student" | "admin";
+export type AiRole = "public" | "student" | "teacher" | "admin";
 
 export type AiHistoryItem = {
   role: "user" | "assistant";
@@ -36,6 +37,7 @@ type ParsedNotificationDraftResponse = {
 const ROLE_LABELS: Record<AiRole, string> = {
   public: "AI tu van lo trinh hoc ca nhan hoa cho khach truy cap",
   student: "AI co van hoc tap ca nhan cho hoc vien",
+  teacher: "AI tro ly giang day ca nhan cho giao vien",
   admin: "AI Admin Copilot ho tro quan tri trung tam",
 };
 
@@ -44,6 +46,8 @@ const ROLE_TASKS: Record<AiRole, string> = {
     "Tu van khoa hoc, lo trinh hoc, chuong trinh hoc, khai giang, hinh thuc hoc va thong tin dang ky dua tren danh sach khoa hoc.",
   student:
     "Tra loi ve lich hoc, lop hoc, khoa hoc dang hoc, thong bao, hoc phi/thanh toan va tien do hoc tap cua hoc vien dang dang nhap.",
+  teacher:
+    "Tra loi ve lop hoc, lich day, hoc vien, thong bao va cac cong viec giang day cua giao vien dang dang nhap.",
   admin:
     "Tong hop van hanh trung tam, tinh hinh khoa hoc/lop hoc/hoc vien/thanh toan, va soan noi dung thong bao/blog/mo ta khoa hoc khi admin yeu cau.",
 };
@@ -99,6 +103,7 @@ function buildHistoryText(history: AiHistoryItem[] = []) {
 async function buildContext(role: AiRole, userId?: string) {
   if (role === "public") return buildPublicAiContext();
   if (role === "student") return buildStudentAiContext(userId || "");
+  if (role === "teacher") return buildTeacherAiContext(userId || "");
   return buildAdminAiContext();
 }
 

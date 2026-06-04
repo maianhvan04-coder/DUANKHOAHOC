@@ -30,6 +30,17 @@ export const teacherController = {
     res.json(item);
   }),
 
+  getMe: asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id || "";
+    const item = await teacherService.getMe(userId);
+
+    if (!item) {
+      return res.status(404).json({ message: "Không tìm thấy hồ sơ giáo viên" });
+    }
+
+    res.json({ teacher: item });
+  }),
+
   create: asyncHandler(async (req: Request, res: Response) => {
     const item = await teacherService.create(req.body, req.file);
 

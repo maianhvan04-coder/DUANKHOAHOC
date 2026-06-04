@@ -28,6 +28,12 @@ teacherRouter.get(
 teacherRouter.get("/public/list", teacherController.listPublic);
 
 teacherRouter.get(
+  "/me",
+  authGuard,
+  teacherController.getMe
+);
+
+teacherRouter.get(
   "/:id",
   authGuard,
   authorize({

@@ -41,6 +41,8 @@ export type ClassroomTeacherUser = {
 export type ClassroomTeacher = {
   _id: string;
   id?: string;
+  name?: string;
+  email?: string;
   specialty?: string;
   avatar?: string;
   degree?: string;
@@ -172,6 +174,8 @@ export type TeacherOptionUser = {
 export type TeacherOption = {
   _id: string;
   id?: string;
+  name?: string;
+  email?: string;
   specialty?: string;
   avatar?: string;
   degree?: string;
@@ -388,6 +392,8 @@ function normalizeTeacher(raw: unknown): ClassroomTeacher | null {
   return {
     _id,
     id: asString(raw.id),
+    name: asString(raw.name),
+    email: asString(raw.email),
     specialty: asString(raw.specialty),
     avatar: asString(raw.avatar),
     degree: asString(raw.degree),
@@ -599,16 +605,38 @@ function normalizeCourseOption(raw: unknown): CourseOption {
 
 function normalizeTeacherOption(raw: unknown): TeacherOption {
   const obj = isObject(raw) ? raw : {};
+  const user = normalizeTeacherUser(obj.user);
+  const name =
+    asString(obj.name) ||
+    asString(isObject(obj.user) ? obj.user.name : undefined);
+  const email =
+    asString(obj.email) ||
+    asString(isObject(obj.user) ? obj.user.email : undefined);
+  const fallbackUser = user
+    ? {
+        ...user,
+        name: user.name || name,
+        email: user.email || email,
+      }
+    : name || email
+      ? {
+          _id: asString(obj.userId) || getId(obj),
+          name,
+          email,
+        }
+      : null;
 
   return {
     _id: getId(obj),
     id: asString(obj.id),
+    name,
+    email,
     specialty: asString(obj.specialty),
     avatar: asString(obj.avatar),
     degree: asString(obj.degree),
     experience: asString(obj.experience),
     rating: asNumber(obj.rating, 0),
-    user: normalizeTeacherUser(obj.user),
+    user: fallbackUser,
   };
 }
 
@@ -636,6 +664,24 @@ export const classroomApi = {
     teacherId?: string;
   }): Promise<ListResult<ClassroomItem>> {
     const res = await http.get("/api/classes", { params: query });
+    const items = pickArray(res.data).map(normalizeClassroom);
+    return {
+      items,
+      pagination: readPaginationMeta(res.data, items.length, query?.page, query?.limit),
+    };
+  },
+
+  async listMinePaged(query?: {
+    q?: string;
+    search?: string;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: SortDirection;
+    page?: number;
+    limit?: number;
+    courseId?: string;
+  }): Promise<ListResult<ClassroomItem>> {
+    const res = await http.get("/api/classes/mine", { params: query });
     const items = pickArray(res.data).map(normalizeClassroom);
     return {
       items,

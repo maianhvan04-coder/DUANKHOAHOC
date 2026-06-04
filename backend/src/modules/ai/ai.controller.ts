@@ -42,6 +42,22 @@ export const aiController = {
     }
   },
 
+  async teacherAssistant(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = getBody(req);
+      const data = await aiService.ask({
+        role: "teacher",
+        message: body.message,
+        history: body.history,
+        userId: req.user?.id,
+      });
+
+      return res.json({ ok: true, data });
+    } catch (error) {
+      return next(error);
+    }
+  },
+
   async adminAssistant(req: Request, res: Response, next: NextFunction) {
     try {
       const body = getBody(req);

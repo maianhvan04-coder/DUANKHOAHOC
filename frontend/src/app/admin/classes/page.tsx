@@ -113,7 +113,13 @@ function getCourseTitle(item: ClassroomItem | ClassroomStudentStudyItem) {
 
 function getTeacherName(item: ClassroomItem | ClassroomStudentStudyItem) {
   if (item.teacher && typeof item.teacher === "object") {
-    return item.teacher.user?.name || "";
+    return (
+      item.teacher.name ||
+      item.teacher.user?.name ||
+      item.teacher.email ||
+      item.teacher.user?.email ||
+      ""
+    );
   }
 
   return "";

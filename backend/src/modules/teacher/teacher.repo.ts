@@ -316,6 +316,25 @@ export const teacherRepo = {
     return mapped || null;
   },
 
+  async findByUserId(userId: string) {
+    if (!isValidObjectId(userId)) return null;
+
+    const teacher = await TeacherModel.findOne({
+      user: userId,
+      isDeleted: false,
+    })
+      .populate({
+        path: "user",
+        select: "name email role active deletedAt",
+      })
+      .lean();
+
+    if (!teacher) return null;
+
+    const [mapped] = await mapTeachers([teacher as any]);
+    return mapped || null;
+  },
+
   async createUser(
     payload: CreateTeacherInput,
     passwordHash: string,

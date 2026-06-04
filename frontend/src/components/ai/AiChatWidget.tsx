@@ -70,6 +70,18 @@ const configByRole: Record<
       "Tóm tắt các khóa học của em",
     ],
   },
+  teacher: {
+    title: "AI trợ lý giáo viên",
+    subtitle: "Lớp học, lịch dạy, học viên",
+    placeholder: "Hỏi về lớp, lịch dạy hoặc thông báo của bạn...",
+    greeting:
+      "Mình có thể hỗ trợ tra cứu lớp học, lịch dạy, học viên và thông báo trong khu vực giáo viên.",
+    suggestions: [
+      "Tóm tắt các lớp tôi đang phụ trách",
+      "Lịch dạy hôm nay của tôi có gì?",
+      "Có thông báo mới nào không?",
+    ],
+  },
   admin: {
     title: "AI Admin Copilot",
     subtitle: "Tổng quan, phân tích, soạn nội dung",
@@ -119,6 +131,10 @@ function getGreeting(role: AiRole, name?: string | null, email?: string | null) 
 
   if (role === "student") {
     return `${hello} mình có thể giúp gì cho bạn? Bạn có thể hỏi mình về lịch học, thông báo, khóa học hoặc tiến độ học tập.`;
+  }
+
+  if (role === "teacher") {
+    return `${hello} mình có thể giúp gì cho bạn? Bạn có thể hỏi mình về lớp học, lịch dạy, học viên hoặc thông báo của bạn.`;
   }
 
   if (role === "admin") {
