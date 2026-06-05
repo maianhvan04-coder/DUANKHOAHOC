@@ -7,14 +7,20 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Bell,
+  BookOpen,
+  Bot,
   BrickWallShield,
   CheckCircle2,
+  ChevronDown,
+  Compass,
   GraduationCap,
   Globe,
   Heart,
   Info,
   Loader2,
   LogOut,
+  MapPinned,
+  Newspaper,
   School,
   Search,
   User,
@@ -48,6 +54,7 @@ import { WALLET_BALANCE_CHANGED_EVENT } from "@/lib/utils/wallet-events";
 import {
   USER_LOCALES,
   useUserPreferences,
+  type UserLocale,
   type UserMessageKey,
 } from "@/i18n";
 
@@ -68,6 +75,213 @@ const MENU = [
   { labelKey: "nav.students", href: "/hoc-vien" },
   { labelKey: "nav.knowledge", href: "/goc-kien-thuc" },
 ] satisfies Array<{ labelKey: UserMessageKey; href: string }>;
+
+type LocalizedText = Record<UserLocale, string>;
+
+type ProgramMegaMenuItem = {
+  title: LocalizedText;
+  description: LocalizedText;
+  badge: LocalizedText;
+  href: string;
+  icon: LucideIcon;
+  iconClass: string;
+  comingSoon?: boolean;
+};
+
+const PROGRAM_MENU_COPY = {
+  eyebrow: {
+    vi: "Chương trình học",
+    en: "Learning programs",
+  },
+  title: {
+    vi: "Chọn lộ trình học phù hợp",
+    en: "Choose the right learning path",
+  },
+  description: {
+    vi: "Tổng hợp các chương trình trọng tâm theo độ tuổi, mục tiêu thi cử và định hướng kỹ năng.",
+    en: "Explore core programs by age group, exam goals and skill roadmap.",
+  },
+  quickTitle: {
+    vi: "Truy cập nhanh",
+    en: "Quick access",
+  },
+  quickDescription: {
+    vi: "Xem toàn bộ chương trình, danh mục khóa học và các lớp đang mở.",
+    en: "Browse all programs, categories and currently open classes.",
+  },
+  featuredAction: {
+    vi: "Xem khóa học nổi bật",
+    en: "View featured courses",
+  },
+} satisfies Record<string, LocalizedText>;
+
+const COMING_SOON_BADGE = {
+  vi: "Sắp ra mắt",
+  en: "Coming soon",
+} satisfies LocalizedText;
+
+const PROGRAM_MENU_ITEMS = [
+  {
+    title: {
+      vi: "Toán tư duy",
+      en: "Logical Math",
+    },
+    description: {
+      vi: "Phát triển tư duy logic, phản xạ giải bài và nền tảng toán học cho học sinh nhỏ tuổi.",
+      en: "Build logical thinking, problem solving reflexes and core math foundations.",
+    },
+    badge: {
+      vi: "Mầm non - THCS",
+      en: "Preschool - Secondary",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: School,
+    iconClass: "bg-[#EAF4FF] text-[#0D56A6]",
+  },
+  {
+    title: {
+      vi: "Tiếng Anh giao tiếp",
+      en: "Communication English",
+    },
+    description: {
+      vi: "Rèn nghe nói, phản xạ ngôn ngữ và sự tự tin trong môi trường học tập quốc tế.",
+      en: "Improve speaking, listening and confidence in international learning contexts.",
+    },
+    badge: {
+      vi: "Thiếu niên - Người lớn",
+      en: "Teens - Adults",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: Globe,
+    iconClass: "bg-[#EAFBF3] text-emerald-700",
+  },
+  {
+    title: {
+      vi: "Lập trình căn bản",
+      en: "Programming basics",
+    },
+    description: {
+      vi: "Làm quen thuật toán, tư duy công nghệ và dự án thực hành từ nền tảng.",
+      en: "Learn algorithms, technical thinking and practical projects from the basics.",
+    },
+    badge: {
+      vi: "Online",
+      en: "Online",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: BookOpen,
+    iconClass: "bg-[#FFF7E8] text-amber-700",
+  },
+  {
+    title: {
+      vi: "Luyện thi THPT",
+      en: "High school exam prep",
+    },
+    description: {
+      vi: "Hệ thống kiến thức, luyện đề và theo sát tiến độ cho các kỳ thi quan trọng.",
+      en: "Structured knowledge, mock tests and progress tracking for key exams.",
+    },
+    badge: {
+      vi: "Luyện thi",
+      en: "Exam prep",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: CheckCircle2,
+    iconClass: "bg-[#F1F5FF] text-indigo-700",
+    comingSoon: true,
+  },
+  {
+    title: {
+      vi: "Lớp 1 - Lớp 12",
+      en: "Grade 1 - Grade 12",
+    },
+    description: {
+      vi: "Bổ trợ kiến thức theo khối lớp, giúp học sinh nắm chắc bài học trên lớp.",
+      en: "Grade-based support to strengthen classroom knowledge and study habits.",
+    },
+    badge: {
+      vi: "Theo khối lớp",
+      en: "By grade",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: GraduationCap,
+    iconClass: "bg-[#F5F3FF] text-violet-700",
+    comingSoon: true,
+  },
+  {
+    title: {
+      vi: "Tin học văn phòng",
+      en: "Office computing",
+    },
+    description: {
+      vi: "Thực hành kỹ năng tin học, xử lý tài liệu và chuẩn bị chứng chỉ ứng dụng.",
+      en: "Practice office skills, document handling and applied certification readiness.",
+    },
+    badge: {
+      vi: "Kỹ năng",
+      en: "Skills",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: Info,
+    iconClass: "bg-[#F8FAFC] text-slate-700",
+    comingSoon: true,
+  },
+  {
+    title: {
+      vi: "Hỏi đáp AI",
+      en: "AI Q&A",
+    },
+    description: {
+      vi: "Trợ lý AI hỗ trợ giải đáp nhanh câu hỏi học tập và gợi ý hướng ôn luyện phù hợp.",
+      en: "AI assistant for quick study answers and suggested practice directions.",
+    },
+    badge: {
+      vi: "AI",
+      en: "AI",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: Bot,
+    iconClass: "bg-[#EAF4FF] text-[#0D56A6]",
+    comingSoon: true,
+  },
+  {
+    title: {
+      vi: "Hướng nghiệp",
+      en: "Career guidance",
+    },
+    description: {
+      vi: "Định hướng ngành học, năng lực cá nhân và lộ trình phát triển nghề nghiệp.",
+      en: "Guide study majors, personal strengths and long-term career paths.",
+    },
+    badge: {
+      vi: "Tư vấn",
+      en: "Guidance",
+    },
+    href: "/chuong-trinh-hoc#chuong-trinh",
+    icon: Compass,
+    iconClass: "bg-[#F5F3FF] text-violet-700",
+    comingSoon: true,
+  },
+] satisfies ProgramMegaMenuItem[];
+
+const PROGRAM_QUICK_LINKS = [
+  {
+    label: {
+      vi: "Lộ trình học",
+      en: "Learning roadmap",
+    },
+    href: "/chuong-trinh-hoc#lo-trinh",
+    icon: MapPinned,
+  },
+  {
+    label: {
+      vi: "Góc kiến thức",
+      en: "Knowledge hub",
+    },
+    href: "/goc-kien-thuc",
+    icon: Newspaper,
+  },
+] satisfies Array<{ label: LocalizedText; href: string; icon: LucideIcon }>;
 
 const FAVORITE_STORAGE_KEY = "favorite_course_ids";
 const FAVORITE_EVENT = "favorite-courses-change";
@@ -144,6 +358,134 @@ function formatNotificationDate(value?: string | null) {
 function getNotificationPreview(message: string) {
   const text = message.replace(/\s+/g, " ").trim();
   return text.length > 112 ? `${text.slice(0, 112)}...` : text;
+}
+
+function getLocalizedText(copy: LocalizedText, locale: UserLocale) {
+  return copy[locale] || copy.vi;
+}
+
+function ProgramMegaMenu({
+  open,
+  locale,
+  onClose,
+}: {
+  open: boolean;
+  locale: UserLocale;
+  onClose: () => void;
+}) {
+  const leftItems = PROGRAM_MENU_ITEMS.slice(0, 4);
+  const rightItems = PROGRAM_MENU_ITEMS.slice(4);
+
+  const renderProgramItem = (item: ProgramMegaMenuItem) => {
+    const Icon = item.icon;
+    const badge = item.comingSoon ? COMING_SOON_BADGE : item.badge;
+    const itemContent = (
+      <>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#7DBBFF] transition group-hover:text-white">
+          <Icon className="h-5 w-5" strokeWidth={2.2} />
+        </span>
+
+        <span className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="truncate text-[15px] font-medium leading-6 text-white/75 transition group-hover:text-white">
+            {getLocalizedText(item.title, locale)}
+          </span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none",
+              item.comingSoon
+                ? "border-amber-300/20 bg-amber-300/10 text-amber-100/75"
+                : "border-white/10 bg-white/10 text-white/50"
+            )}
+          >
+            {getLocalizedText(badge, locale)}
+          </span>
+        </span>
+      </>
+    );
+
+    if (item.comingSoon) {
+      return (
+        <button
+          key={item.title.vi}
+          type="button"
+          role="menuitem"
+          aria-disabled="true"
+          className="group flex min-h-12 w-full cursor-default items-center gap-4 rounded-xl px-4 py-2.5 text-left"
+        >
+          {itemContent}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.title.vi}
+        href={item.href}
+        role="menuitem"
+        onClick={onClose}
+        className="group flex min-h-12 items-center gap-4 rounded-xl px-4 py-2.5 transition hover:bg-white/10"
+      >
+        {itemContent}
+      </Link>
+    );
+  };
+
+  return (
+    <div
+      role="menu"
+      aria-label={getLocalizedText(PROGRAM_MENU_COPY.title, locale)}
+      className={cn(
+        "absolute inset-x-0 top-full z-[100] border-y border-white/10 bg-[#06182F]/95 text-left shadow-[0_28px_80px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all duration-200",
+        open
+          ? "visible translate-y-0 opacity-100"
+          : "invisible pointer-events-none -translate-y-3 opacity-0"
+      )}
+    >
+      <div className="mx-auto grid max-w-[1240px] gap-10 px-4 py-8 md:grid-cols-2 md:px-6 lg:gap-20 lg:pl-[240px] lg:pr-6 lg:py-9">
+        <div>
+          <p className="px-4 text-[12px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            {getLocalizedText(PROGRAM_MENU_COPY.eyebrow, locale)}
+          </p>
+
+          <div className="mt-5 space-y-2">{leftItems.map(renderProgramItem)}</div>
+        </div>
+
+        <div>
+          <p className="px-4 text-[12px] font-semibold uppercase tracking-[0.2em] text-white/40">
+            {getLocalizedText(PROGRAM_MENU_COPY.quickTitle, locale)}
+          </p>
+
+          <div className="mt-5 space-y-2">
+            {rightItems.map(renderProgramItem)}
+
+            {PROGRAM_QUICK_LINKS.map((item) => (
+              (() => {
+                const Icon = item.icon;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    role="menuitem"
+                    onClick={onClose}
+                    className="group flex min-h-12 items-center gap-4 rounded-xl px-4 py-2.5 transition hover:bg-white/10"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center text-[#7DBBFF] transition group-hover:text-white">
+                      <Icon className="h-5 w-5" strokeWidth={2.2} />
+                    </span>
+
+                    <span className="truncate text-[15px] font-medium leading-6 text-white/75 transition group-hover:text-white">
+                      {getLocalizedText(item.label, locale)}
+                    </span>
+                  </Link>
+                );
+              })()
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function LocaleFlag({ code }: { code: "vi" | "en" }) {
@@ -252,13 +594,15 @@ export default function Navbar() {
   const pathname = usePathname();
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
+  const programMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const { t } = useUserPreferences();
+  const { locale, t } = useUserPreferences();
   const { user, access, hydrated, isLoading } = useAuth();
 
   const [scrolled, setScrolled] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [openNotificationMenu, setOpenNotificationMenu] = useState(false);
+  const [openProgramMenu, setOpenProgramMenu] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationItems, setNotificationItems] = useState<
@@ -365,12 +709,17 @@ export default function Navbar() {
       ) {
         setOpenNotificationMenu(false);
       }
+
+      if (programMenuRef.current && !programMenuRef.current.contains(target)) {
+        setOpenProgramMenu(false);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpenProfileMenu(false);
         setOpenNotificationMenu(false);
+        setOpenProgramMenu(false);
         setSelectedNotification(null);
       }
     };
@@ -383,6 +732,10 @@ export default function Navbar() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    setOpenProgramMenu(false);
+  }, [pathname]);
 
   useEffect(() => {
     void loadNotificationSummary();
@@ -460,6 +813,7 @@ export default function Navbar() {
     const nextOpen = !openNotificationMenu;
     setOpenNotificationMenu(nextOpen);
     setOpenProfileMenu(false);
+    setOpenProgramMenu(false);
 
     if (nextOpen) {
       void loadNotificationSummary();
@@ -721,7 +1075,11 @@ export default function Navbar() {
                       <button
                         type="button"
                         title={user?.name || user?.email || t("profile.account")}
-                        onClick={() => setOpenProfileMenu((prev) => !prev)}
+                        onClick={() => {
+                          setOpenProfileMenu((prev) => !prev);
+                          setOpenNotificationMenu(false);
+                          setOpenProgramMenu(false);
+                        }}
                         className="flex h-12 max-w-[250px] items-center gap-2 rounded-full border border-slate-200 bg-white px-1.5 pr-4 text-left text-[#0B2C5F] shadow-[0_8px_22px_rgba(15,23,42,0.10)] transition hover:border-[#cbe7fb] hover:bg-[#F5F9FF]"
                         aria-label={t("profile.openMenu")}
                       >
@@ -865,6 +1223,8 @@ export default function Navbar() {
           </div>
 
           <div
+            ref={programMenuRef}
+            onMouseLeave={() => setOpenProgramMenu(false)}
             className={cn(
               "pointer-events-auto absolute inset-x-0 top-0 z-30 bg-white",
               "transition-[transform,box-shadow] duration-300 will-change-transform",
@@ -892,18 +1252,50 @@ export default function Navbar() {
 
               <div className="min-w-0 flex-1">
                 <nav className="hidden items-center justify-center gap-6 lg:flex xl:gap-9">
-                  {MENU.slice(0, 2).map((item) => (
-                    <Link
-                      key={item.labelKey}
-                      href={item.href}
-                      className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
+                  <Link
+                    href={MENU[0].href}
+                    onMouseEnter={() => setOpenProgramMenu(false)}
+                    onFocus={() => setOpenProgramMenu(false)}
+                    className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
+                  >
+                    {t(MENU[0].labelKey)}
+                  </Link>
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onMouseEnter={() => {
+                        setOpenProgramMenu(true);
+                        setOpenProfileMenu(false);
+                        setOpenNotificationMenu(false);
+                      }}
+                      onFocus={() => {
+                        setOpenProgramMenu(true);
+                        setOpenProfileMenu(false);
+                        setOpenNotificationMenu(false);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]",
+                        openProgramMenu && "text-[#0D56A6]"
+                      )}
+                      aria-expanded={openProgramMenu}
+                      aria-haspopup="menu"
                     >
-                      {t(item.labelKey)}
-                    </Link>
-                  ))}
+                      <span>{t("nav.programs")}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          openProgramMenu && "rotate-180"
+                        )}
+                        strokeWidth={2.4}
+                      />
+                    </button>
+                  </div>
 
                   <Link
                     href="/#khoa-hoc"
+                    onMouseEnter={() => setOpenProgramMenu(false)}
+                    onFocus={() => setOpenProgramMenu(false)}
                     className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
                   >
                     {t("nav.courses")}
@@ -913,6 +1305,8 @@ export default function Navbar() {
                     <Link
                       key={item.labelKey}
                       href={item.href}
+                      onMouseEnter={() => setOpenProgramMenu(false)}
+                      onFocus={() => setOpenProgramMenu(false)}
                       className="whitespace-nowrap text-[14px] font-semibold text-[#0B2C5F] transition hover:text-[#0D56A6]"
                     >
                       {t(item.labelKey)}
@@ -934,6 +1328,12 @@ export default function Navbar() {
                 )}
               </div>
             </div>
+
+            <ProgramMegaMenu
+              open={openProgramMenu}
+              locale={locale}
+              onClose={() => setOpenProgramMenu(false)}
+            />
           </div>
         </div>
       </header>

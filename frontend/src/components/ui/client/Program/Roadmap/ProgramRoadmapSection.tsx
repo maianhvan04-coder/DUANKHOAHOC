@@ -37,7 +37,10 @@ const ROADMAP_STEPS = [
 
 export default function ProgramRoadmapSection() {
   return (
-    <section className="bg-[#F6F6F6] px-4 py-12 md:px-6 lg:px-8 lg:py-16">
+    <section
+      id="lo-trinh"
+      className="bg-[#F6F6F6] px-4 py-12 md:px-6 lg:px-8 lg:py-16"
+    >
       <div className="mx-auto max-w-7xl">
         <div className="text-center">
           <h2 className="text-[30px] font-bold leading-tight tracking-[-0.03em] text-[#13233f] md:text-[40px]">

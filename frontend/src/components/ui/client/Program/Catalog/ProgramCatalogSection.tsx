@@ -125,7 +125,10 @@ export default function ProgramCatalogSection() {
   }, [activeCategory]);
 
   return (
-    <section className="bg-white px-4 py-10 md:px-6 lg:px-8 lg:py-14">
+    <section
+      id="chuong-trinh"
+      className="bg-white px-4 py-10 md:px-6 lg:px-8 lg:py-14"
+    >
       <div className="mx-auto max-w-300">
         <div className="flex flex-wrap items-center justify-center gap-3">
           {CATEGORIES.map((category) => {

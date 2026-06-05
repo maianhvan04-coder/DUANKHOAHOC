@@ -1,6 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { AlertCircle } from "lucide-react";
+import { Toaster, toast } from "sonner";
+import type { MouseEvent } from "react";
 
 const companyLinks = [
   "Giới thiệu",
@@ -34,12 +38,31 @@ const supportLinks = [
 
 const partnerLinks = ["Liên hệ", "Góp ý về dịch vụ", "Giải đáp thắc mắc"];
 
+function showComingSoonToast(
+  event?: MouseEvent<HTMLAnchorElement | HTMLButtonElement>
+) {
+  event?.preventDefault();
+
+  toast.custom(() => (
+    <div className="flex min-h-11 items-center gap-2.5 rounded-xl border border-[#cbe7fb] bg-white px-4 py-2.5 text-[#0B2C5F] shadow-[0_14px_34px_rgba(13,86,166,0.18)]">
+      <AlertCircle className="h-4 w-4 shrink-0 text-[#0D56A6]" />
+      <p className="text-[13px] font-bold leading-5">
+        Sắp ra mắt — trang này sẽ sớm có mặt.
+      </p>
+    </div>
+  ));
+}
+
 function LinkList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2 text-sm leading-6 text-slate-700">
       {items.map((item) => (
         <li key={item}>
-          <Link href="/" className="transition hover:text-[#0D56A6]">
+          <Link
+            href="/"
+            onClick={showComingSoonToast}
+            className="transition hover:text-[#0D56A6]"
+          >
             {item}
           </Link>
         </li>
@@ -48,20 +71,46 @@ function LinkList({ items }: { items: string[] }) {
   );
 }
 
-function StoreBadge({ children }: { children: ReactNode }) {
+const storeBadges = {
+  google: {
+    src: "/footer/footer-google-app.png",
+    alt: "Get it on Google Play",
+  },
+  apple: {
+    src: "/footer/footer-store-app.png",
+    alt: "Available on the App Store",
+  },
+} as const;
+
+function StoreBadge({ type }: { type: "google" | "apple" }) {
+  const badge = storeBadges[type];
+
   return (
     <Link
       href="/"
-      className="flex h-12 w-40 items-center justify-center rounded-[4px] bg-black px-4 text-white shadow-sm transition hover:bg-slate-900"
+      onClick={showComingSoonToast}
+      aria-label={badge.alt}
+      className="block h-[60px] w-[210px] overflow-hidden rounded-[5px] shadow-sm transition hover:brightness-110"
     >
-      {children}
+      <Image
+        src={badge.src}
+        alt={badge.alt}
+        width={210}
+        height={60}
+        className="h-full w-full object-contain"
+      />
     </Link>
   );
 }
 
 function SocialIcon({ src, alt }: { src: string; alt: string }) {
   return (
-    <Link href="/" aria-label={alt} className="transition hover:opacity-80">
+    <Link
+      href="/"
+      aria-label={alt}
+      onClick={showComingSoonToast}
+      className="transition hover:opacity-80"
+    >
       <Image src={src} alt={alt} width={34} height={34} className="h-8.5 w-8.5" />
     </Link>
   );
@@ -70,7 +119,8 @@ function SocialIcon({ src, alt }: { src: string; alt: string }) {
 export default function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white text-slate-800">
-      <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-[170px_1.35fr_1fr_0.65fr_180px]">
+      <Toaster position="top-center" />
+      <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-10 md:grid-cols-2 lg:grid-cols-[170px_1.35fr_1fr_0.65fr_220px]">
         <div>
           <Link href="/" className="inline-flex">
             <Image
@@ -104,20 +154,8 @@ export default function Footer() {
         <div>
           <h3 className="mb-4 text-base font-bold uppercase">Tải ứng dụng</h3>
           <div className="space-y-3">
-            <StoreBadge>
-              <span className="mr-3 text-lg">▶</span>
-              <span>
-                <span className="block text-[10px] leading-none">GET IT ON</span>
-                <span className="block text-lg font-semibold leading-5">Google Play</span>
-              </span>
-            </StoreBadge>
-            <StoreBadge>
-              <span className="mr-3 text-lg font-bold">A</span>
-              <span>
-                <span className="block text-[10px] leading-none">Available on the</span>
-                <span className="block text-lg font-semibold leading-5">App Store</span>
-              </span>
-            </StoreBadge>
+            <StoreBadge type="google" />
+            <StoreBadge type="apple" />
           </div>
         </div>
       </div>
@@ -126,10 +164,13 @@ export default function Footer() {
         <div className="mx-auto grid max-w-[1180px] gap-6 px-4 py-5 text-xs leading-5 text-slate-500 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p>Cơ quan chủ quản: Công ty Cổ phần Công nghệ Giáo dục Everest</p>
-            <p>MST: 012183602 do Sở kế hoạch và Đầu tư thành phố Hà Nội cấp ngày 13 tháng 03 năm 2007</p>
             <p>
-              Địa chỉ: Tầng 4, Tòa nhà 25T2, Đường Nguyễn Thị Thập, Phường Trung Hòa,
-              Quận Cầu Giấy, Hà Nội.
+              MST: 012183602 do Sở kế hoạch và Đầu tư thành phố Hà Nội cấp ngày
+              13 tháng 03 năm 2007
+            </p>
+            <p>
+              Địa chỉ: Tầng 4, Tòa nhà 25T2, Đường Nguyễn Thị Thập, Phường
+              Trung Hòa, Quận Cầu Giấy, Hà Nội.
             </p>
             <p>Hotline: 19006933 - Email: hotro@everest.edu.vn</p>
           </div>
