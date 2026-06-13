@@ -8,12 +8,14 @@ type CategoryParams = {
 type CreateCategoryBody = {
   name: string;
   description?: string;
+  parent?: string | null;
   isActive?: boolean;
 };
 
 type UpdateCategoryBody = {
   name?: string;
   description?: string;
+  parent?: string | null;
   isActive?: boolean;
 };
 
@@ -21,6 +23,17 @@ export const categoryController = {
   async getAll(_req: Request, res: Response) {
     try {
       const items = await categoryService.getAll();
+      return res.json({ items });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: error.message || "Server error",
+      });
+    }
+  },
+
+  async getTree(_req: Request, res: Response) {
+    try {
+      const items = await categoryService.getTree();
       return res.json({ items });
     } catch (error: any) {
       return res.status(500).json({

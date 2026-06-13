@@ -1,6 +1,7 @@
 import { isValidObjectId, Types } from "mongoose";
 import { studentStudyRepository } from "../repository/student-study.repository";
 import { UserModel } from "../../user/user.model";
+import { StudentModel } from "../student.model";
 import { ProductModel } from "../../course/course.model";
 import { TeacherModel } from "../../teacher/teacher.model";
 import { ClassRoomModel } from "../../classroom/classroom.model";
@@ -408,12 +409,17 @@ async function ensureStudent(studentId: string) {
     throw new Error("Học viên không tồn tại");
   }
 
-  if (student.role !== "STUDENT") {
-    throw new Error("User này không phải học viên");
-  }
-
   if (student.deletedAt) {
     throw new Error("Học viên đã bị xóa mềm");
+  }
+
+  const profile = await StudentModel.findOne({
+    user: studentId,
+    isDeleted: false,
+  }).lean();
+
+  if (!profile) {
+    throw new Error("Hồ sơ học viên không tồn tại");
   }
 
   return student;

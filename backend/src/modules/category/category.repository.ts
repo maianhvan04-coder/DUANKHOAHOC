@@ -20,6 +20,13 @@ export const categoryRepository = {
     });
   },
 
+  findActiveChild(parentId: string) {
+    return CategoryModel.findOne({
+      parent: parentId,
+      isDeleted: false,
+    });
+  },
+
   findDeletedById(id: string) {
     return CategoryModel.findOne({
       _id: id,
@@ -50,6 +57,7 @@ export const categoryRepository = {
     name: string;
     slug: string;
     description?: string;
+    parent?: string | null;
     isActive?: boolean;
   }) {
     return CategoryModel.create(payload);
@@ -61,6 +69,7 @@ export const categoryRepository = {
       name?: string;
       slug?: string;
       description?: string;
+      parent?: string | null;
       isActive?: boolean;
     }
   ) {

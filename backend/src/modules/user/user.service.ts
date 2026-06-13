@@ -4,6 +4,9 @@ import { ROLES } from "../../constants/roles";
 import { UserModel } from "./user.model";
 import { getUserAccess, setRolesForUser } from "../rbac/rbac.service";
 import UserRole from "../rbac/models/userRole.model";
+import { StudentModel } from "../student/student.model";
+import { StudentStudyModel } from "../student/student-study.model";
+import { syncStudentProfileForUser } from "../student/student-profile.sync";
 import {
   escapeRegex,
   getQueryString,
@@ -168,6 +171,7 @@ export const userService = {
     });
 
     await setRolesForUser(String(doc._id), roleCodes);
+    await syncStudentProfileForUser(String(doc._id));
 
     const obj = doc.toObject() as Record<string, any>;
     return withAccessRoles(obj);
@@ -226,6 +230,8 @@ export const userService = {
       await setRolesForUser(id, roleCodes);
     }
 
+    await syncStudentProfileForUser(id);
+
     return withAccessRoles(updated);
   },
 
@@ -239,6 +245,13 @@ export const userService = {
     )
       .select("-passwordHash")
       .lean();
+
+    if (updated) {
+      await StudentModel.updateOne(
+        { user: id },
+        { $set: { isActive: active } }
+      );
+    }
 
     return updated;
   },
@@ -255,6 +268,23 @@ export const userService = {
       { new: true }
     ).lean();
 
+    if (updated) {
+      await StudentModel.updateOne(
+        { user: id },
+        {
+          $set: {
+            isActive: false,
+            isDeleted: true,
+            deletedAt: updated.deletedAt,
+          },
+        }
+      );
+      await StudentStudyModel.updateMany(
+        { student: id },
+        { $set: { isActive: false } }
+      );
+    }
+
     return !!updated;
   },
 
@@ -269,6 +299,9 @@ export const userService = {
     }).lean();
 
     if (!deleted) return false;
+
+    await StudentModel.deleteOne({ user: userId });
+    await StudentStudyModel.deleteMany({ student: userId });
 
     await UserRole.updateMany(
       {
@@ -297,6 +330,23 @@ export const userService = {
       },
       { new: true }
     ).lean();
+
+    if (updated) {
+      await StudentModel.updateOne(
+        { user: id },
+        {
+          $set: {
+            isActive: true,
+            isDeleted: false,
+            deletedAt: null,
+          },
+        }
+      );
+      await StudentStudyModel.updateMany(
+        { student: id },
+        { $set: { isActive: true } }
+      );
+    }
 
     return !!updated;
   },

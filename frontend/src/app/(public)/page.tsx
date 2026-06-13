@@ -213,7 +213,7 @@ export default function Page() {
 
         <div className="relative z-30 mx-auto max-w-[1240px] px-4 pt-10 md:px-6 md:pt-8">
           <div className="grid items-start gap-4 md:grid-cols-[240px_minmax(0,1fr)_200px] md:gap-6 lg:grid-cols-[290px_minmax(0,1fr)_240px] xl:grid-cols-[300px_minmax(0,1fr)_250px]">
-            <div className="relative z-50 -mt-20 overflow-hidden rounded-[4px] bg-[#f1f3f6] shadow-[0_4px_16px_rgba(15,23,42,0.12)] md:-mt-[80px]">
+            <div className="relative z-50 -mt-20 overflow-visible rounded-[4px] bg-[#f1f3f6] shadow-[0_4px_16px_rgba(15,23,42,0.12)] md:-mt-[80px]">
               <HomeCategoryPanel />
             </div>
 

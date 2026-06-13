@@ -13,7 +13,6 @@ const userSchema = new Schema(
       required: true,
       trim: true,
       lowercase: true,
-      index: true,
     },
 
     passwordHash: {

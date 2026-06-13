@@ -19,6 +19,13 @@ const categorySchema = new Schema(
       default: "",
     },
 
+    parent: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+      index: true,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -49,5 +56,6 @@ categorySchema.index(
     partialFilterExpression: { isDeleted: false },
   }
 );
+categorySchema.index({ parent: 1, isDeleted: 1 });
 
 export const CategoryModel = model("Category", categorySchema);

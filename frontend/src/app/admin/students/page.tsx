@@ -6,6 +6,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   Lock,
   LockOpen,
   Pencil,
@@ -277,6 +279,7 @@ function StudentFormModal({
   const [form, setForm] = useState<StudentFormState>(() =>
     getInitialForm(mode, initialData)
   );
+  const [showPassword, setShowPassword] = useState(false);
 
   if (!open) return null;
 
@@ -367,19 +370,35 @@ function StudentFormModal({
               <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {mode === "create" ? "Mật khẩu" : "Đổi mật khẩu"}
               </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, password: e.target.value }))
-                }
-                placeholder={
-                  mode === "create"
-                    ? "Nhập mật khẩu"
-                    : "Nhập mật khẩu mới..."
-                }
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, password: e.target.value }))
+                  }
+                  placeholder={
+                    mode === "create"
+                      ? "Nhập mật khẩu"
+                      : "Nhập mật khẩu mới..."
+                  }
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white py-0 pl-4 pr-12 text-sm text-slate-900 outline-none transition focus:border-slate-400 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  disabled={saving}
+                  className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center rounded-r-2xl text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/10 dark:hover:text-slate-200"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
               {mode === "edit" ? (
                 <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   Bỏ trống nếu không muốn đổi mật khẩu.

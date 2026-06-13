@@ -5,28 +5,38 @@ export type CategoryItem = {
   name: string;
   slug?: string;
   description?: string;
+  parent?: string | null;
   isActive?: boolean;
   isDeleted?: boolean;
   deletedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  children?: CategoryItem[];
 };
 
 export type CreateCategoryBody = {
   name: string;
   description?: string;
+  parent?: string | null;
   isActive?: boolean;
 };
 
 export type UpdateCategoryBody = {
   name?: string;
   description?: string;
+  parent?: string | null;
   isActive?: boolean;
 };
 
 export const categoryApi = {
   getAll: async () => {
     return (await http.get<{ items: CategoryItem[] }>("/api/categories")).data;
+  },
+
+  getTree: async () => {
+    return (
+      await http.get<{ items: CategoryItem[] }>("/api/categories/tree")
+    ).data;
   },
 
   getDeleted: async () => {

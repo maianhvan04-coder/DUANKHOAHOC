@@ -6,6 +6,7 @@ export const createCategorySchema = z.object({
   body: z.object({
     name: z.string().trim().min(1, "Tên danh mục là bắt buộc"),
     description: z.string().optional().default(""),
+    parent: objectId.nullable().optional(),
     isActive: z.boolean().optional(),
   }),
 });
@@ -18,6 +19,7 @@ export const updateCategorySchema = z.object({
     .object({
       name: z.string().trim().min(1, "Tên danh mục không được rỗng").optional(),
       description: z.string().optional(),
+      parent: objectId.nullable().optional(),
       isActive: z.boolean().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {

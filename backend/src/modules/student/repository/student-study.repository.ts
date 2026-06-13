@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { StudentStudyModel } from "../student-study.model";
 
 const studentPopulate = {
@@ -280,22 +280,24 @@ export const studentStudyRepository = {
     );
   },
 
-  deactivateByStudent(studentId: string) {
+  deactivateByStudent(studentId: string, session?: ClientSession) {
     return StudentStudyModel.updateMany(
       { student: studentId },
-      { $set: { isActive: false } }
+      { $set: { isActive: false } },
+      { session }
     );
   },
 
-  reactivateByStudent(studentId: string) {
+  reactivateByStudent(studentId: string, session?: ClientSession) {
     return StudentStudyModel.updateMany(
       { student: studentId, isDeleted: { $ne: true } },
-      { $set: { isActive: true } }
+      { $set: { isActive: true } },
+      { session }
     );
   },
 
-  deleteByStudent(studentId: string) {
-    return StudentStudyModel.deleteMany({ student: studentId });
+  deleteByStudent(studentId: string, session?: ClientSession) {
+    return StudentStudyModel.deleteMany({ student: studentId }, { session });
   },
 
   countDocuments(filter: Record<string, unknown>) {

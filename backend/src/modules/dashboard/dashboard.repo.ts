@@ -1,5 +1,6 @@
 import { ProductModel } from "../course/course.model";
 import { TeacherModel } from "../teacher/teacher.model";
+import { StudentModel } from "../student/student.model";
 import { StudentStudyModel } from "../student/student-study.model";
 import { UserModel } from "../user/user.model";
 import { PaymentOrderModel } from "../payment/payment.model";
@@ -101,14 +102,14 @@ export async function countAllTeachersRepo() {
 }
 
 export async function countStudentsRepo() {
-  return UserModel.countDocuments({
-    role: "STUDENT",
+  return StudentModel.countDocuments({
+    isDeleted: false,
   });
 }
 
 export async function countStudentsCreatedInRangeRepo(start: Date, end: Date) {
-  return UserModel.countDocuments({
-    role: "STUDENT",
+  return StudentModel.countDocuments({
+    isDeleted: false,
     createdAt: { $gte: start, $lt: end },
   });
 }

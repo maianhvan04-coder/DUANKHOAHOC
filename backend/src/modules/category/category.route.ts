@@ -11,6 +11,7 @@ import {
 const router = Router();
 
 router.get("/", categoryController.getAll);
+router.get("/tree", categoryController.getTree);
 router.get("/deleted", authGuard, categoryController.getDeleted);
 
 router.post("/", authGuard, validate(createCategorySchema), categoryController.create);

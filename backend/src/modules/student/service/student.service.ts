@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { studentRepository } from "../repository/student.repository";
 import { studentStudyRepository } from "../repository/student-study.repository";
@@ -49,18 +50,38 @@ export const studentService = {
     }
 
     const passwordHash = await bcrypt.hash(payload.password, 10);
+    const active = payload.active ?? true;
+    const session = await mongoose.startSession();
+    let userId = "";
 
-    const created = await studentRepository.create({
-      name: payload.name.trim(),
-      email,
-      passwordHash,
-      role: "STUDENT",
-      active: payload.active ?? true,
-      deletedAt: null,
-    });
+    try {
+      await session.withTransaction(async () => {
+        const user = await studentRepository.createUser(
+          {
+            name: payload.name.trim(),
+            email,
+            passwordHash,
+            active,
+          },
+          session
+        );
 
-    const item = await studentRepository.findById(String(created._id));
+        userId = String(user._id);
+        await studentRepository.createStudent(
+          userId,
+          {
+            name: payload.name.trim(),
+            email,
+            active,
+          },
+          session
+        );
+      });
+    } finally {
+      await session.endSession();
+    }
 
+    const item = await studentRepository.findById(userId);
     if (!item) {
       throw new Error("Tạo học viên thất bại");
     }
@@ -75,7 +96,7 @@ export const studentService = {
       throw new Error("Không tìm thấy học viên");
     }
 
-    const updateData: Partial<{
+    const userUpdate: Partial<{
       name: string;
       email: string;
       passwordHash: string;
@@ -83,7 +104,7 @@ export const studentService = {
     }> = {};
 
     if (payload.name !== undefined) {
-      updateData.name = payload.name.trim();
+      userUpdate.name = payload.name.trim();
     }
 
     if (payload.email !== undefined) {
@@ -94,19 +115,50 @@ export const studentService = {
         throw new Error("Email đã tồn tại");
       }
 
-      updateData.email = email;
+      userUpdate.email = email;
     }
 
     if (payload.password !== undefined && payload.password.trim()) {
-      updateData.passwordHash = await bcrypt.hash(payload.password, 10);
+      userUpdate.passwordHash = await bcrypt.hash(payload.password, 10);
     }
 
     if (payload.active !== undefined) {
-      updateData.active = payload.active;
+      userUpdate.active = payload.active;
     }
 
-    const updated = await studentRepository.updateById(id, updateData);
+    const session = await mongoose.startSession();
 
+    try {
+      await session.withTransaction(async () => {
+        await studentRepository.updateUser(id, userUpdate, session);
+
+        if (
+          payload.name !== undefined ||
+          payload.email !== undefined ||
+          payload.active !== undefined
+        ) {
+          await studentRepository.updateStudent(
+            id,
+            {
+              ...(payload.name !== undefined
+                ? { name: payload.name.trim() }
+                : {}),
+              ...(payload.email !== undefined
+                ? { email: normalizeEmail(payload.email) }
+                : {}),
+              ...(payload.active !== undefined
+                ? { isActive: payload.active }
+                : {}),
+            },
+            session
+          );
+        }
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    const updated = await studentRepository.findById(id);
     if (!updated) {
       throw new Error("Không tìm thấy học viên");
     }
@@ -115,8 +167,22 @@ export const studentService = {
   },
 
   async setActive(id: string, active: boolean) {
-    const item = await studentRepository.setActive(id, active);
+    const current = await studentRepository.findById(id);
+    if (!current) {
+      throw new Error("Không tìm thấy học viên");
+    }
 
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        await studentRepository.setActive(id, active, session);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    const item = await studentRepository.findById(id);
     if (!item) {
       throw new Error("Không tìm thấy học viên");
     }
@@ -131,15 +197,18 @@ export const studentService = {
       throw new Error("Không tìm thấy học viên");
     }
 
-    const deleted = await studentRepository.softDeleteById(id);
+    const session = await mongoose.startSession();
 
-    if (!deleted) {
-      throw new Error("Không tìm thấy học viên");
+    try {
+      await session.withTransaction(async () => {
+        await studentRepository.softDeleteById(id, session);
+        await studentStudyRepository.deactivateByStudent(id, session);
+      });
+    } finally {
+      await session.endSession();
     }
 
-    await studentStudyRepository.deactivateByStudent(id);
-
-    return deleted;
+    return studentRepository.findDeletedById(id);
   },
 
   async restore(id: string) {
@@ -157,13 +226,21 @@ export const studentService = {
       );
     }
 
-    const restored = await studentRepository.restoreById(id);
+    const session = await mongoose.startSession();
 
+    try {
+      await session.withTransaction(async () => {
+        await studentRepository.restoreById(id, session);
+        await studentStudyRepository.reactivateByStudent(id, session);
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    const restored = await studentRepository.findById(id);
     if (!restored) {
       throw new Error("Khôi phục thất bại");
     }
-
-    await studentStudyRepository.reactivateByStudent(id);
 
     return restored;
   },
@@ -175,14 +252,17 @@ export const studentService = {
       throw new Error("Không tìm thấy học viên");
     }
 
-    await studentStudyRepository.deleteByStudent(id);
+    const session = await mongoose.startSession();
 
-    const deleted = await studentRepository.forceDeleteById(id);
-
-    if (!deleted) {
-      throw new Error("Không tìm thấy học viên");
+    try {
+      await session.withTransaction(async () => {
+        await studentStudyRepository.deleteByStudent(id, session);
+        await studentRepository.forceDeleteById(id, session);
+      });
+    } finally {
+      await session.endSession();
     }
 
-    return deleted;
+    return item;
   },
 };
