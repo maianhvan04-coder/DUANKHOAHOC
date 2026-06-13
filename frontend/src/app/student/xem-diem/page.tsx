@@ -32,7 +32,7 @@ function isNonEmptyString(value: unknown): value is string {
 function isStudyCourse(value: unknown): value is StudyCourse {
   return (
     isObject(value) &&
-    ("title" in value || "teacherName" in value || "slug" in value)
+    ("title" in value || "slug" in value)
   );
 }
 

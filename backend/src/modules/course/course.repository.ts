@@ -6,30 +6,18 @@ type CreateProductRepoPayload = {
   title: string;
   slug: string;
   shortDescription: string;
-  teacher?: Types.ObjectId | null;
-  teacherName: string;
   image: string;
   imagePublicId: string;
   category: Types.ObjectId;
   level: Product["level"];
   modes: ProductMode[];
   status: Product["status"];
-  rating: number;
   durationText: string;
   price: number;
   isActive?: boolean;
 };
 
 type UpdateProductRepoPayload = Partial<CreateProductRepoPayload>;
-
-const teacherPopulate = {
-  path: "teacher",
-  select: "user specialty avatar degree experience rating",
-  populate: {
-    path: "user",
-    select: "name email",
-  },
-};
 
 export const productRepository = {
   findAll(query: ListQueryInput & { categoryId?: string } = {}) {
@@ -50,7 +38,6 @@ export const productRepository = {
       const regex = new RegExp(escapeRegex(keyword), "i");
       filter.$or = [
         { title: regex },
-        { teacherName: regex },
         { shortDescription: regex },
         { status: regex },
       ];
@@ -61,10 +48,7 @@ export const productRepository = {
       filter.status = status.toUpperCase();
     }
 
-    return ProductModel.find(filter)
-      .populate("category")
-      .populate(teacherPopulate)
-      .sort({ createdAt: -1 });
+    return ProductModel.find(filter).populate("category").sort({ createdAt: -1 });
   },
 
   findAllDeleted(query: ListQueryInput = {}) {
@@ -82,7 +66,6 @@ export const productRepository = {
       const regex = new RegExp(escapeRegex(keyword), "i");
       filter.$or = [
         { title: regex },
-        { teacherName: regex },
         { shortDescription: regex },
         { status: regex },
       ];
@@ -93,37 +76,32 @@ export const productRepository = {
       filter.status = status.toUpperCase();
     }
 
-    return ProductModel.find(filter)
-      .populate("category")
-      .populate(teacherPopulate)
-      .sort({ deletedAt: -1 });
+    return ProductModel.find(filter).populate("category").sort({ deletedAt: -1 });
   },
 
   findById(id: string) {
     return ProductModel.findOne({
       _id: id,
       isDeleted: false,
-    }).populate(teacherPopulate);
+    });
   },
 
   findDeletedById(id: string) {
     return ProductModel.findOne({
       _id: id,
       isDeleted: true,
-    }).populate(teacherPopulate);
+    });
   },
 
   findAnyById(id: string) {
-    return ProductModel.findById(id).populate(teacherPopulate);
+    return ProductModel.findById(id);
   },
 
   findByIdWithCategory(id: string) {
     return ProductModel.findOne({
       _id: id,
       isDeleted: false,
-    })
-      .populate("category")
-      .populate(teacherPopulate);
+    }).populate("category");
   },
 
   findBySlug(slug: string) {
@@ -157,9 +135,7 @@ export const productRepository = {
       {
         new: true,
       }
-    )
-      .populate("category")
-      .populate(teacherPopulate);
+    ).populate("category");
   },
 
   softDeleteById(id: string) {
@@ -177,7 +153,7 @@ export const productRepository = {
       {
         new: true,
       }
-    ).populate(teacherPopulate);
+    );
   },
 
   restoreById(id: string) {
@@ -195,12 +171,10 @@ export const productRepository = {
       {
         new: true,
       }
-    )
-      .populate("category")
-      .populate(teacherPopulate);
+    ).populate("category");
   },
 
   forceDeleteById(id: string) {
-    return ProductModel.findByIdAndDelete(id).populate(teacherPopulate);
+    return ProductModel.findByIdAndDelete(id);
   },
 };

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Star, Users } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
 import { productApi, type ProductItem, type ProductStatus } from "@/app/api/course.api";
 
@@ -21,14 +21,6 @@ function formatPrice(value?: number) {
 function getCategoryName(category: ProductItem["category"], categories: CategoryItem[]) {
   if (typeof category !== "string") return category?.name || "Danh mục";
   return categories.find((item) => item._id === category)?.name || "Danh mục";
-}
-
-function getTeacherDisplayName(item: ProductItem) {
-  if (item.teacher && typeof item.teacher !== "string") {
-    return item.teacher.user?.name || item.teacherName || "Đang cập nhật";
-  }
-
-  return item.teacherName || "Đang cập nhật";
 }
 
 function getStatusLabel(status: ProductStatus) {
@@ -91,13 +83,9 @@ function CourseCard({ item, index, categories }: {
           {item.title}
         </h3>
         <p className="mt-2 line-clamp-1 text-[12px] font-semibold text-slate-500">
-          {getTeacherDisplayName(item)}
+          {item.durationText || item.shortDescription || "Đang cập nhật"}
         </p>
-        <div className="mt-2 flex items-center justify-between gap-2 text-[12px] font-semibold text-slate-600">
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-4 w-4 fill-[#FFC247] text-[#FFC247]" />
-            {Number(item.rating || 0).toFixed(1)}/5
-          </span>
+        <div className="mt-2 flex items-center justify-end gap-2 text-[12px] font-semibold text-slate-600">
           <span className="inline-flex items-center gap-1">
             <Users className="h-4 w-4 text-slate-400" />
             {Number(item.studentCount || 0).toLocaleString("vi-VN")}

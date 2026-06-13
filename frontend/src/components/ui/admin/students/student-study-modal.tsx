@@ -144,10 +144,6 @@ function getTeacherName(item: StudentStudyItem) {
     }
   }
 
-  if (item.course && typeof item.course === "object") {
-    return item.course.teacherName || "";
-  }
-
   return "";
 }
 

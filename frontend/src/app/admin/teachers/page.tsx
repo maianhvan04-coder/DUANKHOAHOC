@@ -74,7 +74,7 @@ type StatusFilter = "all" | "active" | "inactive";
 type TeacherSortKey =
   | "name"
   | "specialty"
-  | "courses"
+  | "classes"
   | "students"
   | "createdAt";
 
@@ -706,13 +706,13 @@ export default function AdminTeachersPage() {
         ),
       },
       {
-        id: "courses",
-        label: "Courses",
-        sortKey: "courses",
+        id: "classes",
+        label: "Classes",
+        sortKey: "classes",
         widthClassName: "w-[110px]",
         align: "center",
         render: (item) => (
-          <span className="font-semibold">{formatNumber(item.productCount)}</span>
+          <span className="font-semibold">{formatNumber(item.classCount)}</span>
         ),
       },
       {
@@ -954,7 +954,7 @@ export default function AdminTeachersPage() {
               <option value="createdAt">Sort: Created</option>
               <option value="name">Sort: Name</option>
               <option value="specialty">Sort: Specialty</option>
-              <option value="courses">Sort: Courses</option>
+              <option value="classes">Sort: Classes</option>
               <option value="students">Sort: Students</option>
             </select>
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -998,7 +998,7 @@ export default function AdminTeachersPage() {
                   Teacher
                 </th>
                 <th className="w-27.5 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                  Courses
+                  Classes
                 </th>
                 <th className="w-31.25 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   Students
@@ -1081,7 +1081,7 @@ export default function AdminTeachersPage() {
                     <td className="px-4 py-3.5 text-center">
                       <div className="inline-flex items-center justify-center gap-1.5 text-sm text-slate-800">
                         <BookOpen className="h-4 w-4 text-slate-500" />
-                        <span className="font-medium">{item.productCount}</span>
+                        <span className="font-medium">{item.classCount}</span>
                       </div>
                     </td>
 

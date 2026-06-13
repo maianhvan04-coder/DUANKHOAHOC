@@ -47,10 +47,8 @@ function normalizeCourse(item: any, studentCount?: number) {
     level: item.level || "",
     modes: item.modes || [],
     status: item.status || "",
-    rating: Number(item.rating || 0),
     durationText: item.durationText || "",
     price: compactCurrency(item.price),
-    teacherName: item.teacherName || "",
     studentCount: studentCount ?? undefined,
   };
 }
@@ -77,7 +75,7 @@ function normalizeStudy(item: any) {
     id: String(item._id || ""),
     courseTitle: course.title || "",
     className: item.className || classRoom.className || "",
-    teacherName: teacherUser.name || course.teacherName || "",
+    teacherName: teacherUser.name || "",
     mode: item.mode || classRoom.mode || "",
     scheduleText: item.scheduleText || classRoom.scheduleText || "",
     room: item.room || classRoom.room || "",
@@ -98,9 +96,7 @@ export async function buildPublicAiContext() {
     isDeleted: false,
     isActive: true,
   })
-    .select(
-      "title shortDescription category level modes status rating durationText price teacherName createdAt"
-    )
+    .select("title shortDescription category level modes status durationText price createdAt")
     .populate("category", "name")
     .sort({ createdAt: -1 })
     .limit(40)
@@ -141,7 +137,7 @@ export async function buildStudentAiContext(userId: string) {
     })
       .sort({ updatedAt: -1 })
       .limit(12)
-      .populate("course", "title shortDescription level modes status durationText price teacherName")
+      .populate("course", "title shortDescription level modes status durationText price")
       .populate("classRoom", "className mode scheduleText room startedAt endedAt")
       .populate({
         path: "teacher",
@@ -311,7 +307,7 @@ export async function buildAdminAiContext() {
     await Promise.all([
       getDashboardService({ months: 6 }),
       ProductModel.find({ isDeleted: false })
-        .select("title status isActive level modes price durationText teacherName createdAt")
+        .select("title status isActive level modes price durationText createdAt")
         .sort({ createdAt: -1 })
         .limit(12)
         .lean(),

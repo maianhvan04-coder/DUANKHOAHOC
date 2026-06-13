@@ -7,17 +7,6 @@ import {
 
 type AnyObj = Record<string, unknown>;
 
-export type TeacherProductItem = {
-  _id: string;
-  title: string;
-  slug: string;
-  status: string;
-  studentCount: number;
-  image: string;
-  price: number;
-  originalPrice: number;
-};
-
 export type TeacherItem = {
   _id: string;
   userId: string;
@@ -28,9 +17,8 @@ export type TeacherItem = {
   avatar: string;
   active: boolean;
   deletedAt: string | null;
-  productCount: number;
+  classCount: number;
   totalStudents: number;
-  products: TeacherProductItem[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -78,25 +66,6 @@ function toBool(value: unknown, fallback = false): boolean {
   return fallback;
 }
 
-function toArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function parseProduct(raw: unknown): TeacherProductItem {
-  const o = toObj(raw);
-
-  return {
-    _id: toStr(o._id),
-    title: toStr(o.title),
-    slug: toStr(o.slug),
-    status: toStr(o.status),
-    studentCount: toNum(o.studentCount),
-    image: toStr(o.image),
-    price: toNum(o.price),
-    originalPrice: toNum(o.originalPrice),
-  };
-}
-
 function parseTeacher(raw: unknown): TeacherItem {
   const o = toObj(raw);
 
@@ -110,9 +79,8 @@ function parseTeacher(raw: unknown): TeacherItem {
     avatar: toStr(o.avatar),
     active: toBool(o.active, true),
     deletedAt: o.deletedAt == null ? null : toStr(o.deletedAt),
-    productCount: toNum(o.productCount),
+    classCount: toNum(o.classCount),
     totalStudents: toNum(o.totalStudents),
-    products: toArray(o.products).map(parseProduct),
     createdAt: o.createdAt ? toStr(o.createdAt) : undefined,
     updatedAt: o.updatedAt ? toStr(o.updatedAt) : undefined,
   };

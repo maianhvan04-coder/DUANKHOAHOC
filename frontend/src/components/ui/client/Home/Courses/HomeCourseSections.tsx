@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, MessageCircle, Star, X } from "lucide-react";
+import { BookOpen, MessageCircle, X } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
 import { classroomApi } from "@/app/api/classroom.api";
@@ -71,14 +71,6 @@ function getCategoryId(category: ProductItem["category"]) {
 function getCategoryName(category: ProductItem["category"], categories: CategoryItem[]) {
   if (typeof category !== "string") return category?.name || "Danh mục";
   return categories.find((item) => item._id === category)?.name || "Danh mục";
-}
-
-function getTeacherDisplayName(item: ProductItem) {
-  if (item.teacher && typeof item.teacher !== "string") {
-    return item.teacher.user?.name || item.teacherName || "Đang cập nhật";
-  }
-
-  return item.teacherName || "Đang cập nhật";
 }
 
 function getStatusLabel(status: ProductStatus) {
@@ -202,13 +194,9 @@ function CourseCard({
           {course.title}
         </h3>
         <p className="mt-1 line-clamp-1 text-[11px] font-medium text-[#0D56A6]">
-          Giáo viên: {getTeacherDisplayName(course)}
+          {course.durationText || course.shortDescription || "Đang cập nhật"}
         </p>
         <div className="mt-2 space-y-1 text-[10px] font-medium text-slate-500">
-          <p className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-red-500 text-red-500" />
-            {Number(course.rating || 0).toFixed(1)}/5
-          </p>
           <p className="flex items-center gap-1">
             <MessageCircle className="h-3 w-3 text-sky-500" />
             {formatStudentCount(course.studentCount)} học viên
@@ -431,7 +419,6 @@ export function CourseDetailView({
   }
 
   const categoryName = getCategoryName(course.category, categories);
-  const teacherName = getTeacherDisplayName(course);
   const courseSummary =
     course.shortDescription ||
     "Nội dung khóa học được thiết kế theo lộ trình rõ ràng, giúp học viên học chắc kiến thức và thực hành hiệu quả.";
@@ -465,10 +452,6 @@ export function CourseDetailView({
           <p className="mt-4 max-w-3xl text-base leading-6 text-slate-600">
             {courseSummary}
           </p>
-          <p className="mt-4 text-sm text-slate-600">
-            Giáo viên: <span className="font-semibold text-[#0D56A6]">{teacherName}</span>
-          </p>
-
           <div className="relative mt-4 aspect-video overflow-hidden rounded-[2px] border border-slate-300 bg-slate-100">
             {image ? (
               <Image

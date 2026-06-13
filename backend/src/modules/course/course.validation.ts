@@ -15,10 +15,8 @@ const numberStringSchema = z
 const sortBySchema = z.enum([
   "title",
   "category",
-  "teacher",
   "status",
   "price",
-  "rating",
   "studentCount",
   "createdAt",
   "updatedAt",
@@ -33,15 +31,11 @@ export const createProductSchema = z.object({
 
     shortDescription: z.string().optional(),
 
-    teacher: objectId.optional(),
-
     category: objectId,
 
     level: levelSchema.optional(),
 
     status: statusSchema.optional(),
-
-    rating: numberStringSchema.optional(),
 
     studentCount: z
       .string()
@@ -73,15 +67,11 @@ export const updateProductSchema = z.object({
 
     shortDescription: z.string().optional(),
 
-    teacher: z.union([objectId, z.literal("")]).optional(),
-
     category: objectId.optional(),
 
     level: levelSchema.optional(),
 
     status: statusSchema.optional(),
-
-    rating: numberStringSchema.optional(),
 
     studentCount: z
       .string()

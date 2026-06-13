@@ -14,7 +14,7 @@ const teacherPopulate = {
 
 const coursePopulate = {
   path: "course",
-  select: "title slug teacher teacherName image level modes status durationText price",
+  select: "title slug image level modes status durationText price",
 };
 
 const classRoomPopulate = {
@@ -67,7 +67,7 @@ export const accountRepo = {
 
   findProductsByIds(courseIds: string[]) {
     return ProductModel.find({ _id: { $in: courseIds } })
-      .select("_id title slug teacherName modes durationText status")
+      .select("_id title slug modes durationText status")
       .lean();
   },
 };

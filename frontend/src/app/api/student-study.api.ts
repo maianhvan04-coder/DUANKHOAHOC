@@ -45,10 +45,6 @@ export type StudyTeacher = {
   id?: string;
   specialty?: string;
   avatar?: string;
-  degree?: string;
-  experience?: string;
-  achievement?: string;
-  rating?: number;
   user?: StudyTeacherUser | null;
 };
 
@@ -64,13 +60,10 @@ export type StudyCourse = {
   title?: string;
   slug?: string;
   shortDescription?: string;
-  teacher?: string | StudyTeacher | null;
-  teacherName?: string;
   image?: string;
   level?: string;
   modes?: string[];
   status?: string;
-  rating?: number;
   studentCount?: number;
   durationText?: string;
   price?: number;
@@ -286,10 +279,6 @@ function normalizeTeacher(raw: unknown): StudyTeacher | null {
     id: asString(raw.id),
     specialty: asString(raw.specialty),
     avatar: asString(raw.avatar),
-    degree: asString(raw.degree),
-    experience: asString(raw.experience),
-    achievement: asString(raw.achievement),
-    rating: asNumber(raw.rating, 0),
     user: normalizeTeacherUser(raw.user),
   };
 }
@@ -318,18 +307,12 @@ function normalizeCourse(raw: unknown): StudyCourse | null {
     title: asString(raw.title),
     slug: asString(raw.slug),
     shortDescription: asString(raw.shortDescription),
-    teacher:
-      typeof raw.teacher === "string"
-        ? raw.teacher
-        : normalizeTeacher(raw.teacher),
-    teacherName: asString(raw.teacherName),
     image: asString(raw.image),
     level: asString(raw.level),
     modes: Array.isArray(raw.modes)
       ? raw.modes.filter((item): item is string => typeof item === "string")
       : [],
     status: asString(raw.status),
-    rating: asNumber(raw.rating, 0),
     studentCount: asNumber(raw.studentCount, 0),
     durationText: asString(raw.durationText),
     price: asNumber(raw.price, 0),

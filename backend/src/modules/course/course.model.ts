@@ -9,16 +9,12 @@ export interface Product {
   slug: string;
   shortDescription: string;
 
-  teacher?: Types.ObjectId | null;
-  teacherName: string;
-
   image: string;
   imagePublicId: string;
   category: Types.ObjectId;
   level: ProductLevel;
   modes: ProductMode[];
   status: ProductStatus;
-  rating: number;
   durationText: string;
   price: number;
   isActive: boolean;
@@ -43,18 +39,6 @@ const productSchema = new Schema<Product>(
     },
 
     shortDescription: {
-      type: String,
-      default: "",
-    },
-
-    teacher: {
-      type: Schema.Types.ObjectId,
-      ref: "Teacher",
-      default: null,
-      index: true,
-    },
-
-    teacherName: {
       type: String,
       default: "",
     },
@@ -92,11 +76,6 @@ const productSchema = new Schema<Product>(
       type: String,
       enum: ["OPEN", "COMING", "FULL"],
       default: "OPEN",
-    },
-
-    rating: {
-      type: Number,
-      default: 0,
     },
 
     durationText: {

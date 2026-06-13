@@ -23,11 +23,9 @@ type ProductQuery = {
 type ProductBody = {
   title?: string;
   shortDescription?: string;
-  teacher?: string;
   category?: string;
   level?: "Cơ bản" | "Trung cấp" | "Nâng cao";
   status?: "OPEN" | "COMING" | "FULL";
-  rating?: string;
   durationText?: string;
   price?: string;
   isActive?: boolean | "true" | "false";

@@ -47,8 +47,8 @@ function getTeacherImage(item: TeacherItem, index: number) {
   return FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
 }
 
-function getCourseCount(item: TeacherItem) {
-  return item.productCount || item.products?.length || 0;
+function getClassCount(item: TeacherItem) {
+  return item.classCount || 0;
 }
 
 function TeacherCard({
@@ -60,7 +60,7 @@ function TeacherCard({
   index: number;
   onViewProfile: (item: TeacherItem, index: number) => void;
 }) {
-  const courseCount = getCourseCount(item);
+  const classCount = getClassCount(item);
   const image = getTeacherImage(item, index);
 
   return (
@@ -85,7 +85,7 @@ function TeacherCard({
         </p>
 
         <p className="line-clamp-1 text-[15px] leading-6 text-black">
-          {courseCount ? `${formatNumber(courseCount)} khóa học` : "Đang cập nhật khóa học"}
+          {classCount ? `${formatNumber(classCount)} lớp học` : "Chưa có lớp học"}
         </p>
 
         <button
@@ -132,8 +132,7 @@ function TeacherProfileModal({
   if (!profile) return null;
 
   const { item, image } = profile;
-  const courseCount = getCourseCount(item);
-  const products = item.products || [];
+  const classCount = getClassCount(item);
 
   return (
     <div
@@ -188,10 +187,10 @@ function TeacherProfileModal({
                   <BookOpen className="h-5 w-5" />
                 </div>
                 <p className="mt-1 text-[18px] font-black text-black">
-                  {formatNumber(courseCount)}
+                  {formatNumber(classCount)}
                 </p>
                 <p className="text-[12px] font-semibold text-slate-500">
-                  Khóa học
+                  Lớp học
                 </p>
               </div>
             </div>
@@ -219,28 +218,6 @@ function TeacherProfileModal({
               />
             </div>
 
-            <div className="mt-5 rounded-lg border border-[#D3DCE8] bg-white p-4">
-              <h3 className="text-[17px] font-black text-black">
-                Khóa học giảng dạy
-              </h3>
-
-              {products.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {products.map((product) => (
-                    <span
-                      key={product._id || product.title}
-                      className="rounded-md border border-[#D3DCE8] bg-[#F8FBFF] px-3 py-1.5 text-[13px] font-semibold text-[#0B2C5F]"
-                    >
-                      {product.title}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-2 text-[15px] italic text-slate-500">
-                  Đang cập nhật khóa học giảng dạy.
-                </p>
-              )}
-            </div>
           </div>
         </div>
       </div>

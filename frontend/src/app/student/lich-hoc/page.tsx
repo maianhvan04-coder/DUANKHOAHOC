@@ -153,7 +153,7 @@ function isStudyTeacher(value: unknown): value is StudyTeacher {
 function isStudyCourse(value: unknown): value is StudyCourse {
   return (
     isObject(value) &&
-    ("title" in value || "teacherName" in value || "slug" in value)
+    ("title" in value || "slug" in value)
   );
 }
 
@@ -183,18 +183,12 @@ function getTeacher(study: StudentStudyItem): StudyTeacher | null {
   const classRoom = getClassRoom(study);
   if (classRoom && isStudyTeacher(classRoom.teacher)) return classRoom.teacher;
 
-  const course = getCourse(study);
-  if (course && isStudyTeacher(course.teacher)) return course.teacher;
-
   return null;
 }
 
 function getTeacherName(study: StudentStudyItem) {
   const teacher = getTeacher(study);
   if (isNonEmptyString(teacher?.user?.name)) return teacher.user.name.trim();
-
-  const course = getCourse(study);
-  if (isNonEmptyString(course?.teacherName)) return course.teacherName.trim();
 
   return "Giảng viên";
 }

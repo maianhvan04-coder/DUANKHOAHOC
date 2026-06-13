@@ -1,13 +1,13 @@
-import { ClientSession, isValidObjectId, Types } from "mongoose";
+import { ClientSession, isValidObjectId } from "mongoose";
 import { TeacherModel } from "./teacher.model";
 import { UserModel } from "../user/user.model";
-import { ProductModel } from "../course/course.model";
+import { ClassRoomModel } from "../classroom/classroom.model";
+import { StudentStudyModel } from "../student/student-study.model";
 import { ROLES } from "../../constants/roles";
 import UserRole from "../rbac/models/userRole.model";
 import type {
   CreateTeacherInput,
   TeacherListItem,
-  TeacherProductItem,
   UpdateTeacherInput,
 } from "./teacher.types";
 import {
@@ -24,13 +24,6 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function normalizeName(value: string) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-}
-
 function getUserIdFromTeacherDoc(teacher: any) {
   if (!teacher?.user) return "";
   if (typeof teacher.user === "object" && teacher.user?._id) {
@@ -43,98 +36,54 @@ async function mapTeachers(items: any[]): Promise<TeacherListItem[]> {
   if (!items.length) return [];
 
   const teacherIds = items.map((item) => item._id).filter(Boolean);
+  const [classCounts, studentCounts] = await Promise.all([
+    ClassRoomModel.aggregate([
+      {
+        $match: {
+          teacher: { $in: teacherIds },
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$teacher",
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    StudentStudyModel.aggregate([
+      {
+        $match: {
+          teacher: { $in: teacherIds },
+          isActive: true,
+        },
+      },
+      {
+        $group: {
+          _id: "$teacher",
+          students: { $addToSet: "$student" },
+        },
+      },
+      {
+        $project: {
+          count: { $size: "$students" },
+        },
+      },
+    ]),
+  ]);
 
-  const teacherNameToId = new Map<string, string>();
-  const teacherNames: string[] = [];
-
-  for (const item of items) {
-    const rawName = String(item?.user?.name || "").trim();
-    const teacherId = String(item?._id || "").trim();
-
-    if (!rawName || !teacherId) continue;
-
-    const normalized = normalizeName(rawName);
-    if (!normalized) continue;
-
-    teacherNameToId.set(normalized, teacherId);
-    teacherNames.push(rawName);
-  }
-
-  const products = await ProductModel.find({
-    isDeleted: false,
-    $or: [
-      { teacher: { $in: teacherIds } },
-      { teacherName: { $in: teacherNames } },
-    ],
-  })
-    .select(
-      "title slug status studentCount image price originalPrice teacher teacherName"
-    )
-    .sort({ createdAt: -1 })
-    .lean();
-
-  const productMap = new Map<string, TeacherProductItem[]>();
-  const productSeenMap = new Map<string, Set<string>>();
-
-  function pushProduct(teacherId: string, product: TeacherProductItem) {
-    if (!teacherId) return;
-
-    if (!productMap.has(teacherId)) {
-      productMap.set(teacherId, []);
-    }
-
-    if (!productSeenMap.has(teacherId)) {
-      productSeenMap.set(teacherId, new Set<string>());
-    }
-
-    const seen = productSeenMap.get(teacherId)!;
-    if (seen.has(product._id)) return;
-
-    seen.add(product._id);
-    productMap.get(teacherId)!.push(product);
-  }
-
-  for (const product of products) {
-    const productRecord = product as any;
-    const productItem: TeacherProductItem = {
-      _id: String(product._id),
-      title: String(product.title || ""),
-      slug: String(product.slug || ""),
-      status: String(product.status || ""),
-      studentCount: Number(productRecord.studentCount || 0),
-      image: String(product.image || ""),
-      price: Number(product.price || 0),
-      originalPrice: Number(productRecord.originalPrice || 0),
-    };
-
-    const teacherIdFromRef =
-      product.teacher instanceof Types.ObjectId
-        ? String(product.teacher)
-        : String(product.teacher || "");
-
-    if (teacherIdFromRef && teacherIds.includes(teacherIdFromRef)) {
-      pushProduct(teacherIdFromRef, productItem);
-      continue;
-    }
-
-    const teacherNameKey = normalizeName(String((product as any).teacherName || ""));
-    const teacherIdFromName = teacherNameToId.get(teacherNameKey) || "";
-
-    if (teacherIdFromName) {
-      pushProduct(teacherIdFromName, productItem);
-    }
-  }
+  const classCountMap = new Map(
+    classCounts.map((item) => [String(item._id), Number(item.count || 0)])
+  );
+  const studentCountMap = new Map(
+    studentCounts.map((item) => [String(item._id), Number(item.count || 0)])
+  );
 
   return items
     .filter((item) => item.user)
     .map((item) => {
       const user = item.user as any;
       const teacherId = String(item._id);
-      const teacherProducts = productMap.get(teacherId) || [];
-      const totalStudents = teacherProducts.reduce(
-        (sum, product) => sum + Number(product.studentCount || 0),
-        0
-      );
 
       return {
         _id: teacherId,
@@ -147,9 +96,8 @@ async function mapTeachers(items: any[]): Promise<TeacherListItem[]> {
         avatar: String(item.avatar || ""),
         active: item.isActive !== false && user.active !== false,
         deletedAt: item.deletedAt ? new Date(item.deletedAt).toISOString() : null,
-        productCount: teacherProducts.length,
-        totalStudents,
-        products: teacherProducts,
+        classCount: classCountMap.get(teacherId) || 0,
+        totalStudents: studentCountMap.get(teacherId) || 0,
         createdAt: item.createdAt
           ? new Date(item.createdAt).toISOString()
           : undefined,
@@ -227,9 +175,9 @@ export const teacherRepo = {
             return item.name;
           case "specialty":
             return item.specialty;
-          case "courses":
-          case "productCount":
-            return item.productCount;
+          case "classes":
+          case "classCount":
+            return item.classCount;
           case "students":
           case "totalStudents":
             return item.totalStudents;
@@ -487,25 +435,6 @@ export const teacherRepo = {
     userId: string,
     session: ClientSession
   ) {
-    await ProductModel.updateMany(
-      {
-        $or: [{ teacher: teacherId }, { teacherName: { $exists: true } }],
-      },
-      [
-        {
-          $set: {
-            teacher: {
-              $cond: [{ $eq: ["$teacher", new Types.ObjectId(teacherId)] }, null, "$teacher"],
-            },
-            teacherName: {
-              $cond: [{ $eq: ["$teacher", new Types.ObjectId(teacherId)] }, "", "$teacherName"],
-            },
-          },
-        },
-      ],
-      { session, updatePipeline: true }
-    );
-
     await TeacherModel.deleteOne({ _id: teacherId }, { session });
     await UserModel.deleteOne({ _id: userId }, { session });
     await UserRole.updateMany(

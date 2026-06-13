@@ -199,8 +199,7 @@ function mapStudyToMyCourse(study: AnyObj): MyCourseItem {
     asString(study.scheduleText) || asString(classRoom?.scheduleText);
   const teacherName =
     getTeacherName(study.teacher) ||
-    getTeacherName(classRoom?.teacher) ||
-    asString(course?.teacherName);
+    getTeacherName(classRoom?.teacher);
 
   return {
     id: stringifyId(study) || courseId,
@@ -237,7 +236,7 @@ function mapOrderCourse(params: {
     format: formatProductMode(product),
     desiredSchedule: "--",
     className: "--",
-    teacherName: asString(product?.teacherName) || "--",
+    teacherName: "--",
     actualSchedule: "--",
     status,
     paymentCode: asString(order.paymentCode),

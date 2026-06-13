@@ -8,7 +8,7 @@ const studentPopulate = {
 
 const teacherPopulate = {
   path: "teacher",
-  select: "user specialty avatar degree experience achievement rating",
+  select: "user specialty avatar",
   populate: {
     path: "user",
     select: "name email",
@@ -18,7 +18,7 @@ const teacherPopulate = {
 const coursePopulate = {
   path: "course",
   select:
-    "title slug shortDescription teacher teacherName image level modes status rating studentCount durationText price originalPrice category",
+    "title slug shortDescription image level modes status studentCount durationText price originalPrice category",
   populate: {
     path: "category",
     select: "name",

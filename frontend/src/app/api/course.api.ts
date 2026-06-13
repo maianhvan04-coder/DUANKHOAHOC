@@ -9,36 +9,17 @@ export type ProductMode = "ONLINE" | "OFFLINE";
 export type ProductLevel = "Cơ bản" | "Trung cấp" | "Nâng cao";
 export type ProductStatus = "OPEN" | "COMING" | "FULL";
 
-export type ProductTeacherUser = {
-  _id?: string;
-  name?: string;
-  email?: string;
-};
-
-export type ProductTeacherItem = {
-  _id: string;
-  specialty?: string;
-  avatar?: string;
-  degree?: string;
-  experience?: string;
-  rating?: number;
-  user?: ProductTeacherUser | null;
-};
-
 export type ProductItem = {
   _id: string;
   title: string;
   slug: string;
   shortDescription?: string;
-  teacher?: string | ProductTeacherItem | null;
-  teacherName?: string;
   image?: string;
   imagePublicId?: string;
   category: string | CategoryItem;
   level: ProductLevel;
   modes: ProductMode[];
   status: ProductStatus;
-  rating: number;
   studentCount: number;
   durationText?: string;
   price: number;
@@ -68,11 +49,9 @@ export type ProductListResponse = {
 export type CreateProductBody = {
   title: string;
   shortDescription?: string;
-  teacher?: string;
   category: string;
   level?: ProductLevel;
   status?: ProductStatus;
-  rating?: string;
   studentCount?: string;
   durationText?: string;
   price: string;
@@ -84,11 +63,9 @@ export type CreateProductBody = {
 export type UpdateProductBody = {
   title?: string;
   shortDescription?: string;
-  teacher?: string;
   category?: string;
   level?: ProductLevel;
   status?: ProductStatus;
-  rating?: string;
   studentCount?: string;
   durationText?: string;
   price?: string;

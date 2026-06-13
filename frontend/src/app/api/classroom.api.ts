@@ -45,10 +45,6 @@ export type ClassroomTeacher = {
   email?: string;
   specialty?: string;
   avatar?: string;
-  degree?: string;
-  experience?: string;
-  achievement?: string;
-  rating?: number;
   user?: ClassroomTeacherUser | null;
 };
 
@@ -65,8 +61,6 @@ export type ClassroomCourse = {
   title?: string;
   slug?: string;
   shortDescription?: string;
-  teacher?: string | ClassroomTeacher | null;
-  teacherName?: string;
   image?: string;
   level?: string;
   status?: string;
@@ -178,9 +172,6 @@ export type TeacherOption = {
   email?: string;
   specialty?: string;
   avatar?: string;
-  degree?: string;
-  experience?: string;
-  rating?: number;
   user?: TeacherOptionUser | null;
 };
 
@@ -396,10 +387,6 @@ function normalizeTeacher(raw: unknown): ClassroomTeacher | null {
     email: asString(raw.email),
     specialty: asString(raw.specialty),
     avatar: asString(raw.avatar),
-    degree: asString(raw.degree),
-    experience: asString(raw.experience),
-    achievement: asString(raw.achievement),
-    rating: asNumber(raw.rating, 0),
     user: normalizeTeacherUser(raw.user),
   };
 }
@@ -430,11 +417,6 @@ function normalizeCourse(raw: unknown): ClassroomCourse | null {
     title: asString(raw.title),
     slug: asString(raw.slug),
     shortDescription: asString(raw.shortDescription),
-    teacher:
-      typeof raw.teacher === "string"
-        ? raw.teacher
-        : normalizeTeacher(raw.teacher),
-    teacherName: asString(raw.teacherName),
     image: asString(raw.image),
     level: asString(raw.level),
     status: asString(raw.status),
@@ -633,9 +615,6 @@ function normalizeTeacherOption(raw: unknown): TeacherOption {
     email,
     specialty: asString(obj.specialty),
     avatar: asString(obj.avatar),
-    degree: asString(obj.degree),
-    experience: asString(obj.experience),
-    rating: asNumber(obj.rating, 0),
     user: fallbackUser,
   };
 }

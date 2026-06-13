@@ -25,10 +25,6 @@ import {
   type ProductItem,
   type ProductStatus,
 } from "@/app/api/course.api";
-import {
-  teacherApi,
-  type TeacherItem,
-} from "@/app/api/teacher.api";
 import AdminListTable, {
   AdminActionIconButton,
   AdminEntityCell,
@@ -52,34 +48,29 @@ type FormMode = "create" | "edit";
 type ProductSortKey =
   | "title"
   | "category"
-  | "teacher"
   | "status"
   | "price"
   | "createdAt";
 
 type ProductFormState = {
   title: string;
-  teacher: string;
   category: string;
   image: File | null;
   shortDescription: string;
   durationText: string;
   status: ProductStatus;
   price: string;
-  rating: string;
   studentCount: string;
 };
 
 const INITIAL_FORM: ProductFormState = {
   title: "",
-  teacher: "",
   category: "",
   image: null,
   shortDescription: "",
   durationText: "",
   status: "OPEN",
   price: "",
-  rating: "0",
   studentCount: "0",
 };
 
@@ -93,25 +84,6 @@ function getCategoryName(category: string | CategoryItem) {
 
 function getCategoryId(category: string | CategoryItem) {
   return typeof category === "string" ? category : category?._id || "";
-}
-
-function getTeacherId(teacher: ProductItem["teacher"]) {
-  if (!teacher) return "";
-  return typeof teacher === "string" ? teacher : teacher._id || "";
-}
-
-function getTeacherDisplayName(item: ProductItem) {
-  if (item.teacher && typeof item.teacher !== "string") {
-    return item.teacher.user?.name || item.teacherName || "Chưa có giảng viên";
-  }
-
-  return item.teacherName || "Chưa có giảng viên";
-}
-
-function getTeacherOptionLabel(item: TeacherItem) {
-  return item.specialty
-    ? `${item.name} - ${item.specialty}`
-    : item.name || "Giảng viên";
 }
 
 function getStatusClass(status: ProductStatus, isActive = true) {
@@ -131,7 +103,6 @@ function getStatusClass(status: ProductStatus, isActive = true) {
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [viewMode, setViewMode] = useState<ViewMode>("active");
@@ -193,7 +164,7 @@ export default function AdminProductsPage() {
     try {
       setLoading(true);
 
-      const [productRes, categoryRes, teacherRes] = await Promise.all([
+      const [productRes, categoryRes] = await Promise.all([
         productApi.getAll({
           q: search,
           categoryId: categoryFilter,
@@ -204,7 +175,6 @@ export default function AdminProductsPage() {
           limit: pageSize,
         }),
         categoryApi.getAll(),
-        teacherApi.list(),
       ]);
 
       setProducts(productRes.items || []);
@@ -212,7 +182,6 @@ export default function AdminProductsPage() {
         productRes.pagination ?? makePaginationMeta(productRes.items?.length || 0, page, pageSize)
       );
       setCategories(categoryRes.items || []);
-      setTeachers(teacherRes || []);
     } catch (error) {
       console.error(error);
       toast.error("Không tải được khóa học");
@@ -269,14 +238,12 @@ export default function AdminProductsPage() {
     setEditingItem(item);
     setForm({
       title: item.title || "",
-      teacher: getTeacherId(item.teacher),
       category: getCategoryId(item.category),
       image: null,
       shortDescription: item.shortDescription || "",
       durationText: item.durationText || "",
       status: item.status || "OPEN",
       price: String(item.price ?? ""),
-      rating: String(item.rating ?? 0),
       studentCount: String(item.studentCount ?? 0),
     });
     setImagePreview(item.image || "");
@@ -289,7 +256,6 @@ export default function AdminProductsPage() {
 
   const handleSubmitForm = async () => {
     const title = form.title.trim();
-    const teacher = form.teacher.trim();
     const category = form.category;
     const shortDescription = form.shortDescription.trim();
     const durationText = form.durationText.trim();
@@ -304,18 +270,8 @@ export default function AdminProductsPage() {
       return;
     }
 
-    if (!teacher) {
-      toast.warning("Vui lòng chọn giảng viên mặc định");
-      return;
-    }
-
     if (Number(form.price || 0) < 0) {
       toast.warning("Học phí không được âm");
-      return;
-    }
-
-    if (Number(form.rating || 0) < 0) {
-      toast.warning("Rating không được âm");
       return;
     }
 
@@ -329,14 +285,12 @@ export default function AdminProductsPage() {
 
       const payload = {
         title,
-        teacher,
         category,
         image: form.image,
         shortDescription,
         durationText,
         status: form.status,
         price: form.price || "0",
-        rating: form.rating || "0",
         studentCount: form.studentCount || "0",
       };
 
@@ -593,7 +547,7 @@ export default function AdminProductsPage() {
         render: (item) => (
           <AdminEntityCell
             title={item.title || "--"}
-            subtitle={item.durationText || getTeacherDisplayName(item)}
+            subtitle={item.durationText || item.shortDescription || undefined}
             image={item.image}
             icon={<BookOpen className="h-4 w-4 text-slate-500 dark:text-slate-300" />}
           />
@@ -606,15 +560,6 @@ export default function AdminProductsPage() {
         widthClassName: "w-[13%]",
         render: (item) => (
           <div className="truncate">{getCategoryName(item.category)}</div>
-        ),
-      },
-      {
-        id: "teacher",
-        label: "Teacher",
-        sortKey: "teacher",
-        widthClassName: "w-[16%]",
-        render: (item) => (
-          <div className="truncate">{getTeacherDisplayName(item)}</div>
         ),
       },
       {
@@ -756,7 +701,7 @@ export default function AdminProductsPage() {
             rowKey={(item) => item._id}
             loading={loading}
             searchValue={search}
-            searchPlaceholder="Search title, teacher, category..."
+            searchPlaceholder="Search title, category..."
             onSearchChange={(value) => {
               setSearch(value);
               setPage(1);
@@ -960,7 +905,7 @@ export default function AdminProductsPage() {
                                 {item.title}
                               </div>
                               <div className="mt-0.5 text-sm text-slate-500">
-                                {getTeacherDisplayName(item)}
+                                {item.durationText || item.shortDescription || "--"}
                               </div>
                             </div>
                           </div>
@@ -1321,26 +1266,6 @@ export default function AdminProductsPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Giảng viên mặc định <span className="text-rose-600">*</span>
-                  </label>
-                  <select
-                    value={form.teacher}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, teacher: e.target.value }))
-                    }
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                  >
-                    <option value="">Chọn giảng viên</option>
-                    {teachers.map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {getTeacherOptionLabel(item)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
                     Danh mục <span className="text-rose-600">*</span>
                   </label>
                   <select
@@ -1422,23 +1347,6 @@ export default function AdminProductsPage() {
                     value={form.price}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, price: e.target.value }))
-                    }
-                    placeholder="0"
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Rating
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    value={form.rating}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, rating: e.target.value }))
                     }
                     placeholder="0"
                     className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Star, Users } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
 import {
@@ -27,14 +27,6 @@ function getCategoryName(category: ProductItem["category"], categories: Category
   if (typeof category !== "string") return category?.name || "Danh mục";
 
   return categories.find((item) => item._id === category)?.name || "Danh mục";
-}
-
-function getTeacherDisplayName(item: ProductItem) {
-  if (item.teacher && typeof item.teacher !== "string") {
-    return item.teacher.user?.name || item.teacherName || "Đang cập nhật";
-  }
-
-  return item.teacherName || "Đang cập nhật";
 }
 
 function getStatusLabel(status: ProductStatus) {
@@ -117,15 +109,10 @@ function FeaturedCourseCard({
         </h3>
 
         <p className="mt-1 line-clamp-1 text-[11px] font-semibold text-slate-500">
-          Giảng viên: {getTeacherDisplayName(course)}
+          {course.durationText || course.shortDescription || "Đang cập nhật"}
         </p>
 
         <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
-          <div className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 fill-[#ffb547] text-[#ffb547]" />
-            <span>{Number(course.rating || 0).toFixed(1)}/5</span>
-          </div>
-
           <div className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5 text-slate-400" />
             <span>

@@ -2,7 +2,6 @@ import { isValidObjectId, Types } from "mongoose";
 import { productRepository } from "./course.repository";
 import type { ProductLevel, ProductMode, ProductStatus } from "./course.model";
 import { CategoryModel } from "../category/category.model";
-import { TeacherModel } from "../teacher/teacher.model";
 import { studentStudyRepository } from "../student/repository/student-study.repository";
 import { slugify } from "../../utils/slug";
 import {
@@ -67,41 +66,6 @@ async function ensureCategoryExists(categoryId: string) {
   return category;
 }
 
-async function resolveTeacherFields(teacherId?: string) {
-  if (teacherId === undefined) {
-    return undefined;
-  }
-
-  const rawTeacherId = teacherId.trim();
-
-  if (!rawTeacherId) {
-    return {
-      teacher: null,
-      teacherName: "",
-    };
-  }
-
-  if (!isValidObjectId(rawTeacherId)) {
-    throw new Error("Giảng viên không hợp lệ");
-  }
-
-  const teacherDoc = await TeacherModel.findById(rawTeacherId).populate({
-    path: "user",
-    select: "name",
-  });
-
-  if (!teacherDoc) {
-    throw new Error("Giảng viên không tồn tại");
-  }
-
-  const teacherUser = teacherDoc.user as { name?: string } | null | undefined;
-
-  return {
-    teacher: new Types.ObjectId(String(teacherDoc._id)),
-    teacherName: String(teacherUser?.name || ""),
-  };
-}
-
 async function getStudentCountByCourseId(courseId: string) {
   return studentStudyRepository.countDocuments({
     course: courseId,
@@ -112,11 +76,9 @@ async function getStudentCountByCourseId(courseId: string) {
 type CreateProductPayload = {
   title: string;
   shortDescription?: string;
-  teacher?: string;
   category: string;
   level?: ProductLevel;
   status?: ProductStatus;
-  rating?: string;
   durationText?: string;
   price: string;
   isActive?: boolean | "true" | "false";
@@ -126,11 +88,9 @@ type CreateProductPayload = {
 type UpdateProductPayload = {
   title?: string;
   shortDescription?: string;
-  teacher?: string;
   category?: string;
   level?: ProductLevel;
   status?: ProductStatus;
-  rating?: string;
   durationText?: string;
   price?: string;
   isActive?: boolean | "true" | "false";
@@ -163,8 +123,6 @@ function sortProducts<T extends Record<string, any>>(
           return item.title;
         case "category":
           return getCategoryName(item.category);
-        case "teacher":
-          return item.teacherName;
         case "status":
           return item.status;
         case "price":
@@ -242,22 +200,13 @@ export const productService = {
       throw new Error("Khóa học đã tồn tại");
     }
 
-    const teacherFields =
-      (await resolveTeacherFields(payload.teacher)) ?? {
-        teacher: null,
-        teacherName: "",
-      };
-
     const created = await productRepository.create({
       title: payload.title.trim(),
       slug,
       shortDescription: payload.shortDescription?.trim() || "",
-      teacher: teacherFields.teacher,
-      teacherName: teacherFields.teacherName,
       category: toObjectId(payload.category, "Danh mục không hợp lệ"),
       level: payload.level || "Cơ bản",
       status: payload.status || "OPEN",
-      rating: toNumber(payload.rating, 0),
       durationText: payload.durationText?.trim() || "",
       price: toNumber(payload.price, 0),
       isActive: toBoolean(payload.isActive, true),
@@ -295,12 +244,9 @@ export const productService = {
       title?: string;
       slug?: string;
       shortDescription?: string;
-      teacher?: Types.ObjectId | null;
-      teacherName?: string;
       category?: Types.ObjectId;
       level?: ProductLevel;
       status?: ProductStatus;
-      rating?: number;
       durationText?: string;
       price?: number;
       isActive?: boolean;
@@ -334,22 +280,12 @@ export const productService = {
       updateData.shortDescription = payload.shortDescription.trim();
     }
 
-    if (payload.teacher !== undefined) {
-      const teacherFields = await resolveTeacherFields(payload.teacher);
-      updateData.teacher = teacherFields?.teacher ?? null;
-      updateData.teacherName = teacherFields?.teacherName ?? "";
-    }
-
     if (payload.level !== undefined) {
       updateData.level = payload.level;
     }
 
     if (payload.status !== undefined) {
       updateData.status = payload.status;
-    }
-
-    if (payload.rating !== undefined) {
-      updateData.rating = toNumber(payload.rating, current.rating);
     }
 
     if (payload.durationText !== undefined) {
