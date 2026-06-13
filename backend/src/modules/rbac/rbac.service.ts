@@ -10,6 +10,7 @@ import { ROLES, type Role } from "../../constants/roles";
 import { SEED_ROLES } from "../../constants/sendRoles";
 import { UserModel } from "../user/user.model";
 import { syncStudentProfileForUser } from "../student/student-profile.sync";
+import { syncTeacherProfileForUser } from "../teacher/teacher-profile.sync";
 import Permission from "./models/permission.model";
 import RoleModel from "./models/role.model";
 import RolePermission from "./models/rolePermission.model";
@@ -288,6 +289,7 @@ export async function setRolesForUser(userId: string, roleCodes: string[]) {
   );
 
   await syncStudentProfileForUser(userId);
+  await syncTeacherProfileForUser(userId);
 }
 
 export async function getUserAccess(userId: string): Promise<UserAccess> {

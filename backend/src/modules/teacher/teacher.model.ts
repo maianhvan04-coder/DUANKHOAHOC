@@ -2,18 +2,13 @@ import { Schema, model, Types } from "mongoose";
 
 export interface Teacher {
   user: Types.ObjectId;
+  role: "TEACHER";
+  name: string;
+  email: string;
   specialty: string;
   phone: string;
   avatar: string;
   avatarPublicId: string;
-
-  degree: string;
-  experience: string;
-  achievement: string;
-
-  bio: string; // giữ tạm để tương thích dữ liệu cũ
-
-  rating: number;
   isActive: boolean;
   isDeleted: boolean;
   deletedAt: Date | null;
@@ -28,6 +23,29 @@ const teacherSchema = new Schema<Teacher>(
       ref: "User",
       required: true,
       unique: true,
+      index: true,
+    },
+
+    role: {
+      type: String,
+      required: true,
+      enum: ["TEACHER"],
+      default: "TEACHER",
+      index: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
       index: true,
     },
 
@@ -54,37 +72,6 @@ const teacherSchema = new Schema<Teacher>(
       default: "",
       trim: true,
       index: true,
-    },
-
-    degree: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
-    experience: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
-    achievement: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
-    bio: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-
-    rating: {
-      type: Number,
-      default: 4.8,
-      min: 0,
-      max: 5,
     },
 
     isActive: {

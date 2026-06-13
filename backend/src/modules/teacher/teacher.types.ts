@@ -12,19 +12,13 @@ export type TeacherProductItem = {
 export type TeacherListItem = {
   _id: string;
   userId: string;
+  role: "TEACHER";
   name: string;
   email: string;
 
   specialty: string;
   phone: string;
   avatar: string;
-
-  degree: string;
-  experience: string;
-  achievement: string;
-  bio: string;
-
-  rating: number;
   active: boolean;
   deletedAt: string | null;
 
@@ -41,36 +35,19 @@ export type CreateTeacherInput = {
   email: string;
   password: string;
 
-  specialty?: string;
   phone?: string;
 
   avatar?: string;
   avatarPublicId?: string;
-
-  degree?: string;
-  experience?: string;
-  achievement?: string;
-  bio?: string;
-
-  rating?: number;
-  active?: boolean;
 };
 
 export type UpdateTeacherInput = {
   name?: string;
+  email?: string;
   password?: string;
 
-  specialty?: string;
   phone?: string;
 
   avatar?: string;
   avatarPublicId?: string;
-
-  degree?: string;
-  experience?: string;
-  achievement?: string;
-  bio?: string;
-
-  rating?: number;
-  active?: boolean;
 };

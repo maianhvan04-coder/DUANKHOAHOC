@@ -1,20 +1,21 @@
 "use client";
 
 import Image from "next/image";
+import axios from "axios";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Award,
   BookOpen,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
   Lock,
   LockOpen,
   Pencil,
   Plus,
   RefreshCw,
   Search,
-  Star,
   Trash2,
   Users,
   RotateCcw,
@@ -75,45 +76,35 @@ type TeacherSortKey =
   | "specialty"
   | "courses"
   | "students"
-  | "rating"
   | "createdAt";
 
 type TeacherFormState = {
   name: string;
   email: string;
   password: string;
-  specialty: string;
   phone: string;
-  degree: string;
-  experience: string;
-  achievement: string;
-  rating: string;
-  active: boolean;
 };
 
 const INITIAL_FORM: TeacherFormState = {
   name: "",
   email: "",
   password: "",
-  specialty: "",
   phone: "",
-  degree: "",
-  experience: "",
-  achievement: "",
-  rating: "4.8",
-  active: true,
 };
 
-function buildBioFromForm(degree: string, experience: string) {
-  const lines = [
-    degree.trim(),
-    ...experience
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  ].filter(Boolean);
+type ApiErrorBody = {
+  message?: string;
+  errors?: Array<{ message?: string }>;
+};
 
-  return lines.map((line) => `- ${line}`).join("\n");
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (!axios.isAxiosError<ApiErrorBody>(error)) return fallback;
+
+  return (
+    error.response?.data?.errors?.find((item) => item.message)?.message ||
+    error.response?.data?.message ||
+    fallback
+  );
 }
 
 function StatusBadge({
@@ -170,6 +161,7 @@ function TeacherModal({
   onPickAvatar: (file: File | null) => void;
   onSubmit: () => void;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   const previewUrl = useMemo(() => {
     if (!avatarFile) return "";
     return URL.createObjectURL(avatarFile);
@@ -228,37 +220,47 @@ function TeacherModal({
                   Email
                 </label>
                 <input
+                  type="email"
                   value={value.email}
                   onChange={(e) => onChange({ email: e.target.value })}
-                  disabled={mode === "edit"}
                   placeholder="teacher@email.com"
-                  className={cn(
-                    "h-11 w-full rounded-2xl border px-4 text-sm outline-none transition dark:border-white/10 dark:bg-slate-900 dark:text-slate-100",
-                    mode === "edit"
-                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-500"
-                      : "border-slate-200 bg-white focus:border-emerald-500"
-                  )}
+                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
-                {mode === "edit" && (
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Email không được thay đổi sau khi tạo.
-                  </p>
-                )}
               </div>
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   {mode === "create" ? "Mật khẩu" : "Đổi mật khẩu"}
                 </label>
-                <input
-                  type="password"
-                  value={value.password}
-                  onChange={(e) => onChange({ password: e.target.value })}
-                  placeholder={
-                    mode === "create" ? "Nhập mật khẩu" : "Nhập mật khẩu mới..."
-                  }
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={value.password}
+                    onChange={(e) => onChange({ password: e.target.value })}
+                    placeholder={
+                      mode === "create"
+                        ? "Nhập mật khẩu"
+                        : "Nhập mật khẩu mới..."
+                    }
+                    className="h-11 w-full rounded-2xl border border-slate-200 bg-white py-0 pl-4 pr-12 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    disabled={saving}
+                    className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center rounded-r-2xl text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-white/10 dark:hover:text-slate-200"
+                    aria-label={
+                      showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                    }
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 {mode === "edit" ? (
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
                     Bỏ trống nếu không muốn đổi mật khẩu.
@@ -266,19 +268,7 @@ function TeacherModal({
                 ) : null}
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Chuyên môn
-                </label>
-                <input
-                  value={value.specialty}
-                  onChange={(e) => onChange({ specialty: e.target.value })}
-                  placeholder="IELTS, Web, Marketing..."
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
+              <div className="md:col-span-2">
                 <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Điện thoại
                 </label>
@@ -286,36 +276,6 @@ function TeacherModal({
                   value={value.phone}
                   onChange={(e) => onChange({ phone: e.target.value })}
                   placeholder="09xxxxxxxx"
-                  className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Bằng cấp
-                </label>
-                <textarea
-                  rows={3}
-                  value={value.degree}
-                  onChange={(e) => onChange({ degree: e.target.value })}
-                  placeholder="Ví dụ: Cử nhân CNTT"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Đánh giá
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  value={value.rating}
-                  onChange={(e) =>
-                    onChange({ rating: e.target.value.replace(",", ".") })
-                  }
                   className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
                 />
               </div>
@@ -384,43 +344,6 @@ function TeacherModal({
                   ) : null}
                 </div>
               </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Kinh nghiệm
-                </label>
-                <textarea
-                  rows={5}
-                  value={value.experience}
-                  onChange={(e) => onChange({ experience: e.target.value })}
-                  placeholder="Mỗi dòng là một ý kinh nghiệm..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <Award className="h-4 w-4" />
-                  Thành tích
-                </label>
-                <textarea
-                  rows={4}
-                  value={value.achievement}
-                  onChange={(e) => onChange({ achievement: e.target.value })}
-                  placeholder="Ví dụ: Top giảng viên xuất sắc, đào tạo hơn 1000 học viên..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
-                />
-              </div>
-
-              <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300 md:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={value.active}
-                  onChange={(e) => onChange({ active: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Kích hoạt sau khi lưu
-              </label>
             </div>
           </div>
 
@@ -548,13 +471,7 @@ export default function AdminTeachersPage() {
       name: item.name,
       email: item.email,
       password: "",
-      specialty: item.specialty,
       phone: item.phone,
-      degree: item.degree || "",
-      experience: item.experience || "",
-      achievement: item.achievement || "",
-      rating: String(item.rating || 4.8),
-      active: item.active,
     });
     setAvatarFile(null);
     setModalOpen(true);
@@ -562,16 +479,17 @@ export default function AdminTeachersPage() {
 
   async function handleSubmit() {
     if (!form.name.trim()) return toast.warning("Vui lòng nhập họ tên");
-    if (!form.email.trim() && formMode === "create") {
+    if (!form.email.trim()) {
       return toast.warning("Vui lòng nhập email");
     }
     if (formMode === "create" && !form.password.trim()) {
       return toast.warning("Vui lòng nhập mật khẩu");
     }
-
-    const rating = Number(String(form.rating || "4.8").replace(",", "."));
-    if (Number.isNaN(rating) || rating < 0 || rating > 5) {
-      return toast.warning("Rating phải nằm trong khoảng 0 đến 5");
+    if (formMode === "create" && form.password.length < 6) {
+      return toast.warning("Mật khẩu phải có ít nhất 6 ký tự");
+    }
+    if (formMode === "edit" && form.password && form.password.length < 6) {
+      return toast.warning("Mật khẩu mới phải có ít nhất 6 ký tự");
     }
 
     try {
@@ -582,14 +500,7 @@ export default function AdminTeachersPage() {
           name: form.name.trim(),
           email: form.email.trim(),
           password: form.password,
-          specialty: form.specialty.trim(),
           phone: form.phone.trim(),
-          degree: form.degree.trim(),
-          experience: form.experience.trim(),
-          achievement: form.achievement.trim(),
-          bio: buildBioFromForm(form.degree, form.experience),
-          rating,
-          active: form.active,
           avatarFile,
         };
 
@@ -603,14 +514,8 @@ export default function AdminTeachersPage() {
       } else if (editingId) {
         const body: UpdateTeacherPayload = {
           name: form.name.trim(),
-          specialty: form.specialty.trim(),
+          email: form.email.trim(),
           phone: form.phone.trim(),
-          degree: form.degree.trim(),
-          experience: form.experience.trim(),
-          achievement: form.achievement.trim(),
-          bio: buildBioFromForm(form.degree, form.experience),
-          rating,
-          active: form.active,
           avatarFile,
         };
 
@@ -631,7 +536,7 @@ export default function AdminTeachersPage() {
       resetForm();
     } catch (error) {
       console.error(error);
-      toast.error("Lưu giảng viên thất bại");
+      toast.error(getApiErrorMessage(error, "Lưu giảng viên thất bại"));
     } finally {
       setSaving(false);
     }
@@ -795,19 +700,9 @@ export default function AdminTeachersPage() {
           <AdminEntityCell
             title={item.name || "--"}
             subtitle={item.email || "--"}
-            meta={item.achievement ? `Thanh tich: ${item.achievement}` : undefined}
             image={item.avatar}
             fallback={getInitials(item.name)}
           />
-        ),
-      },
-      {
-        id: "specialty",
-        label: "Specialty",
-        sortKey: "specialty",
-        widthClassName: "w-[160px]",
-        render: (item) => (
-          <div className="truncate text-sm">{item.specialty || "--"}</div>
         ),
       },
       {
@@ -947,7 +842,7 @@ export default function AdminTeachersPage() {
         rowKey={(item) => item._id}
         loading={loading}
         searchValue={search}
-        searchPlaceholder="Search name, email, specialty, achievement..."
+        searchPlaceholder="Search name, email, specialty, phone..."
         onSearchChange={(value) => {
           setSearch(value);
           setPage(1);
@@ -992,7 +887,7 @@ export default function AdminTeachersPage() {
           pageSizeOptions: [5, 10, 20],
         }}
         emptyText="Không có dữ liệu phù hợp"
-        tableMinWidthClassName="min-w-[1124px]"
+        tableMinWidthClassName="min-w-[964px]"
       />
 
       <section className="hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1005,7 +900,7 @@ export default function AdminTeachersPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search name, email, specialty, achievement..."
+              placeholder="Search name, email, specialty, phone..."
               className="h-11 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 text-sm outline-none focus:border-emerald-500"
             />
           </div>
@@ -1061,7 +956,6 @@ export default function AdminTeachersPage() {
               <option value="specialty">Sort: Specialty</option>
               <option value="courses">Sort: Courses</option>
               <option value="students">Sort: Students</option>
-              <option value="rating">Sort: Rating</option>
             </select>
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           </div>
@@ -1103,17 +997,11 @@ export default function AdminTeachersPage() {
                 <th className="w-82.5 px-4 py-4 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   Teacher
                 </th>
-                <th className="w-37.5 px-4 py-4 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                  Specialty
-                </th>
                 <th className="w-27.5 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   Courses
                 </th>
                 <th className="w-31.25 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   Students
-                </th>
-                <th className="w-27.5 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                  Rating
                 </th>
                 <th className="w-35 px-4 py-4 text-center text-[12px] font-semibold uppercase tracking-wide text-slate-500">
                   Status
@@ -1131,7 +1019,7 @@ export default function AdminTeachersPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-sm text-slate-500"
                   >
                     Đang tải dữ liệu...
@@ -1140,7 +1028,7 @@ export default function AdminTeachersPage() {
               ) : pagedItems.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-sm text-slate-500"
                   >
                     Không có dữ liệu phù hợp
@@ -1186,21 +1074,7 @@ export default function AdminTeachersPage() {
                           <div className="truncate text-[13px] text-slate-500">
                             {item.email}
                           </div>
-                          {item.achievement ? (
-                            <div className="mt-1 truncate text-[12px] text-slate-500">
-                              <span className="font-medium text-slate-700">
-                                Thành tích:
-                              </span>{" "}
-                              {item.achievement}
-                            </div>
-                          ) : null}
                         </div>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3.5 ">
-                      <div className="truncate text-sm text-slate-700">
-                        {item.specialty || "--"}
                       </div>
                     </td>
 
@@ -1217,13 +1091,6 @@ export default function AdminTeachersPage() {
                         <span className="font-medium">
                           {formatNumber(item.totalStudents)}
                         </span>
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-slate-800">
-                        <Star className="h-4 w-4 fill-current text-amber-500" />
-                        {item.rating.toFixed(1)}
                       </div>
                     </td>
 
@@ -1351,6 +1218,7 @@ export default function AdminTeachersPage() {
       </section>
 
       <TeacherModal
+        key={`${formMode}-${editingId ?? "new"}-${modalOpen ? "open" : "closed"}`}
         open={modalOpen}
         mode={formMode}
         value={form}

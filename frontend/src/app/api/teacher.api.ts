@@ -26,11 +26,6 @@ export type TeacherItem = {
   specialty: string;
   phone: string;
   avatar: string;
-  degree: string;
-  experience: string;
-  achievement: string;
-  bio: string;
-  rating: number;
   active: boolean;
   deletedAt: string | null;
   productCount: number;
@@ -44,28 +39,15 @@ export type CreateTeacherPayload = {
   name: string;
   email: string;
   password: string;
-  specialty?: string;
   phone?: string;
-  degree?: string;
-  experience?: string;
-  achievement?: string;
-  bio?: string;
-  rating?: number;
-  active?: boolean;
   avatarFile?: File | null;
 };
 
 export type UpdateTeacherPayload = Partial<{
   name: string;
+  email: string;
   password: string;
-  specialty: string;
   phone: string;
-  degree: string;
-  experience: string;
-  achievement: string;
-  bio: string;
-  rating: number;
-  active: boolean;
   avatarFile: File | null;
 }>;
 
@@ -126,11 +108,6 @@ function parseTeacher(raw: unknown): TeacherItem {
     specialty: toStr(o.specialty),
     phone: toStr(o.phone),
     avatar: toStr(o.avatar),
-    degree: toStr(o.degree),
-    experience: toStr(o.experience),
-    achievement: toStr(o.achievement),
-    bio: toStr(o.bio),
-    rating: toNum(o.rating, 4.8),
     active: toBool(o.active, true),
     deletedAt: o.deletedAt == null ? null : toStr(o.deletedAt),
     productCount: toNum(o.productCount),
@@ -171,14 +148,7 @@ function buildCreateTeacherFormData(payload: CreateTeacherPayload) {
   formData.append("email", payload.email);
   formData.append("password", payload.password);
 
-  appendIfDefined(formData, "specialty", payload.specialty ?? "");
   appendIfDefined(formData, "phone", payload.phone ?? "");
-  appendIfDefined(formData, "degree", payload.degree ?? "");
-  appendIfDefined(formData, "experience", payload.experience ?? "");
-  appendIfDefined(formData, "achievement", payload.achievement ?? "");
-  appendIfDefined(formData, "bio", payload.bio ?? "");
-  appendIfDefined(formData, "rating", payload.rating);
-  appendIfDefined(formData, "active", payload.active);
 
   if (payload.avatarFile) {
     formData.append("avatar", payload.avatarFile);
@@ -191,15 +161,9 @@ function buildUpdateTeacherFormData(payload: UpdateTeacherPayload) {
   const formData = new FormData();
 
   appendIfDefined(formData, "name", payload.name);
+  appendIfDefined(formData, "email", payload.email);
   appendIfDefined(formData, "password", payload.password);
-  appendIfDefined(formData, "specialty", payload.specialty);
   appendIfDefined(formData, "phone", payload.phone);
-  appendIfDefined(formData, "degree", payload.degree);
-  appendIfDefined(formData, "experience", payload.experience);
-  appendIfDefined(formData, "achievement", payload.achievement);
-  appendIfDefined(formData, "bio", payload.bio);
-  appendIfDefined(formData, "rating", payload.rating);
-  appendIfDefined(formData, "active", payload.active);
 
   if (payload.avatarFile) {
     formData.append("avatar", payload.avatarFile);

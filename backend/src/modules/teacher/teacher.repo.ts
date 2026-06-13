@@ -3,6 +3,7 @@ import { TeacherModel } from "./teacher.model";
 import { UserModel } from "../user/user.model";
 import { ProductModel } from "../course/course.model";
 import { ROLES } from "../../constants/roles";
+import UserRole from "../rbac/models/userRole.model";
 import type {
   CreateTeacherInput,
   TeacherListItem,
@@ -28,29 +29,6 @@ function normalizeName(value: string) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
-}
-
-function buildLegacyBio(payload: {
-  degree?: string;
-  experience?: string;
-  bio?: string;
-}) {
-  if (payload.bio && payload.bio.trim()) return payload.bio.trim();
-
-  const lines: string[] = [];
-
-  if (payload.degree?.trim()) {
-    lines.push(payload.degree.trim());
-  }
-
-  const expLines = String(payload.experience || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  lines.push(...expLines);
-
-  return lines.map((line) => `- ${line}`).join("\n");
 }
 
 function getUserIdFromTeacherDoc(teacher: any) {
@@ -161,18 +139,12 @@ async function mapTeachers(items: any[]): Promise<TeacherListItem[]> {
       return {
         _id: teacherId,
         userId: String(user._id || ""),
-        name: String(user.name || ""),
-        email: String(user.email || ""),
+        role: "TEACHER",
+        name: String(item.name || user.name || ""),
+        email: String(item.email || user.email || ""),
         specialty: String(item.specialty || ""),
         phone: String(item.phone || ""),
         avatar: String(item.avatar || ""),
-
-        degree: String(item.degree || ""),
-        experience: String(item.experience || ""),
-        achievement: String(item.achievement || ""),
-        bio: String(item.bio || ""),
-
-        rating: Number(item.rating || 4.8),
         active: item.isActive !== false && user.active !== false,
         deletedAt: item.deletedAt ? new Date(item.deletedAt).toISOString() : null,
         productCount: teacherProducts.length,
@@ -194,6 +166,7 @@ export const teacherRepo = {
     const deleted = Boolean(query?.deleted);
 
     const teacherFilter: Record<string, unknown> = {
+      role: ROLES.TEACHER,
       isDeleted: deleted,
     };
 
@@ -214,10 +187,6 @@ export const teacherRepo = {
         $or: [
           { specialty: regex },
           { phone: regex },
-          { degree: regex },
-          { experience: regex },
-          { achievement: regex },
-          { bio: regex },
           { user: { $in: matchedUserIds } },
         ],
       });
@@ -264,8 +233,6 @@ export const teacherRepo = {
           case "students":
           case "totalStudents":
             return item.totalStudents;
-          case "rating":
-            return item.rating;
           case "createdAt":
           default:
             return item.createdAt;
@@ -346,8 +313,10 @@ export const teacherRepo = {
           name: payload.name.trim(),
           email: payload.email.trim().toLowerCase(),
           passwordHash,
+          avatar: payload.avatar?.trim() || null,
+          avatarPublicId: payload.avatarPublicId?.trim() || null,
           role: ROLES.TEACHER,
-          active: payload.active ?? true,
+          active: true,
           deletedAt: null,
         },
       ],
@@ -366,18 +335,14 @@ export const teacherRepo = {
       [
         {
           user: userId,
-          specialty: payload.specialty?.trim() || "",
+          role: ROLES.TEACHER,
+          name: payload.name.trim(),
+          email: payload.email.trim().toLowerCase(),
+          specialty: "",
           phone: payload.phone?.trim() || "",
           avatar: payload.avatar?.trim() || "",
           avatarPublicId: payload.avatarPublicId?.trim() || "",
-
-          degree: payload.degree?.trim() || "",
-          experience: payload.experience?.trim() || "",
-          achievement: payload.achievement?.trim() || "",
-          bio: buildLegacyBio(payload),
-
-          rating: payload.rating ?? 4.8,
-          isActive: payload.active ?? true,
+          isActive: true,
           isDeleted: false,
           deletedAt: null,
         },
@@ -396,13 +361,18 @@ export const teacherRepo = {
     const updateData: Record<string, unknown> = {};
 
     if (payload.name !== undefined) updateData.name = payload.name.trim();
+    if (payload.email !== undefined) {
+      updateData.email = payload.email.trim().toLowerCase();
+    }
     if (payload.passwordHash !== undefined) {
       updateData.passwordHash = payload.passwordHash;
     }
-    if (payload.active !== undefined) {
-      updateData.active = payload.active;
+    if (payload.avatar !== undefined) {
+      updateData.avatar = payload.avatar.trim() || null;
     }
-
+    if (payload.avatarPublicId !== undefined) {
+      updateData.avatarPublicId = payload.avatarPublicId.trim() || null;
+    }
     if (Object.keys(updateData).length) {
       await UserModel.findByIdAndUpdate(userId, updateData, {
         session,
@@ -418,8 +388,11 @@ export const teacherRepo = {
   ) {
     const updateData: Record<string, unknown> = {};
 
-    if (payload.specialty !== undefined) {
-      updateData.specialty = payload.specialty.trim();
+    if (payload.name !== undefined) {
+      updateData.name = payload.name.trim();
+    }
+    if (payload.email !== undefined) {
+      updateData.email = payload.email.trim().toLowerCase();
     }
     if (payload.phone !== undefined) {
       updateData.phone = payload.phone.trim();
@@ -430,25 +403,6 @@ export const teacherRepo = {
     if (payload.avatarPublicId !== undefined) {
       updateData.avatarPublicId = payload.avatarPublicId.trim();
     }
-    if (payload.degree !== undefined) {
-      updateData.degree = payload.degree.trim();
-    }
-    if (payload.experience !== undefined) {
-      updateData.experience = payload.experience.trim();
-    }
-    if (payload.achievement !== undefined) {
-      updateData.achievement = payload.achievement.trim();
-    }
-    if (payload.bio !== undefined) {
-      updateData.bio = payload.bio.trim();
-    }
-    if (payload.rating !== undefined) {
-      updateData.rating = payload.rating;
-    }
-    if (payload.active !== undefined) {
-      updateData.isActive = payload.active;
-    }
-
     if (Object.keys(updateData).length) {
       await TeacherModel.findByIdAndUpdate(teacherId, updateData, {
         session,
@@ -549,11 +503,24 @@ export const teacherRepo = {
           },
         },
       ],
-      { session }
+      { session, updatePipeline: true }
     );
 
     await TeacherModel.deleteOne({ _id: teacherId }, { session });
     await UserModel.deleteOne({ _id: userId }, { session });
+    await UserRole.updateMany(
+      {
+        userId,
+        isDeleted: false,
+      },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date(),
+        },
+      },
+      { session }
+    );
   },
 
   getUserIdFromTeacherDoc,

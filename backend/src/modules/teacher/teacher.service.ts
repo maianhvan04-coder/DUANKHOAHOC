@@ -9,29 +9,6 @@ import {
 import ApiError from "../../core/apiError";
 import type { ListQueryInput } from "../../utils/list-query";
 
-function buildLegacyBio(payload: {
-  degree?: string;
-  experience?: string;
-  bio?: string;
-}) {
-  if (payload.bio && payload.bio.trim()) return payload.bio.trim();
-
-  const lines: string[] = [];
-
-  if (payload.degree?.trim()) {
-    lines.push(payload.degree.trim());
-  }
-
-  const expLines = String(payload.experience || "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  lines.push(...expLines);
-
-  return lines.map((line) => `- ${line}`).join("\n");
-}
-
 export const teacherService = {
   async list(query?: ListQueryInput & { deleted?: boolean }) {
     return teacherRepo.list(query);
@@ -71,12 +48,10 @@ export const teacherService = {
 
     const normalizedPayload: CreateTeacherInput = {
       ...payload,
-      specialty: String(payload.specialty || "").trim(),
+      email: payload.email.trim().toLowerCase(),
       phone: String(payload.phone || "").trim(),
-      degree: String(payload.degree || "").trim(),
-      experience: String(payload.experience || "").trim(),
-      achievement: String(payload.achievement || "").trim(),
-      bio: buildLegacyBio(payload),
+      avatar: uploadedAvatar?.secure_url || "",
+      avatarPublicId: uploadedAvatar?.public_id || "",
     };
 
     const session = await mongoose.startSession();
@@ -94,11 +69,7 @@ export const teacherService = {
 
         const teacher = await teacherRepo.createTeacher(
           String(user._id),
-          {
-            ...normalizedPayload,
-            avatar: uploadedAvatar?.secure_url || "",
-            avatarPublicId: uploadedAvatar?.public_id || "",
-          },
+          normalizedPayload,
           session
         );
 
@@ -133,41 +104,24 @@ export const teacherService = {
       throw new ApiError(400, "Giảng viên không hợp lệ");
     }
 
-    const nextDegree =
-      payload.degree !== undefined
-        ? String(payload.degree || "").trim()
-        : String((current as any).degree || "").trim();
+    if (payload.email !== undefined) {
+      const normalizedEmail = payload.email.trim().toLowerCase();
+      const existed = await teacherRepo.findUserByEmail(normalizedEmail);
 
-    const nextExperience =
-      payload.experience !== undefined
-        ? String(payload.experience || "").trim()
-        : String((current as any).experience || "").trim();
+      if (existed && String(existed._id) !== userId) {
+        throw new ApiError(409, "Email đã tồn tại");
+      }
+    }
 
     const normalizedPayload: UpdateTeacherInput = {
       ...payload,
-      specialty:
-        payload.specialty !== undefined
-          ? String(payload.specialty || "").trim()
+      email:
+        payload.email !== undefined
+          ? payload.email.trim().toLowerCase()
           : undefined,
       phone:
         payload.phone !== undefined
           ? String(payload.phone || "").trim()
-          : undefined,
-      degree: payload.degree !== undefined ? nextDegree : undefined,
-      experience: payload.experience !== undefined ? nextExperience : undefined,
-      achievement:
-        payload.achievement !== undefined
-          ? String(payload.achievement || "").trim()
-          : undefined,
-      bio:
-        payload.bio !== undefined ||
-        payload.degree !== undefined ||
-        payload.experience !== undefined
-          ? buildLegacyBio({
-              degree: nextDegree,
-              experience: nextExperience,
-              bio: payload.bio,
-            })
           : undefined,
     };
 

@@ -3,27 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
-  Award,
   BookOpen,
   ChevronDown,
   GraduationCap,
   Mail,
   Phone,
-  Star,
-  Users,
   X,
 } from "lucide-react";
 import { teacherApi, type TeacherItem } from "@/app/api/teacher.api";
 
 const INITIAL_VISIBLE = 8;
 const LOAD_MORE_STEP = 8;
-
-const EXPERIENCE_FILTERS = [
-  { value: "1-3", label: "1-3 năm" },
-  { value: "4-6", label: "4-6 năm" },
-  { value: "7-10", label: "7-10 năm" },
-  { value: "10+", label: "Trên 10 năm" },
-] as const;
 
 const FALLBACK_IMAGES = [
   "/home/teachers/teacher-1.png",
@@ -61,36 +51,6 @@ function getCourseCount(item: TeacherItem) {
   return item.productCount || item.products?.length || 0;
 }
 
-function getExperienceYear(item: TeacherItem) {
-  const text = `${item.experience || ""} ${item.bio || ""}`;
-  const match = text.match(/(\d+)\s*(?:\+)?\s*năm/i);
-  if (!match) return undefined;
-
-  const year = Number(match[1]);
-  return Number.isNaN(year) ? undefined : year;
-}
-
-function getExperienceLabel(item: TeacherItem) {
-  const year = getExperienceYear(item);
-  if (year) return `${year} năm kinh nghiệm`;
-  if (item.experience) return item.experience;
-  return "Đang cập nhật kinh nghiệm";
-}
-
-function matchesExperienceFilter(item: TeacherItem, filter: string) {
-  if (!filter) return true;
-
-  const year = getExperienceYear(item);
-  if (!year) return false;
-
-  if (filter === "1-3") return year >= 1 && year <= 3;
-  if (filter === "4-6") return year >= 4 && year <= 6;
-  if (filter === "7-10") return year >= 7 && year <= 10;
-  if (filter === "10+") return year > 10;
-
-  return true;
-}
-
 function TeacherCard({
   item,
   index,
@@ -125,17 +85,8 @@ function TeacherCard({
         </p>
 
         <p className="line-clamp-1 text-[15px] leading-6 text-black">
-          {getExperienceLabel(item)}
-        </p>
-
-        <p className="line-clamp-1 text-[15px] leading-6 text-black">
           {courseCount ? `${formatNumber(courseCount)} khóa học` : "Đang cập nhật khóa học"}
         </p>
-
-        <div className="mt-1 flex items-center gap-1 text-[15px] leading-6 text-black">
-          <Star className="h-4 w-4 fill-[#F6C21A] text-[#F6C21A]" />
-          <span>{(item.rating || 4.9).toFixed(1)} (120)</span>
-        </div>
 
         <button
           type="button"
@@ -231,19 +182,7 @@ function TeacherProfileModal({
               />
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-[#F8FBFF] p-3 text-center ring-1 ring-[#D3DCE8]">
-                <div className="flex justify-center text-[#F6C21A]">
-                  <Star className="h-5 w-5 fill-current" />
-                </div>
-                <p className="mt-1 text-[18px] font-black text-black">
-                  {(item.rating || 4.9).toFixed(1)}
-                </p>
-                <p className="text-[12px] font-semibold text-slate-500">
-                  Đánh giá
-                </p>
-              </div>
-
+            <div className="mt-4">
               <div className="rounded-lg bg-[#F8FBFF] p-3 text-center ring-1 ring-[#D3DCE8]">
                 <div className="flex justify-center text-[#0D56A6]">
                   <BookOpen className="h-5 w-5" />
@@ -265,30 +204,6 @@ function TeacherProfileModal({
                 label="Chuyên môn"
                 value={item.specialty || "Tiếng Anh Giao Tiếp"}
               />
-              <ProfileField
-                icon={<Users className="h-4 w-4" />}
-                label="Kinh nghiệm"
-                value={getExperienceLabel(item)}
-              />
-              <ProfileField
-                icon={<Award className="h-4 w-4" />}
-                label="Bằng cấp"
-                value={item.degree || "Đang cập nhật thông tin bằng cấp."}
-              />
-              <ProfileField
-                icon={<Award className="h-4 w-4" />}
-                label="Thành tích"
-                value={item.achievement || "Đang cập nhật thành tích."}
-              />
-            </div>
-
-            <div className="mt-5 rounded-lg border border-[#D3DCE8] bg-white p-4">
-              <h3 className="text-[17px] font-black text-black">Giới thiệu</h3>
-              <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-700">
-                {item.bio ||
-                  item.experience ||
-                  "Thông tin giới thiệu của giáo viên đang được cập nhật."}
-              </p>
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -337,7 +252,6 @@ export default function PublicTeachersPage() {
   const [items, setItems] = useState<TeacherItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [specialtyFilter, setSpecialtyFilter] = useState("");
-  const [experienceFilter, setExperienceFilter] = useState("");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
   const [selectedProfile, setSelectedProfile] =
     useState<SelectedTeacherProfile | null>(null);
@@ -377,14 +291,13 @@ export default function PublicTeachersPage() {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      if (specialtyFilter && item.specialty !== specialtyFilter) return false;
-      return matchesExperienceFilter(item, experienceFilter);
+      return !specialtyFilter || item.specialty === specialtyFilter;
     });
-  }, [experienceFilter, items, specialtyFilter]);
+  }, [items, specialtyFilter]);
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE);
-  }, [experienceFilter, specialtyFilter]);
+  }, [specialtyFilter]);
 
   useEffect(() => {
     if (!selectedProfile) return;
@@ -410,7 +323,7 @@ export default function PublicTeachersPage() {
   return (
     <section className="bg-white py-8 md:py-10">
       <div className="mx-auto max-w-[1240px] px-4 md:px-6">
-        <div className="mx-auto grid max-w-[860px] gap-4 md:grid-cols-2 md:gap-5">
+        <div className="mx-auto max-w-[430px]">
           <label className="block">
             <span className="mb-2 block text-[17px] font-bold text-black">
               Chuyên môn
@@ -432,26 +345,6 @@ export default function PublicTeachersPage() {
             </span>
           </label>
 
-          <label className="block">
-            <span className="mb-2 block text-[17px] font-bold text-black">
-              Kinh nghiệm
-            </span>
-            <span className="relative block">
-              <select
-                value={experienceFilter}
-                onChange={(event) => setExperienceFilter(event.target.value)}
-                className="h-11 w-full appearance-none rounded-md border border-[#C9D3E0] bg-white px-4 pr-10 text-[15px] text-black outline-none transition focus:border-[#0D56A6] focus:ring-4 focus:ring-[#0D56A6]/10"
-              >
-                <option value="">e.g. 1-3 năm, 4-6 năm, Trên 10 năm</option>
-                {EXPERIENCE_FILTERS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-600" />
-            </span>
-          </label>
         </div>
 
         <div className="mt-7">

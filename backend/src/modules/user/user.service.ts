@@ -7,6 +7,8 @@ import UserRole from "../rbac/models/userRole.model";
 import { StudentModel } from "../student/student.model";
 import { StudentStudyModel } from "../student/student-study.model";
 import { syncStudentProfileForUser } from "../student/student-profile.sync";
+import { TeacherModel } from "../teacher/teacher.model";
+import { syncTeacherProfileForUser } from "../teacher/teacher-profile.sync";
 import {
   escapeRegex,
   getQueryString,
@@ -172,6 +174,7 @@ export const userService = {
 
     await setRolesForUser(String(doc._id), roleCodes);
     await syncStudentProfileForUser(String(doc._id));
+    await syncTeacherProfileForUser(String(doc._id));
 
     const obj = doc.toObject() as Record<string, any>;
     return withAccessRoles(obj);
@@ -231,6 +234,7 @@ export const userService = {
     }
 
     await syncStudentProfileForUser(id);
+    await syncTeacherProfileForUser(id);
 
     return withAccessRoles(updated);
   },
@@ -248,6 +252,10 @@ export const userService = {
 
     if (updated) {
       await StudentModel.updateOne(
+        { user: id },
+        { $set: { isActive: active } }
+      );
+      await TeacherModel.updateOne(
         { user: id },
         { $set: { isActive: active } }
       );
@@ -283,6 +291,16 @@ export const userService = {
         { student: id },
         { $set: { isActive: false } }
       );
+      await TeacherModel.updateOne(
+        { user: id },
+        {
+          $set: {
+            isActive: false,
+            isDeleted: true,
+            deletedAt: updated.deletedAt,
+          },
+        }
+      );
     }
 
     return !!updated;
@@ -302,6 +320,7 @@ export const userService = {
 
     await StudentModel.deleteOne({ user: userId });
     await StudentStudyModel.deleteMany({ student: userId });
+    await TeacherModel.deleteOne({ user: userId });
 
     await UserRole.updateMany(
       {
@@ -345,6 +364,16 @@ export const userService = {
       await StudentStudyModel.updateMany(
         { student: id },
         { $set: { isActive: true } }
+      );
+      await TeacherModel.updateOne(
+        { user: id },
+        {
+          $set: {
+            isActive: true,
+            isDeleted: false,
+            deletedAt: null,
+          },
+        }
       );
     }
 
