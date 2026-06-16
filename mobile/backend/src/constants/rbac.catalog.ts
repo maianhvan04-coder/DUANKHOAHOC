@@ -1,0 +1,1821 @@
+import { PERMISSION_GROUPS } from "./permission.groups";
+import { PERMISSIONS, type PermissionKey } from "./permissions";
+import { ROLES, type Role } from "./roles";
+
+type SeedPermissionMeta = {
+  key: PermissionKey;
+  resource: string;
+  action: string;
+  label: string;
+  groupKey: string;
+  groupLabel: string;
+  order?: number;
+};
+
+function meta(
+  key: PermissionKey,
+  resource: string,
+  action: string,
+  label: string,
+  groupKey: string,
+  groupLabel: string,
+  order: number
+): SeedPermissionMeta {
+  return {
+    key,
+    resource,
+    action,
+    label,
+    groupKey,
+    groupLabel,
+    order,
+  };
+}
+
+const BASE_PERMISSION_META = Object.freeze({
+  [PERMISSIONS.DASHBOARD_READ]: meta(
+    PERMISSIONS.DASHBOARD_READ,
+    "dashboard",
+    "read",
+    "Xem dashboard tổng quan",
+    PERMISSION_GROUPS.DASHBOARD.key,
+    PERMISSION_GROUPS.DASHBOARD.label,
+    10
+  ),
+
+  // USER
+  [PERMISSIONS.USER_READ]: meta(
+    PERMISSIONS.USER_READ,
+    "user",
+    "read",
+    "Xem người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    110
+  ),
+  [PERMISSIONS.USER_CREATE]: meta(
+    PERMISSIONS.USER_CREATE,
+    "user",
+    "create",
+    "Tạo người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    120
+  ),
+  [PERMISSIONS.USER_UPDATE]: meta(
+    PERMISSIONS.USER_UPDATE,
+    "user",
+    "update",
+    "Cập nhật người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    130
+  ),
+  [PERMISSIONS.USER_DELETE]: meta(
+    PERMISSIONS.USER_DELETE,
+    "user",
+    "delete",
+    "Xóa người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    140
+  ),
+  [PERMISSIONS.USER_CHANGE_STATUS]: meta(
+    PERMISSIONS.USER_CHANGE_STATUS,
+    "user",
+    "status",
+    "Đổi trạng thái người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    150
+  ),
+  [PERMISSIONS.USER_SET_ROLES]: meta(
+    PERMISSIONS.USER_SET_ROLES,
+    "user",
+    "set_roles",
+    "Gán vai trò cho người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    160
+  ),
+
+  // CATEGORY
+  [PERMISSIONS.CATEGORY_READ]: meta(
+    PERMISSIONS.CATEGORY_READ,
+    "category",
+    "read",
+    "Xem danh mục khóa học",
+    PERMISSION_GROUPS.CATEGORIES.key,
+    PERMISSION_GROUPS.CATEGORIES.label,
+    210
+  ),
+  [PERMISSIONS.CATEGORY_CREATE]: meta(
+    PERMISSIONS.CATEGORY_CREATE,
+    "category",
+    "create",
+    "Tạo danh mục khóa học",
+    PERMISSION_GROUPS.CATEGORIES.key,
+    PERMISSION_GROUPS.CATEGORIES.label,
+    220
+  ),
+  [PERMISSIONS.CATEGORY_UPDATE]: meta(
+    PERMISSIONS.CATEGORY_UPDATE,
+    "category",
+    "update",
+    "Cập nhật danh mục khóa học",
+    PERMISSION_GROUPS.CATEGORIES.key,
+    PERMISSION_GROUPS.CATEGORIES.label,
+    230
+  ),
+  [PERMISSIONS.CATEGORY_DELETE]: meta(
+    PERMISSIONS.CATEGORY_DELETE,
+    "category",
+    "delete",
+    "Xóa danh mục khóa học",
+    PERMISSION_GROUPS.CATEGORIES.key,
+    PERMISSION_GROUPS.CATEGORIES.label,
+    240
+  ),
+  [PERMISSIONS.CATEGORY_CHANGE_STATUS]: meta(
+    PERMISSIONS.CATEGORY_CHANGE_STATUS,
+    "category",
+    "status",
+    "Đổi trạng thái danh mục khóa học",
+    PERMISSION_GROUPS.CATEGORIES.key,
+    PERMISSION_GROUPS.CATEGORIES.label,
+    250
+  ),
+
+  // COURSE
+  [PERMISSIONS.COURSE_READ]: meta(
+    PERMISSIONS.COURSE_READ,
+    "course",
+    "read",
+    "Xem khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    310
+  ),
+  [PERMISSIONS.COURSE_CREATE]: meta(
+    PERMISSIONS.COURSE_CREATE,
+    "course",
+    "create",
+    "Tạo khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    320
+  ),
+  [PERMISSIONS.COURSE_UPDATE]: meta(
+    PERMISSIONS.COURSE_UPDATE,
+    "course",
+    "update",
+    "Cập nhật khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    330
+  ),
+  [PERMISSIONS.COURSE_DELETE]: meta(
+    PERMISSIONS.COURSE_DELETE,
+    "course",
+    "delete",
+    "Xóa khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    340
+  ),
+  [PERMISSIONS.COURSE_CHANGE_STATUS]: meta(
+    PERMISSIONS.COURSE_CHANGE_STATUS,
+    "course",
+    "status",
+    "Đổi trạng thái khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    350
+  ),
+  [PERMISSIONS.COURSE_PUBLISH]: meta(
+    PERMISSIONS.COURSE_PUBLISH,
+    "course",
+    "publish",
+    "Xuất bản khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    360
+  ),
+  [PERMISSIONS.COURSE_ASSIGN_TEACHER]: meta(
+    PERMISSIONS.COURSE_ASSIGN_TEACHER,
+    "course",
+    "assign_teacher",
+    "Gán giảng viên cho khóa học",
+    PERMISSION_GROUPS.COURSES.key,
+    PERMISSION_GROUPS.COURSES.label,
+    370
+  ),
+
+  // TEACHER
+  [PERMISSIONS.TEACHER_READ]: meta(
+    PERMISSIONS.TEACHER_READ,
+    "teacher",
+    "read",
+    "Xem giảng viên",
+    PERMISSION_GROUPS.TEACHERS.key,
+    PERMISSION_GROUPS.TEACHERS.label,
+    410
+  ),
+  [PERMISSIONS.TEACHER_CREATE]: meta(
+    PERMISSIONS.TEACHER_CREATE,
+    "teacher",
+    "create",
+    "Tạo giảng viên",
+    PERMISSION_GROUPS.TEACHERS.key,
+    PERMISSION_GROUPS.TEACHERS.label,
+    420
+  ),
+  [PERMISSIONS.TEACHER_UPDATE]: meta(
+    PERMISSIONS.TEACHER_UPDATE,
+    "teacher",
+    "update",
+    "Cập nhật giảng viên",
+    PERMISSION_GROUPS.TEACHERS.key,
+    PERMISSION_GROUPS.TEACHERS.label,
+    430
+  ),
+  [PERMISSIONS.TEACHER_DELETE]: meta(
+    PERMISSIONS.TEACHER_DELETE,
+    "teacher",
+    "delete",
+    "Xóa giảng viên",
+    PERMISSION_GROUPS.TEACHERS.key,
+    PERMISSION_GROUPS.TEACHERS.label,
+    440
+  ),
+  [PERMISSIONS.TEACHER_CHANGE_STATUS]: meta(
+    PERMISSIONS.TEACHER_CHANGE_STATUS,
+    "teacher",
+    "status",
+    "Đổi trạng thái giảng viên",
+    PERMISSION_GROUPS.TEACHERS.key,
+    PERMISSION_GROUPS.TEACHERS.label,
+    450
+  ),
+
+  // TEACHER PORTAL
+  [PERMISSIONS.TEACHER_PORTAL_ACCESS]: meta(
+    PERMISSIONS.TEACHER_PORTAL_ACCESS,
+    "teacher_portal",
+    "access",
+    "Truy cập trang giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    460
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ]: meta(
+    PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ,
+    "teacher_portal",
+    "dashboard_read",
+    "Xem bảng tin giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    461
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ]: meta(
+    PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ,
+    "teacher_schedule",
+    "read",
+    "Xem lịch dạy",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    462
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_READ]: meta(
+    PERMISSIONS.TEACHER_PORTAL_CLASS_READ,
+    "teacher_class",
+    "read",
+    "Xem lớp học của giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    463
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE]: meta(
+    PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE,
+    "teacher_class",
+    "create",
+    "Thêm lớp học giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    464
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE]: meta(
+    PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE,
+    "teacher_class",
+    "update",
+    "Sửa lớp học giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    465
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS]: meta(
+    PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS,
+    "teacher_class",
+    "status",
+    "Khóa/mở khóa lớp học giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    466
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE]: meta(
+    PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE,
+    "teacher_student",
+    "update",
+    "Cập nhật học viên, điểm danh, điểm kiểm tra",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    467
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ]: meta(
+    PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ,
+    "teacher_notification",
+    "read",
+    "Xem thông báo giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    468
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE]: meta(
+    PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE,
+    "teacher_notification",
+    "update",
+    "Cập nhật trạng thái thông báo giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    469
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_SETTING_READ]: meta(
+    PERMISSIONS.TEACHER_PORTAL_SETTING_READ,
+    "teacher_setting",
+    "read",
+    "Xem cài đặt giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    470
+  ),
+  [PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE]: meta(
+    PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE,
+    "teacher_setting",
+    "update",
+    "Cập nhật cài đặt giáo viên",
+    PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    PERMISSION_GROUPS.TEACHER_PORTAL.label,
+    471
+  ),
+
+  // STUDENT
+  [PERMISSIONS.STUDENT_READ]: meta(
+    PERMISSIONS.STUDENT_READ,
+    "student",
+    "read",
+    "Xem học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    510
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_ACCESS]: meta(
+    PERMISSIONS.STUDENT_PORTAL_ACCESS,
+    "student_portal",
+    "access",
+    "Truy cập trang học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    480
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ,
+    "student_portal",
+    "dashboard_read",
+    "Xem bảng tin học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    481
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ,
+    "student_schedule",
+    "read",
+    "Xem lịch học học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    482
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_GRADE_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_GRADE_READ,
+    "student_grade",
+    "read",
+    "Xem điểm học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    483
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ,
+    "student_notification",
+    "read",
+    "Xem thông báo học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    484
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE]: meta(
+    PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE,
+    "student_notification",
+    "update",
+    "Cập nhật trạng thái thông báo học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    485
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_PROFILE_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_PROFILE_READ,
+    "student_profile",
+    "read",
+    "Xem thông tin cá nhân học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    486
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE]: meta(
+    PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE,
+    "student_profile",
+    "update",
+    "Cập nhật thông tin cá nhân học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    487
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_SETTING_READ]: meta(
+    PERMISSIONS.STUDENT_PORTAL_SETTING_READ,
+    "student_setting",
+    "read",
+    "Xem cài đặt học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    488
+  ),
+  [PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE]: meta(
+    PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE,
+    "student_setting",
+    "update",
+    "Cập nhật cài đặt học viên",
+    PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    PERMISSION_GROUPS.STUDENT_PORTAL.label,
+    489
+  ),
+  [PERMISSIONS.STUDENT_CREATE]: meta(
+    PERMISSIONS.STUDENT_CREATE,
+    "student",
+    "create",
+    "Tạo học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    520
+  ),
+  [PERMISSIONS.STUDENT_UPDATE]: meta(
+    PERMISSIONS.STUDENT_UPDATE,
+    "student",
+    "update",
+    "Cập nhật học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    530
+  ),
+  [PERMISSIONS.STUDENT_DELETE]: meta(
+    PERMISSIONS.STUDENT_DELETE,
+    "student",
+    "delete",
+    "Xóa học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    540
+  ),
+  [PERMISSIONS.STUDENT_CHANGE_STATUS]: meta(
+    PERMISSIONS.STUDENT_CHANGE_STATUS,
+    "student",
+    "status",
+    "Đổi trạng thái học viên",
+    PERMISSION_GROUPS.STUDENTS.key,
+    PERMISSION_GROUPS.STUDENTS.label,
+    550
+  ),
+
+  // CLASSROOM
+  [PERMISSIONS.CLASSROOM_READ]: meta(
+    PERMISSIONS.CLASSROOM_READ,
+    "classroom",
+    "read",
+    "Xem lớp học",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    560
+  ),
+  [PERMISSIONS.CLASSROOM_CREATE]: meta(
+    PERMISSIONS.CLASSROOM_CREATE,
+    "classroom",
+    "create",
+    "Tạo lớp học",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    570
+  ),
+  [PERMISSIONS.CLASSROOM_UPDATE]: meta(
+    PERMISSIONS.CLASSROOM_UPDATE,
+    "classroom",
+    "update",
+    "Cập nhật lớp học",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    580
+  ),
+  [PERMISSIONS.CLASSROOM_DELETE]: meta(
+    PERMISSIONS.CLASSROOM_DELETE,
+    "classroom",
+    "delete",
+    "Xóa lớp học",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    590
+  ),
+  [PERMISSIONS.CLASSROOM_CHANGE_STATUS]: meta(
+    PERMISSIONS.CLASSROOM_CHANGE_STATUS,
+    "classroom",
+    "status",
+    "Đổi trạng thái lớp học",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    600
+  ),
+  [PERMISSIONS.CLASSROOM_ASSIGN_STUDENT]: meta(
+    PERMISSIONS.CLASSROOM_ASSIGN_STUDENT,
+    "classroom",
+    "assign_student",
+    "Gán học viên vào lớp",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    610
+  ),
+  [PERMISSIONS.CLASSROOM_UPDATE_LEARNING]: meta(
+    PERMISSIONS.CLASSROOM_UPDATE_LEARNING,
+    "classroom",
+    "update_learning",
+    "Cập nhật điểm, tiến độ, điểm danh theo lớp",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    620
+  ),
+  [PERMISSIONS.CLASSROOM_UPDATE_HONOR]: meta(
+    PERMISSIONS.CLASSROOM_UPDATE_HONOR,
+    "classroom",
+    "update_honor",
+    "Bật tắt vinh danh học viên trong lớp",
+    PERMISSION_GROUPS.CLASSROOMS.key,
+    PERMISSION_GROUPS.CLASSROOMS.label,
+    630
+  ),
+
+  // ENROLLMENT
+  [PERMISSIONS.ENROLLMENT_READ]: meta(
+    PERMISSIONS.ENROLLMENT_READ,
+    "enrollment",
+    "read",
+    "Xem đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    710
+  ),
+  [PERMISSIONS.ENROLLMENT_CREATE]: meta(
+    PERMISSIONS.ENROLLMENT_CREATE,
+    "enrollment",
+    "create",
+    "Tạo đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    720
+  ),
+  [PERMISSIONS.ENROLLMENT_CHANGE_STATUS]: meta(
+    PERMISSIONS.ENROLLMENT_CHANGE_STATUS,
+    "enrollment",
+    "status",
+    "Đổi trạng thái đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    725
+  ),
+  [PERMISSIONS.ENROLLMENT_APPROVE]: meta(
+    PERMISSIONS.ENROLLMENT_APPROVE,
+    "enrollment",
+    "approve",
+    "Duyệt đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    730
+  ),
+  [PERMISSIONS.ENROLLMENT_CANCEL]: meta(
+    PERMISSIONS.ENROLLMENT_CANCEL,
+    "enrollment",
+    "cancel",
+    "Hủy đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    740
+  ),
+  [PERMISSIONS.ENROLLMENT_DELETE]: meta(
+    PERMISSIONS.ENROLLMENT_DELETE,
+    "enrollment",
+    "delete",
+    "Xóa đăng ký khóa học",
+    PERMISSION_GROUPS.ENROLLMENTS.key,
+    PERMISSION_GROUPS.ENROLLMENTS.label,
+    750
+  ),
+
+  // SCHEDULE
+  [PERMISSIONS.SCHEDULE_READ]: meta(
+    PERMISSIONS.SCHEDULE_READ,
+    "schedule",
+    "read",
+    "Xem lịch học",
+    PERMISSION_GROUPS.SCHEDULES.key,
+    PERMISSION_GROUPS.SCHEDULES.label,
+    810
+  ),
+  [PERMISSIONS.SCHEDULE_CREATE]: meta(
+    PERMISSIONS.SCHEDULE_CREATE,
+    "schedule",
+    "create",
+    "Tạo lịch học",
+    PERMISSION_GROUPS.SCHEDULES.key,
+    PERMISSION_GROUPS.SCHEDULES.label,
+    820
+  ),
+  [PERMISSIONS.SCHEDULE_UPDATE]: meta(
+    PERMISSIONS.SCHEDULE_UPDATE,
+    "schedule",
+    "update",
+    "Cập nhật lịch học",
+    PERMISSION_GROUPS.SCHEDULES.key,
+    PERMISSION_GROUPS.SCHEDULES.label,
+    830
+  ),
+  [PERMISSIONS.SCHEDULE_DELETE]: meta(
+    PERMISSIONS.SCHEDULE_DELETE,
+    "schedule",
+    "delete",
+    "Xóa lịch học",
+    PERMISSION_GROUPS.SCHEDULES.key,
+    PERMISSION_GROUPS.SCHEDULES.label,
+    840
+  ),
+
+  // NOTIFICATION
+  [PERMISSIONS.NOTIFICATION_READ]: meta(
+    PERMISSIONS.NOTIFICATION_READ,
+    "notification",
+    "read",
+    "Xem thông báo hệ thống",
+    PERMISSION_GROUPS.NOTIFICATIONS.key,
+    PERMISSION_GROUPS.NOTIFICATIONS.label,
+    845
+  ),
+  [PERMISSIONS.NOTIFICATION_CREATE]: meta(
+    PERMISSIONS.NOTIFICATION_CREATE,
+    "notification",
+    "create",
+    "Tạo và gửi thông báo",
+    PERMISSION_GROUPS.NOTIFICATIONS.key,
+    PERMISSION_GROUPS.NOTIFICATIONS.label,
+    846
+  ),
+  [PERMISSIONS.NOTIFICATION_UPDATE]: meta(
+    PERMISSIONS.NOTIFICATION_UPDATE,
+    "notification",
+    "update",
+    "Sửa thông báo",
+    PERMISSION_GROUPS.NOTIFICATIONS.key,
+    PERMISSION_GROUPS.NOTIFICATIONS.label,
+    846
+  ),
+  [PERMISSIONS.NOTIFICATION_DELETE]: meta(
+    PERMISSIONS.NOTIFICATION_DELETE,
+    "notification",
+    "delete",
+    "Xóa thông báo",
+    PERMISSION_GROUPS.NOTIFICATIONS.key,
+    PERMISSION_GROUPS.NOTIFICATIONS.label,
+    847
+  ),
+
+  // PAYMENT METHOD
+  [PERMISSIONS.PAYMENT_METHOD_READ]: meta(
+    PERMISSIONS.PAYMENT_METHOD_READ,
+    "payment_method",
+    "read",
+    "Xem phương thức thanh toán",
+    PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    PERMISSION_GROUPS.PAYMENT_METHODS.label,
+    848
+  ),
+  [PERMISSIONS.PAYMENT_METHOD_CREATE]: meta(
+    PERMISSIONS.PAYMENT_METHOD_CREATE,
+    "payment_method",
+    "create",
+    "Tạo phương thức thanh toán",
+    PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    PERMISSION_GROUPS.PAYMENT_METHODS.label,
+    849
+  ),
+  [PERMISSIONS.PAYMENT_METHOD_UPDATE]: meta(
+    PERMISSIONS.PAYMENT_METHOD_UPDATE,
+    "payment_method",
+    "update",
+    "Cập nhật phương thức thanh toán",
+    PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    PERMISSION_GROUPS.PAYMENT_METHODS.label,
+    850
+  ),
+  [PERMISSIONS.PAYMENT_METHOD_DELETE]: meta(
+    PERMISSIONS.PAYMENT_METHOD_DELETE,
+    "payment_method",
+    "delete",
+    "Xóa phương thức thanh toán",
+    PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    PERMISSION_GROUPS.PAYMENT_METHODS.label,
+    851
+  ),
+  [PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS]: meta(
+    PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS,
+    "payment_method",
+    "status",
+    "Khóa/mở khóa phương thức thanh toán",
+    PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    PERMISSION_GROUPS.PAYMENT_METHODS.label,
+    852
+  ),
+
+  // BLOG
+  [PERMISSIONS.BLOG_READ]: meta(
+    PERMISSIONS.BLOG_READ,
+    "blog",
+    "read",
+    "Xem bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    848
+  ),
+  [PERMISSIONS.BLOG_CREATE]: meta(
+    PERMISSIONS.BLOG_CREATE,
+    "blog",
+    "create",
+    "Tạo bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    849
+  ),
+  [PERMISSIONS.BLOG_UPDATE]: meta(
+    PERMISSIONS.BLOG_UPDATE,
+    "blog",
+    "update",
+    "Cập nhật bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    850
+  ),
+  [PERMISSIONS.BLOG_DELETE]: meta(
+    PERMISSIONS.BLOG_DELETE,
+    "blog",
+    "delete",
+    "Xóa bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    851
+  ),
+  [PERMISSIONS.BLOG_CHANGE_STATUS]: meta(
+    PERMISSIONS.BLOG_CHANGE_STATUS,
+    "blog",
+    "status",
+    "Đổi trạng thái bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    851
+  ),
+  [PERMISSIONS.BLOG_PUBLISH]: meta(
+    PERMISSIONS.BLOG_PUBLISH,
+    "blog",
+    "publish",
+    "Xuất bản bài viết",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    852
+  ),
+  [PERMISSIONS.BLOG_CATEGORY_MANAGE]: meta(
+    PERMISSIONS.BLOG_CATEGORY_MANAGE,
+    "blog_category",
+    "manage",
+    "Quản lý chuyên mục blog",
+    PERMISSION_GROUPS.BLOGS.key,
+    PERMISSION_GROUPS.BLOGS.label,
+    853
+  ),
+
+  // PAYMENT AUDIT
+  [PERMISSIONS.PAYMENT_AUDIT_READ_OWN]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_READ_OWN,
+    "payment_audit",
+    "read_own",
+    "Xem audit thanh toán của chính mình",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    850
+  ),
+  [PERMISSIONS.PAYMENT_AUDIT_READ_ALL]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+    "payment_audit",
+    "read_all",
+    "Xem toàn bộ audit thanh toán",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    860
+  ),
+  [PERMISSIONS.PAYMENT_AUDIT_MANAGE]: meta(
+    PERMISSIONS.PAYMENT_AUDIT_MANAGE,
+    "payment_audit",
+    "manage",
+    "Quản lý audit thanh toán",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    870
+  ),
+
+  // SECURITY AUDIT
+  [PERMISSIONS.SECURITY_AUDIT_READ_OWN]: meta(
+    PERMISSIONS.SECURITY_AUDIT_READ_OWN,
+    "security_audit",
+    "read_own",
+    "Xem audit bảo mật của chính mình",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    880
+  ),
+  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: meta(
+    PERMISSIONS.SECURITY_AUDIT_READ_ALL,
+    "security_audit",
+    "read_all",
+    "Xem toàn bộ audit bảo mật",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    890
+  ),
+  [PERMISSIONS.SECURITY_AUDIT_MANAGE]: meta(
+    PERMISSIONS.SECURITY_AUDIT_MANAGE,
+    "security_audit",
+    "manage",
+    "Quản lý audit bảo mật",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    900
+  ),
+
+  // RBAC
+  [PERMISSIONS.RBAC_READ]: meta(
+    PERMISSIONS.RBAC_READ,
+    "rbac",
+    "read",
+    "Xem module RBAC",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    910
+  ),
+  [PERMISSIONS.RBAC_MANAGE]: meta(
+    PERMISSIONS.RBAC_MANAGE,
+    "rbac",
+    "manage",
+    "Toàn quyền RBAC",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    915
+  ),
+  [PERMISSIONS.RBAC_CREATE_ROLE]: meta(
+    PERMISSIONS.RBAC_CREATE_ROLE,
+    "rbac",
+    "role_create",
+    "Tạo role",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    920
+  ),
+  [PERMISSIONS.RBAC_UPDATE_ROLE]: meta(
+    PERMISSIONS.RBAC_UPDATE_ROLE,
+    "rbac",
+    "role_update",
+    "Sửa role",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    930
+  ),
+  [PERMISSIONS.RBAC_DELETE_ROLE]: meta(
+    PERMISSIONS.RBAC_DELETE_ROLE,
+    "rbac",
+    "role_delete",
+    "Xóa role",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    940
+  ),
+  [PERMISSIONS.RBAC_READ_PERMISSION]: meta(
+    PERMISSIONS.RBAC_READ_PERMISSION,
+    "rbac",
+    "permission_read",
+    "Xem permission",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    950
+  ),
+  [PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS]: meta(
+    PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS,
+    "rbac",
+    "set_role_permissions",
+    "Gán permission cho role",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    960
+  ),
+  [PERMISSIONS.RBAC_SET_USER_ROLES]: meta(
+    PERMISSIONS.RBAC_SET_USER_ROLES,
+    "rbac",
+    "set_user_roles",
+    "Gán role cho user",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    970
+  ),
+  [PERMISSIONS.RBAC_SET_USER_OVERRIDE]: meta(
+    PERMISSIONS.RBAC_SET_USER_OVERRIDE,
+    "rbac",
+    "set_user_override",
+    "Gán override permission cho user",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    980
+  ),
+  [PERMISSIONS.RBAC_REMOVE_USER_OVERRIDE]: meta(
+    PERMISSIONS.RBAC_REMOVE_USER_OVERRIDE,
+    "rbac",
+    "remove_user_override",
+    "Gỡ override permission của user",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    990
+  ),
+  [PERMISSIONS.RBAC_SYNC_ADMIN]: meta(
+    PERMISSIONS.RBAC_SYNC_ADMIN,
+    "rbac",
+    "sync_admin",
+    "Sync quyền ADMIN",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
+    1000
+  ),
+});
+
+const PERMISSION_META = Object.freeze({
+  ...BASE_PERMISSION_META,
+});
+
+const PERMISSION_META_LIST = Object.freeze(Object.values(PERMISSION_META));
+
+const HIDDEN_CATALOG_PERMISSION_KEYS = new Set<PermissionKey>([
+  PERMISSIONS.USER_DELETE,
+  PERMISSIONS.USER_SET_ROLES,
+  PERMISSIONS.CATEGORY_DELETE,
+  PERMISSIONS.COURSE_DELETE,
+  PERMISSIONS.COURSE_PUBLISH,
+  PERMISSIONS.COURSE_ASSIGN_TEACHER,
+  PERMISSIONS.TEACHER_DELETE,
+  PERMISSIONS.STUDENT_DELETE,
+  PERMISSIONS.CLASSROOM_DELETE,
+  PERMISSIONS.CLASSROOM_ASSIGN_STUDENT,
+  PERMISSIONS.CLASSROOM_UPDATE_LEARNING,
+  PERMISSIONS.CLASSROOM_UPDATE_HONOR,
+  PERMISSIONS.ENROLLMENT_APPROVE,
+  PERMISSIONS.ENROLLMENT_CANCEL,
+  PERMISSIONS.ENROLLMENT_DELETE,
+  PERMISSIONS.BLOG_DELETE,
+  PERMISSIONS.BLOG_PUBLISH,
+  PERMISSIONS.BLOG_CATEGORY_MANAGE,
+  PERMISSIONS.PAYMENT_AUDIT_READ_OWN,
+  PERMISSIONS.PAYMENT_AUDIT_MANAGE,
+  PERMISSIONS.SECURITY_AUDIT_READ_OWN,
+  PERMISSIONS.SECURITY_AUDIT_MANAGE,
+  PERMISSIONS.RBAC_MANAGE,
+  PERMISSIONS.RBAC_READ_PERMISSION,
+  PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS,
+  PERMISSIONS.RBAC_SET_USER_ROLES,
+  PERMISSIONS.RBAC_SET_USER_OVERRIDE,
+  PERMISSIONS.RBAC_REMOVE_USER_OVERRIDE,
+  PERMISSIONS.RBAC_SYNC_ADMIN,
+]);
+
+const SIMPLIFIED_PERMISSION_REPLACEMENTS: Partial<
+  Record<PermissionKey, PermissionKey>
+> = {
+  [PERMISSIONS.USER_SET_ROLES]: PERMISSIONS.USER_UPDATE,
+  [PERMISSIONS.COURSE_PUBLISH]: PERMISSIONS.COURSE_CHANGE_STATUS,
+  [PERMISSIONS.COURSE_ASSIGN_TEACHER]: PERMISSIONS.COURSE_UPDATE,
+  [PERMISSIONS.CLASSROOM_ASSIGN_STUDENT]: PERMISSIONS.CLASSROOM_UPDATE,
+  [PERMISSIONS.CLASSROOM_UPDATE_LEARNING]: PERMISSIONS.CLASSROOM_UPDATE,
+  [PERMISSIONS.CLASSROOM_UPDATE_HONOR]: PERMISSIONS.CLASSROOM_CHANGE_STATUS,
+  [PERMISSIONS.ENROLLMENT_APPROVE]: PERMISSIONS.ENROLLMENT_CHANGE_STATUS,
+  [PERMISSIONS.ENROLLMENT_CANCEL]: PERMISSIONS.ENROLLMENT_CHANGE_STATUS,
+  [PERMISSIONS.BLOG_PUBLISH]: PERMISSIONS.BLOG_CHANGE_STATUS,
+  [PERMISSIONS.BLOG_CATEGORY_MANAGE]: PERMISSIONS.BLOG_UPDATE,
+  [PERMISSIONS.PAYMENT_AUDIT_READ_OWN]: PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+  [PERMISSIONS.PAYMENT_AUDIT_MANAGE]: PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+  [PERMISSIONS.SECURITY_AUDIT_READ_OWN]: PERMISSIONS.SECURITY_AUDIT_READ_ALL,
+  [PERMISSIONS.SECURITY_AUDIT_MANAGE]: PERMISSIONS.SECURITY_AUDIT_READ_ALL,
+  [PERMISSIONS.RBAC_MANAGE]: PERMISSIONS.RBAC_UPDATE_ROLE,
+  [PERMISSIONS.RBAC_READ_PERMISSION]: PERMISSIONS.RBAC_READ,
+  [PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS]: PERMISSIONS.RBAC_UPDATE_ROLE,
+  [PERMISSIONS.RBAC_SET_USER_ROLES]: PERMISSIONS.RBAC_UPDATE_ROLE,
+  [PERMISSIONS.RBAC_SET_USER_OVERRIDE]: PERMISSIONS.RBAC_UPDATE_ROLE,
+  [PERMISSIONS.RBAC_REMOVE_USER_OVERRIDE]: PERMISSIONS.RBAC_UPDATE_ROLE,
+  [PERMISSIONS.RBAC_SYNC_ADMIN]: PERMISSIONS.RBAC_UPDATE_ROLE,
+};
+
+const PERMISSION_EXPANSIONS: Partial<Record<PermissionKey, PermissionKey[]>> = {
+  [PERMISSIONS.USER_UPDATE]: [PERMISSIONS.USER_SET_ROLES],
+  [PERMISSIONS.COURSE_UPDATE]: [PERMISSIONS.COURSE_ASSIGN_TEACHER],
+  [PERMISSIONS.COURSE_CHANGE_STATUS]: [PERMISSIONS.COURSE_PUBLISH],
+  [PERMISSIONS.CLASSROOM_UPDATE]: [
+    PERMISSIONS.CLASSROOM_ASSIGN_STUDENT,
+    PERMISSIONS.CLASSROOM_UPDATE_LEARNING,
+  ],
+  [PERMISSIONS.CLASSROOM_CHANGE_STATUS]: [PERMISSIONS.CLASSROOM_UPDATE_HONOR],
+  [PERMISSIONS.ENROLLMENT_CHANGE_STATUS]: [
+    PERMISSIONS.ENROLLMENT_APPROVE,
+    PERMISSIONS.ENROLLMENT_CANCEL,
+  ],
+  [PERMISSIONS.BLOG_UPDATE]: [PERMISSIONS.BLOG_CATEGORY_MANAGE],
+  [PERMISSIONS.BLOG_CHANGE_STATUS]: [PERMISSIONS.BLOG_PUBLISH],
+  [PERMISSIONS.PAYMENT_AUDIT_READ_ALL]: [PERMISSIONS.PAYMENT_AUDIT_READ_OWN],
+  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: [PERMISSIONS.SECURITY_AUDIT_READ_OWN],
+  [PERMISSIONS.RBAC_READ]: [PERMISSIONS.RBAC_READ_PERMISSION],
+  [PERMISSIONS.RBAC_UPDATE_ROLE]: [
+    PERMISSIONS.RBAC_SET_ROLE_PERMISSIONS,
+    PERMISSIONS.RBAC_SET_USER_ROLES,
+    PERMISSIONS.RBAC_SET_USER_OVERRIDE,
+    PERMISSIONS.RBAC_REMOVE_USER_OVERRIDE,
+    PERMISSIONS.RBAC_SYNC_ADMIN,
+  ],
+};
+
+const SIMPLIFIED_PERMISSION_LABELS: Partial<Record<PermissionKey, string>> = {
+  [PERMISSIONS.DASHBOARD_READ]: "Xem dashboard",
+
+  [PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ]: "Xem bảng tin học viên",
+  [PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ]: "Xem lịch học học viên",
+  [PERMISSIONS.STUDENT_PORTAL_GRADE_READ]: "Xem điểm học viên",
+  [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ]: "Xem thông báo học viên",
+  [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE]: "Đánh dấu đã đọc thông báo học viên",
+  [PERMISSIONS.STUDENT_PORTAL_PROFILE_READ]: "Xem thông tin cá nhân học viên",
+  [PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE]: "Cập nhật thông tin cá nhân học viên",
+  [PERMISSIONS.STUDENT_PORTAL_SETTING_READ]: "Xem cài đặt học viên",
+  [PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE]: "Cập nhật cài đặt học viên",
+
+  [PERMISSIONS.USER_READ]: "Xem người dùng",
+  [PERMISSIONS.USER_CREATE]: "Thêm người dùng",
+  [PERMISSIONS.USER_UPDATE]: "Sửa người dùng",
+  [PERMISSIONS.USER_DELETE]: "Xóa người dùng",
+  [PERMISSIONS.USER_CHANGE_STATUS]: "Khóa/mở khóa người dùng",
+
+  [PERMISSIONS.CATEGORY_READ]: "Xem danh mục",
+  [PERMISSIONS.CATEGORY_CREATE]: "Thêm danh mục",
+  [PERMISSIONS.CATEGORY_UPDATE]: "Sửa danh mục",
+  [PERMISSIONS.CATEGORY_DELETE]: "Xóa danh mục",
+  [PERMISSIONS.CATEGORY_CHANGE_STATUS]: "Khóa/mở khóa danh mục",
+
+  [PERMISSIONS.COURSE_READ]: "Xem khóa học",
+  [PERMISSIONS.COURSE_CREATE]: "Thêm khóa học",
+  [PERMISSIONS.COURSE_UPDATE]: "Sửa khóa học",
+  [PERMISSIONS.COURSE_DELETE]: "Xóa khóa học",
+  [PERMISSIONS.COURSE_CHANGE_STATUS]: "Khóa/mở khóa khóa học",
+
+  [PERMISSIONS.TEACHER_READ]: "Xem giảng viên",
+  [PERMISSIONS.TEACHER_CREATE]: "Thêm giảng viên",
+  [PERMISSIONS.TEACHER_UPDATE]: "Sửa giảng viên",
+  [PERMISSIONS.TEACHER_DELETE]: "Xóa giảng viên",
+  [PERMISSIONS.TEACHER_CHANGE_STATUS]: "Khóa/mở khóa giảng viên",
+
+  [PERMISSIONS.TEACHER_PORTAL_ACCESS]: "Truy cập trang giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ]: "Xem bảng tin giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ]: "Xem lịch dạy",
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_READ]: "Xem lớp học giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE]: "Thêm lớp học giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE]: "Sửa lớp học giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS]: "Khóa/mở khóa lớp học giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE]: "Cập nhật học viên, điểm danh, điểm",
+  [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ]: "Xem thông báo giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE]: "Đánh dấu đã đọc thông báo giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_SETTING_READ]: "Xem cài đặt giáo viên",
+  [PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE]: "Cập nhật cài đặt giáo viên",
+
+  [PERMISSIONS.STUDENT_READ]: "Xem học viên",
+  [PERMISSIONS.STUDENT_PORTAL_ACCESS]: "Truy cập trang học viên",
+  [PERMISSIONS.STUDENT_CREATE]: "Thêm học viên",
+  [PERMISSIONS.STUDENT_UPDATE]: "Sửa học viên",
+  [PERMISSIONS.STUDENT_DELETE]: "Xóa học viên",
+  [PERMISSIONS.STUDENT_CHANGE_STATUS]: "Khóa/mở khóa học viên",
+
+  [PERMISSIONS.CLASSROOM_READ]: "Xem lớp học",
+  [PERMISSIONS.CLASSROOM_CREATE]: "Thêm lớp học",
+  [PERMISSIONS.CLASSROOM_UPDATE]: "Sửa lớp học",
+  [PERMISSIONS.CLASSROOM_DELETE]: "Xóa lớp học",
+  [PERMISSIONS.CLASSROOM_CHANGE_STATUS]: "Khóa/mở khóa lớp học",
+
+  [PERMISSIONS.ENROLLMENT_READ]: "Xem đăng ký học",
+  [PERMISSIONS.ENROLLMENT_CREATE]: "Thêm đăng ký học",
+  [PERMISSIONS.ENROLLMENT_CHANGE_STATUS]: "Đổi trạng thái đăng ký học",
+  [PERMISSIONS.ENROLLMENT_DELETE]: "Xóa đăng ký học",
+
+  [PERMISSIONS.SCHEDULE_READ]: "Xem lịch học",
+  [PERMISSIONS.SCHEDULE_CREATE]: "Thêm lịch học",
+  [PERMISSIONS.SCHEDULE_UPDATE]: "Sửa lịch học",
+  [PERMISSIONS.SCHEDULE_DELETE]: "Xóa lịch học",
+
+  [PERMISSIONS.NOTIFICATION_READ]: "Xem thông báo",
+  [PERMISSIONS.NOTIFICATION_CREATE]: "Thêm thông báo",
+  [PERMISSIONS.NOTIFICATION_UPDATE]: "Sửa thông báo",
+  [PERMISSIONS.NOTIFICATION_DELETE]: "Xóa thông báo",
+
+  [PERMISSIONS.PAYMENT_METHOD_READ]: "Xem phương thức thanh toán",
+  [PERMISSIONS.PAYMENT_METHOD_CREATE]: "Thêm phương thức thanh toán",
+  [PERMISSIONS.PAYMENT_METHOD_UPDATE]: "Sửa phương thức thanh toán",
+  [PERMISSIONS.PAYMENT_METHOD_DELETE]: "Xóa phương thức thanh toán",
+  [PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS]: "Khóa/mở khóa phương thức thanh toán",
+
+  [PERMISSIONS.BLOG_READ]: "Xem bài viết",
+  [PERMISSIONS.BLOG_CREATE]: "Thêm bài viết",
+  [PERMISSIONS.BLOG_UPDATE]: "Sửa bài viết",
+  [PERMISSIONS.BLOG_DELETE]: "Xóa bài viết",
+  [PERMISSIONS.BLOG_CHANGE_STATUS]: "Xuất bản/ẩn bài viết",
+
+  [PERMISSIONS.PAYMENT_AUDIT_READ_ALL]: "Xem lịch sử thanh toán",
+  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: "Xem lịch sử bảo mật",
+
+  [PERMISSIONS.RBAC_READ]: "Xem phân quyền",
+  [PERMISSIONS.RBAC_CREATE_ROLE]: "Thêm vai trò",
+  [PERMISSIONS.RBAC_UPDATE_ROLE]: "Sửa vai trò và quyền",
+  [PERMISSIONS.RBAC_DELETE_ROLE]: "Xóa vai trò",
+};
+
+function uniquePermissionKeys(keys: PermissionKey[]) {
+  return [...new Set(keys)];
+}
+
+function simplifyPermissionKeys(keys: PermissionKey[]): PermissionKey[] {
+  return uniquePermissionKeys(
+    keys
+      .map((key) => SIMPLIFIED_PERMISSION_REPLACEMENTS[key] || key)
+      .filter((key) => !HIDDEN_CATALOG_PERMISSION_KEYS.has(key))
+  );
+}
+
+function expandPermissionKeys(keys: PermissionKey[]): PermissionKey[] {
+  return uniquePermissionKeys(
+    keys.flatMap((key) => [key, ...(PERMISSION_EXPANSIONS[key] || [])])
+  );
+}
+
+const SIMPLIFIED_PERMISSION_META_LIST = Object.freeze(
+  PERMISSION_META_LIST.filter(
+    (item) => !HIDDEN_CATALOG_PERMISSION_KEYS.has(item.key)
+  ).map((item) => ({
+    ...item,
+    label: SIMPLIFIED_PERMISSION_LABELS[item.key] || item.label,
+  }))
+);
+
+const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
+  [ROLES.ADMIN]: Object.values(PERMISSIONS),
+
+  [ROLES.MANAGER]: [
+    PERMISSIONS.DASHBOARD_READ,
+
+    PERMISSIONS.USER_READ,
+    PERMISSIONS.USER_UPDATE,
+    PERMISSIONS.USER_CHANGE_STATUS,
+
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.CATEGORY_CREATE,
+    PERMISSIONS.CATEGORY_UPDATE,
+    PERMISSIONS.CATEGORY_CHANGE_STATUS,
+
+    PERMISSIONS.COURSE_READ,
+    PERMISSIONS.COURSE_CREATE,
+    PERMISSIONS.COURSE_UPDATE,
+    PERMISSIONS.COURSE_CHANGE_STATUS,
+
+    PERMISSIONS.TEACHER_READ,
+    PERMISSIONS.TEACHER_CREATE,
+    PERMISSIONS.TEACHER_UPDATE,
+    PERMISSIONS.TEACHER_CHANGE_STATUS,
+
+    PERMISSIONS.STUDENT_READ,
+    PERMISSIONS.STUDENT_UPDATE,
+    PERMISSIONS.STUDENT_CHANGE_STATUS,
+
+    PERMISSIONS.CLASSROOM_READ,
+    PERMISSIONS.CLASSROOM_CREATE,
+    PERMISSIONS.CLASSROOM_UPDATE,
+    PERMISSIONS.CLASSROOM_CHANGE_STATUS,
+
+    PERMISSIONS.ENROLLMENT_READ,
+    PERMISSIONS.ENROLLMENT_CHANGE_STATUS,
+
+    PERMISSIONS.SCHEDULE_READ,
+    PERMISSIONS.SCHEDULE_CREATE,
+    PERMISSIONS.SCHEDULE_UPDATE,
+
+    PERMISSIONS.NOTIFICATION_READ,
+    PERMISSIONS.NOTIFICATION_CREATE,
+    PERMISSIONS.NOTIFICATION_UPDATE,
+    PERMISSIONS.NOTIFICATION_DELETE,
+
+    PERMISSIONS.PAYMENT_METHOD_READ,
+    PERMISSIONS.PAYMENT_METHOD_CREATE,
+    PERMISSIONS.PAYMENT_METHOD_UPDATE,
+    PERMISSIONS.PAYMENT_METHOD_DELETE,
+    PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS,
+
+    PERMISSIONS.BLOG_READ,
+    PERMISSIONS.BLOG_CREATE,
+    PERMISSIONS.BLOG_UPDATE,
+    PERMISSIONS.BLOG_CHANGE_STATUS,
+
+    PERMISSIONS.RBAC_READ,
+    PERMISSIONS.RBAC_UPDATE_ROLE,
+  ],
+
+  [ROLES.TEACHER]: [
+    PERMISSIONS.TEACHER_PORTAL_ACCESS,
+    PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ,
+    PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ,
+    PERMISSIONS.TEACHER_PORTAL_CLASS_READ,
+    PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE,
+    PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE,
+    PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS,
+    PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE,
+    PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ,
+    PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE,
+    PERMISSIONS.TEACHER_PORTAL_SETTING_READ,
+    PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE,
+
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.COURSE_READ,
+    PERMISSIONS.COURSE_UPDATE,
+    PERMISSIONS.STUDENT_READ,
+    PERMISSIONS.CLASSROOM_READ,
+    PERMISSIONS.CLASSROOM_UPDATE,
+    PERMISSIONS.CLASSROOM_CHANGE_STATUS,
+    PERMISSIONS.ENROLLMENT_READ,
+    PERMISSIONS.SCHEDULE_READ,
+    PERMISSIONS.NOTIFICATION_READ,
+    PERMISSIONS.NOTIFICATION_CREATE,
+    PERMISSIONS.NOTIFICATION_DELETE,
+  ],
+
+  [ROLES.STUDENT]: [
+    PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.STUDENT_PORTAL_ACCESS,
+    PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ,
+    PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ,
+    PERMISSIONS.STUDENT_PORTAL_GRADE_READ,
+    PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ,
+    PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE,
+    PERMISSIONS.STUDENT_PORTAL_PROFILE_READ,
+    PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE,
+    PERMISSIONS.STUDENT_PORTAL_SETTING_READ,
+    PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE,
+    PERMISSIONS.CATEGORY_READ,
+    PERMISSIONS.COURSE_READ,
+    PERMISSIONS.ENROLLMENT_CREATE,
+    PERMISSIONS.ENROLLMENT_READ,
+    PERMISSIONS.SCHEDULE_READ,
+  ],
+
+  [ROLES.USER]: [PERMISSIONS.CATEGORY_READ, PERMISSIONS.COURSE_READ],
+};
+
+const SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS = Object.freeze(
+  Object.fromEntries(
+    (Object.entries(DEFAULT_ROLE_PERMISSIONS) as [Role, PermissionKey[]][]).map(
+      ([roleCode, permissionKeys]) => [
+        roleCode,
+        simplifyPermissionKeys(permissionKeys),
+      ]
+    )
+  ) as Record<Role, PermissionKey[]>
+);
+
+const BASE_ADMIN_SCREENS = Object.freeze({
+  DASHBOARD: {
+    key: "dashboard",
+    label: "Dashboard",
+    icon: "home",
+    order: 0,
+    routes: ["/admin/dashboard"],
+    public: false,
+    accessAny: [PERMISSIONS.DASHBOARD_READ],
+    actions: {
+      view: [PERMISSIONS.DASHBOARD_READ],
+    },
+  },
+
+  USERS: {
+    key: "users",
+    group: PERMISSION_GROUPS.USERS.key,
+    label: "Người dùng",
+    icon: "users",
+    order: 10,
+    routes: ["/admin/users", "/admin/users/:id"],
+    accessAny: [
+      PERMISSIONS.USER_READ,
+      PERMISSIONS.USER_CREATE,
+      PERMISSIONS.USER_UPDATE,
+      PERMISSIONS.USER_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.USER_READ],
+      create: [PERMISSIONS.USER_CREATE],
+      update: [PERMISSIONS.USER_UPDATE],
+      changeStatus: [PERMISSIONS.USER_CHANGE_STATUS],
+    },
+  },
+
+  CATEGORIES: {
+    key: "categories",
+    group: PERMISSION_GROUPS.CATEGORIES.key,
+    label: "Danh mục",
+    icon: "folder-kanban",
+    order: 20,
+    routes: ["/admin/category", "/admin/category/:id"],
+    accessAny: [
+      PERMISSIONS.CATEGORY_READ,
+      PERMISSIONS.CATEGORY_CREATE,
+      PERMISSIONS.CATEGORY_UPDATE,
+      PERMISSIONS.CATEGORY_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.CATEGORY_READ],
+      create: [PERMISSIONS.CATEGORY_CREATE],
+      update: [PERMISSIONS.CATEGORY_UPDATE],
+      changeStatus: [PERMISSIONS.CATEGORY_CHANGE_STATUS],
+    },
+  },
+
+  COURSES: {
+    key: "courses",
+    group: PERMISSION_GROUPS.COURSES.key,
+    label: "Khóa học",
+    icon: "book-open",
+    order: 30,
+    routes: ["/admin/course", "/admin/course/:id"],
+    accessAny: [
+      PERMISSIONS.COURSE_READ,
+      PERMISSIONS.COURSE_CREATE,
+      PERMISSIONS.COURSE_UPDATE,
+      PERMISSIONS.COURSE_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.COURSE_READ],
+      create: [PERMISSIONS.COURSE_CREATE],
+      update: [PERMISSIONS.COURSE_UPDATE],
+      changeStatus: [PERMISSIONS.COURSE_CHANGE_STATUS],
+    },
+  },
+
+  TEACHERS: {
+    key: "teachers",
+    group: PERMISSION_GROUPS.TEACHERS.key,
+    label: "Giảng viên",
+    icon: "graduation-cap",
+    order: 40,
+    routes: ["/admin/teachers", "/admin/teachers/:id"],
+    accessAny: [
+      PERMISSIONS.TEACHER_READ,
+      PERMISSIONS.TEACHER_CREATE,
+      PERMISSIONS.TEACHER_UPDATE,
+      PERMISSIONS.TEACHER_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.TEACHER_READ],
+      create: [PERMISSIONS.TEACHER_CREATE],
+      update: [PERMISSIONS.TEACHER_UPDATE],
+      changeStatus: [PERMISSIONS.TEACHER_CHANGE_STATUS],
+    },
+  },
+
+  STUDENTS: {
+    key: "students",
+    group: PERMISSION_GROUPS.STUDENTS.key,
+    label: "Học viên",
+    icon: "users-round",
+    order: 50,
+    routes: ["/admin/students", "/admin/students/:id"],
+    accessAny: [
+      PERMISSIONS.STUDENT_READ,
+      PERMISSIONS.STUDENT_CREATE,
+      PERMISSIONS.STUDENT_UPDATE,
+      PERMISSIONS.STUDENT_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_READ],
+      create: [PERMISSIONS.STUDENT_CREATE],
+      update: [PERMISSIONS.STUDENT_UPDATE],
+      changeStatus: [PERMISSIONS.STUDENT_CHANGE_STATUS],
+    },
+  },
+
+  CLASSROOMS: {
+    key: "classrooms",
+    group: PERMISSION_GROUPS.CLASSROOMS.key,
+    label: "Lớp học",
+    icon: "school",
+    order: 55,
+    routes: ["/admin/classes", "/admin/classes/:id", "/admin/classes/:id/students"],
+    accessAny: [
+      PERMISSIONS.CLASSROOM_READ,
+      PERMISSIONS.CLASSROOM_CREATE,
+      PERMISSIONS.CLASSROOM_UPDATE,
+      PERMISSIONS.CLASSROOM_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.CLASSROOM_READ],
+      create: [PERMISSIONS.CLASSROOM_CREATE],
+      update: [PERMISSIONS.CLASSROOM_UPDATE],
+      changeStatus: [PERMISSIONS.CLASSROOM_CHANGE_STATUS],
+    },
+  },
+
+  ENROLLMENTS: {
+    key: "enrollments",
+    group: PERMISSION_GROUPS.ENROLLMENTS.key,
+    label: "Đăng ký học",
+    icon: "clipboard-list",
+    order: 60,
+    routes: ["/admin/enrollments", "/admin/enrollments/:id"],
+    accessAny: [
+      PERMISSIONS.ENROLLMENT_READ,
+      PERMISSIONS.ENROLLMENT_CREATE,
+      PERMISSIONS.ENROLLMENT_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.ENROLLMENT_READ],
+      create: [PERMISSIONS.ENROLLMENT_CREATE],
+      changeStatus: [PERMISSIONS.ENROLLMENT_CHANGE_STATUS],
+    },
+  },
+
+  SCHEDULES: {
+    key: "schedules",
+    group: PERMISSION_GROUPS.SCHEDULES.key,
+    label: "Lịch học",
+    icon: "calendar-days",
+    order: 70,
+    routes: ["/admin/schedule", "/admin/schedule/:id"],
+    accessAny: [
+      PERMISSIONS.SCHEDULE_READ,
+      PERMISSIONS.SCHEDULE_CREATE,
+      PERMISSIONS.SCHEDULE_UPDATE,
+      PERMISSIONS.SCHEDULE_DELETE,
+    ],
+    actions: {
+      view: [PERMISSIONS.SCHEDULE_READ],
+      create: [PERMISSIONS.SCHEDULE_CREATE],
+      update: [PERMISSIONS.SCHEDULE_UPDATE],
+      delete: [PERMISSIONS.SCHEDULE_DELETE],
+    },
+  },
+
+  NOTIFICATIONS: {
+    key: "notifications",
+    group: PERMISSION_GROUPS.NOTIFICATIONS.key,
+    label: "Thông báo",
+    icon: "bell",
+    order: 75,
+    routes: ["/admin/notification"],
+    accessAny: [
+      PERMISSIONS.NOTIFICATION_READ,
+      PERMISSIONS.NOTIFICATION_CREATE,
+      PERMISSIONS.NOTIFICATION_UPDATE,
+      PERMISSIONS.NOTIFICATION_DELETE,
+    ],
+    actions: {
+      view: [PERMISSIONS.NOTIFICATION_READ],
+      create: [PERMISSIONS.NOTIFICATION_CREATE],
+      update: [PERMISSIONS.NOTIFICATION_UPDATE],
+      delete: [PERMISSIONS.NOTIFICATION_DELETE],
+    },
+  },
+
+  BLOGS: {
+    key: "blogs",
+    group: PERMISSION_GROUPS.BLOGS.key,
+    label: "Bài viết",
+    icon: "file-text",
+    order: 78,
+    routes: ["/admin/blog", "/admin/blog/:id"],
+    accessAny: [
+      PERMISSIONS.BLOG_READ,
+      PERMISSIONS.BLOG_CREATE,
+      PERMISSIONS.BLOG_UPDATE,
+      PERMISSIONS.BLOG_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.BLOG_READ],
+      create: [PERMISSIONS.BLOG_CREATE],
+      update: [PERMISSIONS.BLOG_UPDATE],
+      changeStatus: [PERMISSIONS.BLOG_CHANGE_STATUS],
+    },
+  },
+
+  PAYMENT_METHODS: {
+    key: "payment-methods",
+    group: PERMISSION_GROUPS.PAYMENT_METHODS.key,
+    label: "Phương thức thanh toán",
+    icon: "landmark",
+    order: 79,
+    routes: ["/admin/payment-methods"],
+    accessAny: [
+      PERMISSIONS.PAYMENT_METHOD_READ,
+      PERMISSIONS.PAYMENT_METHOD_CREATE,
+      PERMISSIONS.PAYMENT_METHOD_UPDATE,
+      PERMISSIONS.PAYMENT_METHOD_DELETE,
+      PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS,
+    ],
+    actions: {
+      view: [PERMISSIONS.PAYMENT_METHOD_READ],
+      create: [PERMISSIONS.PAYMENT_METHOD_CREATE],
+      update: [PERMISSIONS.PAYMENT_METHOD_UPDATE],
+      delete: [PERMISSIONS.PAYMENT_METHOD_DELETE],
+      changeStatus: [PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS],
+    },
+  },
+
+  PAYMENT_AUDITS: {
+    key: "payment-audits",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Audit thanh toán",
+    icon: "receipt-text",
+    order: 80,
+    routes: ["/admin/payment-audits", "/admin/payment-audits/:paymentCode"],
+    accessAny: [PERMISSIONS.PAYMENT_AUDIT_READ_ALL],
+    actions: {
+      view: [PERMISSIONS.PAYMENT_AUDIT_READ_ALL],
+    },
+  },
+
+  SECURITY_AUDITS: {
+    key: "security-audits",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Audit bảo mật",
+    icon: "shield-alert",
+    order: 85,
+    routes: ["/admin/security-audits"],
+    accessAny: [PERMISSIONS.SECURITY_AUDIT_READ_ALL],
+    actions: {
+      view: [PERMISSIONS.SECURITY_AUDIT_READ_ALL],
+    },
+  },
+
+  RBAC: {
+    key: "rbac",
+    group: PERMISSION_GROUPS.SYSTEM.key,
+    label: "Phân quyền",
+    icon: "shield",
+    order: 90,
+    routes: [
+      "/admin/rbac",
+      "/admin/rbac/roles",
+      "/admin/rbac/permissions",
+      "/admin/rbac/user-roles",
+      "/admin/rbac/role-permissions",
+    ],
+    accessAny: [
+      PERMISSIONS.RBAC_READ,
+      PERMISSIONS.RBAC_CREATE_ROLE,
+      PERMISSIONS.RBAC_UPDATE_ROLE,
+      PERMISSIONS.RBAC_DELETE_ROLE,
+    ],
+    actions: {
+      view: [PERMISSIONS.RBAC_READ],
+      createRole: [PERMISSIONS.RBAC_CREATE_ROLE],
+      updateRole: [PERMISSIONS.RBAC_UPDATE_ROLE],
+      deleteRole: [PERMISSIONS.RBAC_DELETE_ROLE],
+    },
+  },
+});
+
+const ADMIN_SCREENS = Object.freeze({
+  ...BASE_ADMIN_SCREENS,
+});
+
+const STUDENT_PORTAL_SCREENS = Object.freeze({
+  DASHBOARD: {
+    key: "student-dashboard",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Bảng tin học viên",
+    icon: "home",
+    order: 10,
+    routes: ["/student", "/student/bang-tin"],
+    accessAny: [
+      PERMISSIONS.STUDENT_PORTAL_ACCESS,
+      PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ,
+    ],
+    actions: {
+      view: [
+        PERMISSIONS.STUDENT_PORTAL_ACCESS,
+        PERMISSIONS.STUDENT_PORTAL_DASHBOARD_READ,
+      ],
+    },
+  },
+  SCHEDULE: {
+    key: "student-schedule",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Lịch học học viên",
+    icon: "calendar-days",
+    order: 20,
+    routes: ["/student/lich-hoc"],
+    accessAny: [PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_PORTAL_SCHEDULE_READ],
+    },
+  },
+  GRADES: {
+    key: "student-grades",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Bảng điểm học viên",
+    icon: "bar-chart-3",
+    order: 30,
+    routes: ["/student/xem-diem"],
+    accessAny: [PERMISSIONS.STUDENT_PORTAL_GRADE_READ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_PORTAL_GRADE_READ],
+    },
+  },
+  NOTIFICATIONS: {
+    key: "student-notifications",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Thông báo học viên",
+    icon: "bell",
+    order: 40,
+    routes: ["/student/thong-bao"],
+    accessAny: [
+      PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ,
+      PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_READ],
+      update: [PERMISSIONS.STUDENT_PORTAL_NOTIFICATION_UPDATE],
+    },
+  },
+  PROFILE: {
+    key: "student-profile",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Thông tin cá nhân học viên",
+    icon: "user",
+    order: 50,
+    routes: ["/student/thong-tin-ca-nhan"],
+    accessAny: [
+      PERMISSIONS.STUDENT_PORTAL_PROFILE_READ,
+      PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_PORTAL_PROFILE_READ],
+      update: [PERMISSIONS.STUDENT_PORTAL_PROFILE_UPDATE],
+    },
+  },
+  SETTINGS: {
+    key: "student-settings",
+    group: PERMISSION_GROUPS.STUDENT_PORTAL.key,
+    label: "Cài đặt học viên",
+    icon: "settings",
+    order: 60,
+    routes: ["/student/cai-dat"],
+    accessAny: [
+      PERMISSIONS.STUDENT_PORTAL_SETTING_READ,
+      PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.STUDENT_PORTAL_SETTING_READ],
+      update: [PERMISSIONS.STUDENT_PORTAL_SETTING_UPDATE],
+    },
+  },
+});
+
+const TEACHER_PORTAL_SCREENS = Object.freeze({
+  DASHBOARD: {
+    key: "teacher-dashboard",
+    group: PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    label: "Bảng tin giáo viên",
+    icon: "home",
+    order: 10,
+    routes: ["/teacher", "/teacher/bang-tin"],
+    accessAny: [
+      PERMISSIONS.TEACHER_PORTAL_ACCESS,
+      PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ,
+    ],
+    actions: {
+      view: [
+        PERMISSIONS.TEACHER_PORTAL_ACCESS,
+        PERMISSIONS.TEACHER_PORTAL_DASHBOARD_READ,
+      ],
+    },
+  },
+  SCHEDULE: {
+    key: "teacher-schedule",
+    group: PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    label: "Lịch dạy",
+    icon: "calendar-days",
+    order: 20,
+    routes: ["/teacher/lich-day"],
+    accessAny: [PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ],
+    actions: {
+      view: [PERMISSIONS.TEACHER_PORTAL_SCHEDULE_READ],
+    },
+  },
+  CLASSES: {
+    key: "teacher-classes",
+    group: PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    label: "Lớp học giáo viên",
+    icon: "users-round",
+    order: 30,
+    routes: ["/teacher/lop-hoc"],
+    accessAny: [
+      PERMISSIONS.TEACHER_PORTAL_CLASS_READ,
+      PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE,
+      PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE,
+      PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS,
+      PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.TEACHER_PORTAL_CLASS_READ],
+      create: [PERMISSIONS.TEACHER_PORTAL_CLASS_CREATE],
+      update: [PERMISSIONS.TEACHER_PORTAL_CLASS_UPDATE],
+      changeStatus: [PERMISSIONS.TEACHER_PORTAL_CLASS_CHANGE_STATUS],
+      updateStudents: [PERMISSIONS.TEACHER_PORTAL_STUDENT_UPDATE],
+    },
+  },
+  NOTIFICATIONS: {
+    key: "teacher-notifications",
+    group: PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    label: "Thông báo giáo viên",
+    icon: "bell",
+    order: 40,
+    routes: ["/teacher/thong-bao"],
+    accessAny: [
+      PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ,
+      PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_READ],
+      update: [PERMISSIONS.TEACHER_PORTAL_NOTIFICATION_UPDATE],
+    },
+  },
+  SETTINGS: {
+    key: "teacher-settings",
+    group: PERMISSION_GROUPS.TEACHER_PORTAL.key,
+    label: "Cài đặt giáo viên",
+    icon: "settings",
+    order: 50,
+    routes: ["/teacher/cai-dat"],
+    accessAny: [
+      PERMISSIONS.TEACHER_PORTAL_SETTING_READ,
+      PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE,
+    ],
+    actions: {
+      view: [PERMISSIONS.TEACHER_PORTAL_SETTING_READ],
+      update: [PERMISSIONS.TEACHER_PORTAL_SETTING_UPDATE],
+    },
+  },
+});
+
+export {
+  PERMISSION_GROUPS,
+  PERMISSION_META,
+  PERMISSION_META_LIST,
+  SIMPLIFIED_PERMISSION_META_LIST,
+  DEFAULT_ROLE_PERMISSIONS,
+  SIMPLIFIED_DEFAULT_ROLE_PERMISSIONS,
+  ADMIN_SCREENS,
+  STUDENT_PORTAL_SCREENS,
+  TEACHER_PORTAL_SCREENS,
+  simplifyPermissionKeys,
+  expandPermissionKeys,
+};
