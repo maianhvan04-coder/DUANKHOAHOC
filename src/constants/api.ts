@@ -25,5 +25,9 @@ export const API_ENDPOINTS = {
   students: {
     studies: (studentId: string) => `/api/students/${studentId}/studies`,
   },
+  blogs: {
+    list: "/api/blogs",
+    detail: (idOrSlug: string) => `/api/blogs/${idOrSlug}`,
+  },
   courses: "/api/products",
 };

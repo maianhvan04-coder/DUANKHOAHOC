@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { SymbolView, type AndroidSymbol, type SFSymbol } from "expo-symbols";
+import { useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -7,8 +7,14 @@ import {
   Text,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LoadingState from "../LoadingState";
+import EmptyState from "../EmptyState";
+import type { NotificationItem } from "../../types/notification.type";
+
+const EVEREST_LOGO = require("../../../assets/images/everest-logo-horizontal.png");
 
 export type StudentPortalTabKey =
   | "feed"
@@ -16,11 +22,12 @@ export type StudentPortalTabKey =
   | "grades"
   | "settings";
 
+type IonIconName = ComponentProps<typeof Ionicons>["name"];
+
 type StudentPortalTab = {
   key: StudentPortalTabKey;
   label: string;
-  iosIcon: SFSymbol;
-  androidIcon: AndroidSymbol;
+  icon: IonIconName;
 };
 
 type StudentPortalLayoutProps = {
@@ -30,6 +37,10 @@ type StudentPortalLayoutProps = {
   loading: boolean;
   refreshing: boolean;
   errorText: string;
+
+  notifications: NotificationItem[];
+  unreadCount: number;
+
   onChangeTab: (tab: StudentPortalTabKey) => void;
   onRefresh: () => void;
   children: ReactNode;
@@ -39,44 +50,43 @@ export const STUDENT_PORTAL_TABS: StudentPortalTab[] = [
   {
     key: "feed",
     label: "Bảng tin",
-    iosIcon: "newspaper.fill",
-    androidIcon: "newspaper",
+    icon: "newspaper-outline",
   },
   {
     key: "schedule",
     label: "Lịch",
-    iosIcon: "calendar",
-    androidIcon: "calendar_month",
+    icon: "calendar-outline",
   },
   {
     key: "grades",
     label: "Điểm",
-    iosIcon: "chart.bar.fill",
-    androidIcon: "bar_chart",
+    icon: "bar-chart-outline",
   },
   {
     key: "settings",
-    label: "Cài đặt",
-    iosIcon: "gearshape.fill",
-    androidIcon: "settings",
+    label: "Thông tin",
+    icon: "person-circle-outline",
   },
 ];
 
 export default function StudentPortalLayout({
   activeTab,
-  email,
-  role,
   loading,
   refreshing,
   errorText,
+  notifications,
+  unreadCount,
   onChangeTab,
   onRefresh,
   children,
 }: StudentPortalLayoutProps) {
   const insets = useSafeAreaInsets();
+  const [notificationVisible, setNotificationVisible] = useState(false);
+
   const activeItem = STUDENT_PORTAL_TABS.find(
     (item) => item.key === activeTab
   );
+
   const topSpace = Math.max(insets.top, 28) + 12;
   const bottomSpace = Math.max(insets.bottom, 10);
 
@@ -86,12 +96,36 @@ export default function StudentPortalLayout({
         className="border-b border-slate-200 bg-white px-4 pb-4"
         style={{ paddingTop: topSpace }}
       >
-        <Text className="text-xs font-bold uppercase tracking-[2px] text-blue-700">
-          Everest Student
-        </Text>
-        <Text className="mt-1 text-2xl font-extrabold text-slate-950">
-          {activeItem?.label}
-        </Text>
+        <View className="flex-row items-center justify-between">
+          <View className="min-w-0 flex-1 pr-3">
+            <Image
+              source={EVEREST_LOGO}
+              style={{ width: 218, height: 58 }}
+              contentFit="contain"
+              accessibilityLabel="Everest"
+            />
+          </View>
+
+          <Pressable
+            className="h-11 w-11 items-center justify-center rounded-full bg-slate-100"
+            android_ripple={{ color: "transparent" }}
+            onPress={() => setNotificationVisible((value) => !value)}
+          >
+            <Ionicons
+              name="notifications-outline"
+              size={23}
+              color="#0F172A"
+            />
+
+            {unreadCount > 0 ? (
+              <View className="absolute right-2 top-2 h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1">
+                <Text className="text-[9px] font-extrabold text-white">
+                  {unreadCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
@@ -126,26 +160,17 @@ export default function StudentPortalLayout({
         <View className="flex-row">
           {STUDENT_PORTAL_TABS.map((tab) => {
             const active = activeTab === tab.key;
-            const color = active ? "#2563eb" : "#64748b";
+            const color = active ? "#2563EB" : "#64748B";
 
             return (
               <Pressable
                 key={tab.key}
-                className={[
-                  "flex-1 items-center justify-center rounded-2xl px-1 py-2",
-                  active ? "bg-blue-50" : "bg-transparent",
-                ].join(" ")}
+                className="flex-1 items-center justify-center px-1 pt-2 pb-1"
+                android_ripple={{ color: "transparent" }}
                 onPress={() => onChangeTab(tab.key)}
               >
-                <SymbolView
-                  name={{
-                    ios: tab.iosIcon,
-                    android: tab.androidIcon,
-                    web: tab.androidIcon,
-                  }}
-                  size={24}
-                  tintColor={color}
-                />
+                <Ionicons name={tab.icon} size={24} color={color} />
+
                 <Text
                   className={[
                     "mt-1 text-[11px] font-extrabold",
@@ -154,10 +179,110 @@ export default function StudentPortalLayout({
                 >
                   {tab.label}
                 </Text>
+
+                <View
+                  className={[
+                    "mt-2 h-[3px] w-8 rounded-full",
+                    active ? "bg-blue-600" : "bg-transparent",
+                  ].join(" ")}
+                />
               </Pressable>
             );
           })}
         </View>
+      </View>
+
+      <NotificationDropdown
+        visible={notificationVisible}
+        top={topSpace + 112}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        onClose={() => setNotificationVisible(false)}
+      />
+    </View>
+  );
+}
+
+function NotificationDropdown({
+  visible,
+  top,
+  notifications,
+  unreadCount,
+  onClose,
+}: {
+  visible: boolean;
+  top: number;
+  notifications: NotificationItem[];
+  unreadCount: number;
+  onClose: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <View className="absolute inset-0 z-50">
+      <Pressable className="absolute inset-0" onPress={onClose} />
+
+      <View
+        className="absolute right-4 w-[330px] rounded-3xl bg-white p-4 shadow-lg"
+        style={{
+          top,
+          elevation: 16,
+          zIndex: 60,
+        }}
+      >
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="text-lg font-extrabold text-slate-950">
+            Thông báo mới
+          </Text>
+
+          <View className="flex-row items-center gap-2">
+            <Text className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+              {unreadCount} chưa đọc
+            </Text>
+
+            <Pressable
+              className="h-8 w-8 items-center justify-center rounded-full bg-slate-100"
+              onPress={onClose}
+            >
+              <Ionicons name="close" size={18} color="#334155" />
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ maxHeight: 420 }}
+        >
+          {notifications.length === 0 ? (
+            <View className="rounded-2xl bg-slate-50 p-4">
+              <EmptyState message="Chưa có thông báo mới" />
+            </View>
+          ) : (
+            notifications.map((item) => (
+              <View
+                key={item._id}
+                className="mb-3 rounded-2xl border border-slate-100 bg-slate-50 p-4"
+              >
+                <Text className="text-base font-extrabold text-slate-950">
+                  {item.title}
+                </Text>
+
+                <Text className="mt-2 text-sm leading-5 text-slate-500">
+                  {item.message}
+                </Text>
+
+                <Text
+                  className={[
+                    "mt-2 text-xs font-bold",
+                    item.isRead ? "text-slate-400" : "text-blue-700",
+                  ].join(" ")}
+                >
+                  {item.isRead ? "Đã đọc" : "Chưa đọc"}
+                </Text>
+              </View>
+            ))
+          )}
+        </ScrollView>
       </View>
     </View>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import type { ReactNode } from "react";
+import { Pressable, Text, View } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AppButton from "../../AppButton";
 import AppInput from "../../AppInput";
 import LoadingState from "../../LoadingState";
@@ -7,6 +9,7 @@ import { accountService } from "../../../services/account.service";
 import type { AccountUser } from "../../../types/account.type";
 import type { User, UserAccess } from "../../../types/auth.type";
 import { getErrorMessage } from "../../../utils/studentPortal.util";
+import { studentSettingsStyles as styles } from "./styles";
 
 type StudentSettingsTabProps = {
   user: User;
@@ -22,11 +25,20 @@ export default function StudentSettingsTab({
   const [account, setAccount] = useState<AccountUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [messageText, setMessageText] = useState("");
   const [errorText, setErrorText] = useState("");
+
+  const displayName = account?.name || user.name || "Học viên";
+  const displayEmail = account?.email || user.email || "";
+  const avatarText = getAvatarText(displayName);
 
   useEffect(() => {
     let mounted = true;
@@ -35,7 +47,9 @@ export default function StudentSettingsTab({
       try {
         setLoading(true);
         setErrorText("");
+
         const data = await accountService.getMe();
+
         if (!mounted) return;
         setAccount(data);
       } catch (error) {
@@ -68,15 +82,18 @@ export default function StudentSettingsTab({
       setSaving(true);
       setErrorText("");
       setMessageText("");
+
       const response = await accountService.changePassword({
         currentPassword,
         newPassword,
         confirmPassword,
       });
+
       setMessageText(response.message || "Đổi mật khẩu thành công");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setShowPasswordForm(false);
     } catch (error) {
       setErrorText(getErrorMessage(error, "Không đổi được mật khẩu"));
     } finally {
@@ -86,111 +103,202 @@ export default function StudentSettingsTab({
 
   if (loading) {
     return (
-      <View className="min-h-[320px] rounded-3xl bg-white p-4">
+      <View style={styles.loadingBox}>
         <LoadingState message="Đang tải cài đặt..." />
       </View>
     );
   }
 
   return (
-    <View>
-      <View className="mb-4 rounded-3xl bg-blue-700 p-5">
-        <Text className="text-sm font-bold uppercase tracking-[2px] text-blue-100">
-          Cài đặt học viên
-        </Text>
-        <Text className="mt-2 text-2xl font-extrabold text-white">
-          Tài khoản và bảo mật
-        </Text>
-        <Text className="mt-2 text-sm leading-5 text-blue-100">
-          Quản lý hồ sơ đăng nhập đang dùng chung với hệ thống web.
-        </Text>
+    <View style={styles.root}>
+      <View style={styles.header}>
+        <View style={styles.profileRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{avatarText}</Text>
+          </View>
+
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{displayName}</Text>
+            <Text style={styles.phone}>{displayEmail}</Text>
+          </View>
+        </View>
       </View>
 
       {errorText ? (
-        <View className="mb-4 rounded-2xl bg-red-50 px-4 py-3">
-          <Text className="text-sm font-semibold text-red-600">{errorText}</Text>
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{errorText}</Text>
         </View>
       ) : null}
 
       {messageText ? (
-        <View className="mb-4 rounded-2xl bg-emerald-50 px-4 py-3">
-          <Text className="text-sm font-semibold text-emerald-700">
-            {messageText}
-          </Text>
+        <View style={styles.successBox}>
+          <Text style={styles.successText}>{messageText}</Text>
         </View>
       ) : null}
 
-      <View className="mb-4 rounded-3xl bg-white p-4">
-        <Text className="mb-4 text-lg font-extrabold text-slate-950">
-          Thông tin tài khoản
-        </Text>
-        <Info label="Tên hiển thị" value={account?.name || user.name} />
-        <Info label="Email" value={account?.email || user.email} />
-        <Info label="Vai trò chính" value={access?.primaryRole || "STUDENT"} />
+      <View style={styles.menuBox}>
+        <MenuItem
+          icon={<Ionicons name="person-outline" size={18} color="#111827" />}
+          title="Thông tin tài khoản"
+          onPress={() => setShowAccountInfo((value) => !value)}
+        />
+
+        {showAccountInfo ? (
+          <View style={styles.infoBox}>
+            <Info label="Tên hiển thị" value={displayName} />
+            <Info label="Email" value={displayEmail} />
+          </View>
+        ) : null}
+
+        <MenuItem
+          icon={<Ionicons name="card-outline" size={18} color="#111827" />}
+          title="Tài khoản ngân hàng"
+        />
+
+        <MenuItem
+          icon={
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={18}
+              color="#111827"
+            />
+          }
+          title="Tạo nhóm hỗ trợ"
+        />
+
+        <MenuItem
+          icon={
+            <Ionicons
+              name="lock-closed-outline"
+              size={18}
+              color="#111827"
+            />
+          }
+          title="Đổi mật khẩu"
+          onPress={() => setShowPasswordForm((value) => !value)}
+        />
+
+        {showPasswordForm ? (
+          <View style={styles.passwordBox}>
+            <AppInput
+              label="Mật khẩu hiện tại"
+              value={currentPassword}
+              placeholder="Nhập mật khẩu hiện tại"
+              autoCapitalize="none"
+              editable={!saving}
+              secureTextEntry
+              onChangeText={setCurrentPassword}
+            />
+
+            <AppInput
+              label="Mật khẩu mới"
+              value={newPassword}
+              placeholder="Nhập mật khẩu mới"
+              autoCapitalize="none"
+              editable={!saving}
+              secureTextEntry
+              onChangeText={setNewPassword}
+            />
+
+            <AppInput
+              label="Xác nhận mật khẩu mới"
+              value={confirmPassword}
+              placeholder="Nhập lại mật khẩu mới"
+              autoCapitalize="none"
+              editable={!saving}
+              secureTextEntry
+              onChangeText={setConfirmPassword}
+            />
+
+            <AppButton
+              title={saving ? "Đang lưu..." : "Lưu mật khẩu"}
+              disabled={saving}
+              onPress={handleChangePassword}
+            />
+          </View>
+        ) : null}
+
+        <MenuItem
+          icon={
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={18}
+              color="#111827"
+            />
+          }
+          title="Chính sách bảo mật"
+        />
+
+        <MenuItem
+          icon={
+            <Ionicons
+              name="document-text-outline"
+              size={18}
+              color="#111827"
+            />
+          }
+          title="Điều khoản dịch vụ"
+        />
+
+        <MenuItem
+          icon={<Ionicons name="settings-outline" size={18} color="#111827" />}
+          title="Cài đặt chung"
+          last
+        />
       </View>
 
-      <View className="mb-4 rounded-3xl bg-white p-4">
-        <Text className="mb-4 text-lg font-extrabold text-slate-950">
-          Đổi mật khẩu
-        </Text>
-
-        <AppInput
-          label="Mật khẩu hiện tại"
-          value={currentPassword}
-          placeholder="Nhập mật khẩu hiện tại"
-          autoCapitalize="none"
-          editable={!saving}
-          secureTextEntry
-          onChangeText={setCurrentPassword}
-        />
-
-        <AppInput
-          label="Mật khẩu mới"
-          value={newPassword}
-          placeholder="Nhập mật khẩu mới"
-          autoCapitalize="none"
-          editable={!saving}
-          secureTextEntry
-          onChangeText={setNewPassword}
-        />
-
-        <AppInput
-          label="Xác nhận mật khẩu mới"
-          value={confirmPassword}
-          placeholder="Nhập lại mật khẩu mới"
-          autoCapitalize="none"
-          editable={!saving}
-          secureTextEntry
-          onChangeText={setConfirmPassword}
-        />
-
-        <AppButton
-          title={saving ? "Đang lưu..." : "Lưu mật khẩu"}
-          disabled={saving}
-          onPress={handleChangePassword}
-        />
-      </View>
-
-      <View className="rounded-3xl bg-white p-4">
-        <Text className="mb-3 text-lg font-extrabold text-slate-950">
-          Phiên đăng nhập
-        </Text>
-        <Text className="mb-4 text-sm leading-5 text-slate-500">
-          Đăng xuất sẽ xóa access token mobile và gọi API logout của backend.
-        </Text>
-        <AppButton title="Đăng xuất" variant="danger" onPress={onLogout} />
-      </View>
+      <Pressable style={styles.logoutBtn} onPress={onLogout}>
+        <MaterialCommunityIcons name="logout" size={17} color="#EF4444" />
+        <Text style={styles.logoutText}>Đăng xuất</Text>
+      </Pressable>
     </View>
+  );
+}
+
+function MenuItem({
+  icon,
+  title,
+  onPress,
+  last = false,
+}: {
+  icon: ReactNode;
+  title: string;
+  onPress?: () => void;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      style={[styles.menuItem, last && styles.menuItemLast]}
+      onPress={onPress}
+    >
+      <View style={styles.menuIconBox}>{icon}</View>
+
+      <Text style={styles.menuTitle}>{title}</Text>
+
+      <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+    </Pressable>
   );
 }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <View className="mb-3 flex-row justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-3">
-      <Text className="text-sm text-slate-500">{label}</Text>
-      <Text className="flex-1 text-right text-sm font-extrabold text-slate-950">
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue} numberOfLines={1}>
         {value}
       </Text>
     </View>
   );
+}
+
+function getAvatarText(name: string) {
+  const words = name.trim().split(/\s+/);
+
+  if (words.length === 1) {
+    return words[0]?.charAt(0).toUpperCase() || "H";
+  }
+
+  return `${words[0]?.charAt(0) || ""}${
+    words[words.length - 1]?.charAt(0) || ""
+  }`.toUpperCase();
 }

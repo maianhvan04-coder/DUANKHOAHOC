@@ -6,11 +6,14 @@ import {
   Text,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppButton from "../../AppButton";
 import AppInput from "../../AppInput";
 import { getErrorMessage } from "../../../utils/studentPortal.util";
 import type { LoginPayload } from "../../../types/auth.type";
+
+const EVEREST_LOGO = require("../../../../assets/images/everest-logo-horizontal.png");
 
 type LoginScreenProps = {
   loading: boolean;
@@ -58,9 +61,12 @@ export default function LoginScreen({ loading, onLogin }: LoginScreenProps) {
       >
         <View className="flex-1 justify-center">
           <View className="mb-8">
-            <Text className="text-sm font-bold uppercase tracking-[3px] text-blue-700">
-              Everest Mobile
-            </Text>
+            <Image
+              source={EVEREST_LOGO}
+              style={{ width: "100%", height: 92 }}
+              contentFit="contain"
+              accessibilityLabel="Everest"
+            />
             <Text className="mt-3 text-4xl font-extrabold text-slate-950">
               Đăng nhập
             </Text>
