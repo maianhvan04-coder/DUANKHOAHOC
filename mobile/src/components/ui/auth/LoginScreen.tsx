@@ -67,7 +67,7 @@ export default function LoginScreen({ loading, onLogin }: LoginScreenProps) {
               contentFit="contain"
               accessibilityLabel="Everest"
             />
-            <Text className="mt-3 text-4xl font-extrabold text-slate-950">
+            <Text className="mt-3 text-center text-4xl font-extrabold text-slate-950">
               Đăng nhập
             </Text>
           </View>

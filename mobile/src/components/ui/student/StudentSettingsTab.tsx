@@ -264,7 +264,7 @@ function MenuItem({
   icon: ReactNode;
   title: string;
   onPress?: () => void;
-  last?: boolean;
+  last?: boolean;  
 }) {
   return (
     <Pressable
