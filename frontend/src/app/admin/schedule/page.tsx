@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-    BookOpen,
     Clock3,
     MapPin,
     MonitorPlay,
@@ -700,7 +699,7 @@ export default function AdminSchedulePage() {
                     title={item.className || "--"}
                     subtitle={getCourseTitle(item)}
                     meta={getTeacherName(item)}
-                    icon={<BookOpen className="h-4 w-4 text-slate-500" />}
+                    hideMedia
                 />
             ),
         },

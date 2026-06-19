@@ -9,6 +9,8 @@ import {
 function normalizeListQuery(input: Partial<PaymentHistoryListQuery>): PaymentHistoryListQuery {
   const page = Number(input.page || 1);
   const limit = Number(input.limit || 12);
+  const fromDate = input.fromDate ? new Date(input.fromDate) : undefined;
+  const toDate = input.toDate ? new Date(input.toDate) : undefined;
 
   return {
     page: Number.isFinite(page) && page > 0 ? page : 1,
@@ -16,12 +18,17 @@ function normalizeListQuery(input: Partial<PaymentHistoryListQuery>): PaymentHis
       Number.isFinite(limit) && limit > 0
         ? Math.min(limit, 100)
         : 12,
-    paymentCode: input.paymentCode ? Number(input.paymentCode) : undefined,
+    paymentCode: input.paymentCode ? String(input.paymentCode) : undefined,
     provider: input.provider,
     status: input.status,
     userId: input.userId,
     keyword: input.keyword?.trim() || undefined,
     userKeyword: input.userKeyword?.trim() || undefined,
+    fromDate:
+      fromDate && !Number.isNaN(fromDate.getTime()) ? fromDate : undefined,
+    toDate: toDate && !Number.isNaN(toDate.getTime()) ? toDate : undefined,
+    sortBy: input.sortBy || "createdAt",
+    sortOrder: input.sortOrder || "desc",
   };
 }
 
@@ -34,7 +41,7 @@ export async function getMyPaymentHistoryService(
 
 export async function getMyPaymentHistoryDetailService(
   userId: string,
-  paymentCode: number
+  paymentCode: string
 ) {
   return getMyPaymentHistoryDetailRepo(userId, paymentCode);
 }
@@ -45,6 +52,6 @@ export async function getAdminPaymentHistoryService(
   return getAdminPaymentHistoryRepo(normalizeListQuery(query));
 }
 
-export async function getAdminPaymentHistoryDetailService(paymentCode: number) {
+export async function getAdminPaymentHistoryDetailService(paymentCode: string) {
   return getAdminPaymentHistoryDetailRepo(paymentCode);
 }

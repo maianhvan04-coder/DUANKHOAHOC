@@ -1,7 +1,20 @@
 import { http } from "@/lib/utils/http";
 
-export type PaymentHistoryProvider = "vnpay" | "payos";
+export type PaymentHistoryProvider = "vnpay" | "payos" | (string & {});
 export type PaymentHistoryStatus = "PENDING" | "PAID" | "FAILED" | "CANCELLED";
+export type PaymentHistoryTransactionType =
+  | "TOPUP"
+  | "ENROLL"
+  | "REFUND"
+  | "ADMIN_DEBIT";
+export type PaymentHistorySortKey =
+  | "paymentCode"
+  | "provider"
+  | "amount"
+  | "status"
+  | "createdAt"
+  | "paidAt";
+export type PaymentHistorySortOrder = "asc" | "desc";
 
 export type PaymentOrderItem = {
   courseId: string;
@@ -20,6 +33,8 @@ export type PaymentAuditUser = {
 export type PaymentAuditItem = {
   _id: string;
   paymentCode: number;
+  transactionCode?: string;
+  type?: PaymentHistoryTransactionType;
   provider: PaymentHistoryProvider;
   status: PaymentHistoryStatus;
   amount: number;
@@ -39,10 +54,21 @@ export type Pagination = {
   totalPages: number;
 };
 
+export type PaymentAuditSummary = {
+  totalOrders: number;
+  totalAmount: number;
+  paidAmount: number;
+  paidCount: number;
+  pendingCount: number;
+  failedCount: number;
+  cancelledCount: number;
+};
+
 export type PaymentAuditListResponse = {
   ok: true;
   items: PaymentAuditItem[];
   pagination: Pagination;
+  summary: PaymentAuditSummary;
 };
 
 export type PaymentAuditDetailResponse = {
@@ -74,6 +100,24 @@ function normalizePagination(value: unknown): Pagination {
   };
 }
 
+function normalizeSummary(value: unknown): PaymentAuditSummary {
+  const summary = isRecord(value) ? value : {};
+  const readNumber = (key: keyof PaymentAuditSummary) => {
+    const parsed = Number(summary[key] || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  return {
+    totalOrders: readNumber("totalOrders"),
+    totalAmount: readNumber("totalAmount"),
+    paidAmount: readNumber("paidAmount"),
+    paidCount: readNumber("paidCount"),
+    pendingCount: readNumber("pendingCount"),
+    failedCount: readNumber("failedCount"),
+    cancelledCount: readNumber("cancelledCount"),
+  };
+}
+
 function normalizeListResponse(raw: unknown): PaymentAuditListResponse {
   const payload = unwrapPayload(raw);
 
@@ -83,6 +127,7 @@ function normalizeListResponse(raw: unknown): PaymentAuditListResponse {
       ? (payload.items as PaymentAuditItem[])
       : [],
     pagination: normalizePagination(payload.pagination),
+    summary: normalizeSummary(payload.summary),
   };
 }
 
@@ -99,16 +144,20 @@ export const paymentAuditApi = {
   async getMine(params?: {
     page?: number;
     limit?: number;
-    paymentCode?: number;
+    paymentCode?: string | number;
     status?: PaymentHistoryStatus;
     provider?: PaymentHistoryProvider;
     keyword?: string;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: PaymentHistorySortKey;
+    sortOrder?: PaymentHistorySortOrder;
   }) {
     const { data } = await http.get("/api/payments/audits/me", { params });
     return normalizeListResponse(data);
   },
 
-  async getMyTimeline(paymentCode: number) {
+  async getMyTimeline(paymentCode: string | number) {
     const { data } = await http.get(`/api/payments/audits/me/${paymentCode}`);
     return normalizeDetailResponse(data);
   },
@@ -116,18 +165,22 @@ export const paymentAuditApi = {
   async getAdminList(params?: {
     page?: number;
     limit?: number;
-    paymentCode?: number;
+    paymentCode?: string | number;
     userId?: string;
     provider?: PaymentHistoryProvider;
     status?: PaymentHistoryStatus;
     keyword?: string;
     userKeyword?: string;
+    fromDate?: string;
+    toDate?: string;
+    sortBy?: PaymentHistorySortKey;
+    sortOrder?: PaymentHistorySortOrder;
   }) {
     const { data } = await http.get("/api/payments/audits/admin", { params });
     return normalizeListResponse(data);
   },
 
-  async getAdminTimeline(paymentCode: number) {
+  async getAdminTimeline(paymentCode: string | number) {
     const { data } = await http.get(`/api/payments/audits/admin/${paymentCode}`);
     return normalizeDetailResponse(data);
   },

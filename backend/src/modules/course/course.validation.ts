@@ -12,6 +12,17 @@ const numberStringSchema = z
   .trim()
   .regex(/^\d+(\.\d+)?$/, "Giá trị phải là số");
 
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .url("URL ảnh không hợp lệ")
+  .refine((value) => /^https:\/\//i.test(value), "URL ảnh phải bắt đầu bằng https");
+
+const optionalImageUrlSchema = z.preprocess(
+  (value) => (typeof value === "string" && !value.trim() ? undefined : value),
+  imageUrlSchema.optional()
+);
+
 const sortBySchema = z.enum([
   "title",
   "category",
@@ -50,6 +61,8 @@ export const createProductSchema = z.object({
     isActive: booleanLikeSchema.optional(),
 
     modes: z.union([modeSchema, z.array(modeSchema).min(1)]).optional(),
+
+    imageUrl: optionalImageUrlSchema,
   }),
 });
 
@@ -86,6 +99,8 @@ export const updateProductSchema = z.object({
     isActive: booleanLikeSchema.optional(),
 
     modes: z.union([modeSchema, z.array(modeSchema).min(1)]).optional(),
+
+    imageUrl: optionalImageUrlSchema,
   }),
 });
 

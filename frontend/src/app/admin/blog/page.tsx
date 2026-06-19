@@ -26,7 +26,6 @@ import {
   Plus,
   Quote,
   Redo2,
-  Settings,
   Star,
   Strikethrough,
   Type,
@@ -1040,25 +1039,14 @@ export default function AdminBlogPage() {
           }}
           onReload={() => void loadBlogs()}
           toolbarEnd={
-            <>
-              <button
-                type="button"
-                onClick={openCategoryModal}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-                title="Quản lý chuyên mục"
-              >
-                <Settings className="h-4 w-4" />
-                Chuyên mục
-              </button>
-              <button
-                type="button"
-                onClick={openCreateForm}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
-              >
-                <Plus className="h-4.5 w-4.5" />
-                Thêm bài viết
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={openCreateForm}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              Thêm bài viết
+            </button>
           }
           pagination={{
             currentPage,

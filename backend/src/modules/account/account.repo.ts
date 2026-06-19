@@ -2,6 +2,7 @@ import { UserModel } from "../user/user.model";
 import { PaymentOrderModel } from "../payment/payment.model";
 import { ProductModel } from "../course/course.model";
 import { StudentStudyModel } from "../student/student-study.model";
+import { WalletTransactionModel } from "../wallet/wallet.model";
 
 const teacherPopulate = {
   path: "teacher",
@@ -62,6 +63,17 @@ export const accountRepo = {
     })
       .sort({ createdAt: -1 })
       .select("_id paymentCode status items createdAt paidAt")
+      .lean();
+  },
+
+  findWalletEnrollmentsByUser(userId: string) {
+    return WalletTransactionModel.find({
+      user: userId,
+      type: "ENROLL",
+    })
+      .sort({ createdAt: -1 })
+      .select("_id amount course mode transactionCode createdAt updatedAt")
+      .populate(coursePopulate)
       .lean();
   },
 

@@ -23,7 +23,7 @@ export type MyCourseStatus = "pending" | "approved" | "assigned";
 
 export type MyCourseItem = {
   id: string;
-  source: "study" | "payment";
+  source: "study" | "payment" | "wallet";
   courseId: string;
   title: string;
   format: string;

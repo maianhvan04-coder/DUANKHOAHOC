@@ -11,6 +11,8 @@ export type NotificationUserItem = {
   email?: string;
 };
 
+export type NotificationMetadata = Record<string, unknown>;
+
 export type NotificationRecipientItem = {
   _id: string;
   name: string;
@@ -25,6 +27,9 @@ export type NotificationItem = {
   title: string;
   message: string;
   type: NotificationType;
+  actionUrl?: string | null;
+  actionLabel?: string | null;
+  metadata?: NotificationMetadata | null;
   isSent?: boolean;
   sentAt?: string | null;
   isRead: boolean;

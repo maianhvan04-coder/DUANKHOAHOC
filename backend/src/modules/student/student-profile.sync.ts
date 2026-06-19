@@ -46,3 +46,28 @@ export async function syncStudentProfileForUser(
 
   return true;
 }
+
+export async function ensureStudentProfileForPurchaser(
+  userId: string,
+  session?: ClientSession
+) {
+  const user = await UserModel.findById(userId)
+    .session(session ?? null)
+    .select("_id role deletedAt active")
+    .lean();
+
+  if (!user || user.deletedAt || user.active === false) return false;
+
+  const role = String(user.role || "").toUpperCase();
+  if (role === "USER") {
+    await UserModel.updateOne(
+      { _id: userId, role: "USER", deletedAt: null },
+      { $set: { role: "STUDENT" } },
+      { session }
+    );
+  } else if (role !== "STUDENT") {
+    return false;
+  }
+
+  return syncStudentProfileForUser(userId, session);
+}

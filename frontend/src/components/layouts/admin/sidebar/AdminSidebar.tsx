@@ -11,6 +11,7 @@ import {
   ChevronDown,
   CreditCard,
   FileText,
+  FolderKanban,
   FolderLock,
   GraduationCap,
   Landmark,
@@ -21,6 +22,7 @@ import {
   ShieldCheck,
   User,
   Users,
+  WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAdminLayout } from "@/components/layouts/admin/admin-layout-context";
@@ -32,6 +34,14 @@ import { useAdminPreferences, type AdminMessageKey } from "@/i18n";
 
 function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
+}
+
+function isActiveHref(pathname: string, href: string) {
+  if (href === "/admin/course" || href === "/admin/blog") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 type SidebarChildItem = {
@@ -99,19 +109,32 @@ const menuGroups: SidebarGroup[] = [
     ],
   },
   {
-    labelKey: "sidebar.group.general",
+    labelKey: "sidebar.group.course",
     items: [
+      {
+        href: "/admin/course/categories",
+        textKey: "sidebar.categories",
+        icon: FolderKanban,
+        requiredGroupKeys: ["CATEGORIES"],
+      },
       {
         href: "/admin/course",
         textKey: "sidebar.courses",
         icon: BookOpen,
-        requiredGroupKeys: ["CATEGORIES", "COURSES"],
+        requiredGroupKeys: ["COURSES"],
       },
     ],
   },
   {
     labelKey: "sidebar.group.posts",
     items: [
+      {
+        href: "/admin/blog/categories",
+        textKey: "sidebar.categories",
+        icon: FolderKanban,
+        requiredGroupKeys: ["BLOGS"],
+        requiredRolesAny: ["ADMIN"],
+      },
       {
         href: "/admin/blog",
         textKey: "sidebar.blog",
@@ -151,7 +174,7 @@ const menuGroups: SidebarGroup[] = [
     ],
   },
   {
-    labelKey: "sidebar.group.audit",
+    labelKey: "sidebar.group.bank",
     items: [
       {
         href: "/admin/payment-methods",
@@ -160,6 +183,11 @@ const menuGroups: SidebarGroup[] = [
         requiredGroupKeys: ["PAYMENT_METHODS"],
         requiredRolesAny: ["ADMIN", "MANAGER"],
       },
+    ],
+  },
+  {
+    labelKey: "sidebar.group.audit",
+    items: [
       {
         href: "/admin/payment-audits",
         textKey: "sidebar.paymentHistory",
@@ -167,9 +195,15 @@ const menuGroups: SidebarGroup[] = [
         requiredGroupKeys: ["AUDIT"],
       },
       {
-        href: "/admin/security-audits",
-        textKey: "sidebar.securityHistory",
-        icon: FolderLock,
+        href: "/admin/balance-history",
+        textKey: "sidebar.balanceHistory",
+        icon: WalletCards,
+        requiredGroupKeys: ["AUDIT"],
+      },
+      {
+        href: "/admin/bank-history",
+        textKey: "sidebar.bankHistory",
+        icon: Landmark,
         requiredGroupKeys: ["AUDIT"],
       },
     ],
@@ -181,6 +215,12 @@ const menuGroups: SidebarGroup[] = [
         href: "/admin/rbac",
         textKey: "sidebar.rbac",
         icon: ShieldCheck,
+        requiredGroupKeys: ["SYSTEM"],
+      },
+      {
+        href: "/admin/security-audits",
+        textKey: "sidebar.securityHistory",
+        icon: FolderLock,
         requiredGroupKeys: ["SYSTEM"],
       },
       {
@@ -361,7 +401,7 @@ export default function AdminSidebar({
                   if (item.children?.length) {
                     const isOpen = !!openMenus[item.textKey];
                     const childActive = item.children.some((child) =>
-                      pathname.startsWith(child.href)
+                      isActiveHref(pathname, child.href)
                     );
 
                     return (
@@ -428,7 +468,10 @@ export default function AdminSidebar({
                           <div className="ml-6 mt-2 space-y-1.5 pl-3">
                             {item.children.map((child) => {
                               const ChildIcon = child.icon;
-                              const selected = pathname.startsWith(child.href);
+                              const selected = isActiveHref(
+                                pathname,
+                                child.href
+                              );
 
                               return (
                                 <Link
@@ -459,7 +502,7 @@ export default function AdminSidebar({
                   }
 
                   const selected = item.href
-                    ? pathname.startsWith(item.href)
+                    ? isActiveHref(pathname, item.href)
                     : false;
 
                   return (

@@ -1,11 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Eye, X } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  CreditCard,
+  Eye,
+  Hash,
+  ReceiptText,
+  UserRound,
+  X,
+} from "lucide-react";
 import {
   paymentAuditApi,
   type PaymentAuditItem,
   type PaymentHistoryProvider,
+  type PaymentHistorySortKey,
   type PaymentHistoryStatus,
 } from "@/app/api/payment-audit.api";
 import AdminListTable, {
@@ -15,15 +32,24 @@ import AdminListTable, {
   type AdminFilterSection,
   type AdminTableColumn,
 } from "@/components/ui/admin/admin-list-table";
+import {
+  useAdminPreferences,
+  type AdminMessageKey,
+} from "@/i18n";
 import type { SortDirection } from "@/lib/utils/admin-list";
 
-type PaymentAuditSortKey =
-  | "paymentCode"
-  | "user"
-  | "provider"
-  | "amount"
-  | "status"
-  | "createdAt";
+type TimeRange = "" | "today" | "7d" | "30d";
+
+const STATUS_LABEL_KEYS: Record<PaymentHistoryStatus, AdminMessageKey> = {
+  PAID: "paymentHistory.status.paid",
+  PENDING: "paymentHistory.status.pending",
+  FAILED: "paymentHistory.status.failed",
+  CANCELLED: "paymentHistory.status.cancelled",
+};
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (typeof error === "object" && error !== null) {
@@ -50,16 +76,25 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-function formatOrderCode(paymentCode: number) {
-  return `ORD-${String(paymentCode || 0).padStart(8, "0")}`;
+function getLocaleCode(locale: "vi" | "en") {
+  return locale === "en" ? "en-US" : "vi-VN";
 }
 
-function formatDate(value?: string | null) {
+function getTransactionCode(item: PaymentAuditItem) {
+  return (
+    item.transactionCode?.trim() ||
+    item.gatewayTransactionNo?.trim() ||
+    item._id ||
+    "-"
+  );
+}
+
+function formatDate(value: string | null | undefined, locale: "vi" | "en") {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
 
-  return date.toLocaleString("vi-VN", {
+  return date.toLocaleString(getLocaleCode(locale), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -68,16 +103,75 @@ function formatDate(value?: string | null) {
   });
 }
 
-function formatMoney(value: number) {
-  return `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))}đ`;
+function formatMoney(value: number, locale: "vi" | "en") {
+  return new Intl.NumberFormat(getLocaleCode(locale), {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
-function formatProvider(provider: PaymentHistoryProvider) {
-  return provider.toUpperCase();
+function isDebitTransaction(item: PaymentAuditItem) {
+  return item.type === "ADMIN_DEBIT";
+}
+
+function formatSignedMoney(item: PaymentAuditItem, locale: "vi" | "en") {
+  const value = formatMoney(item.amount, locale);
+  return isDebitTransaction(item) ? `-${value}` : value;
+}
+
+function getTransactionTypeLabelLegacy(
+  type: PaymentAuditItem["type"],
+  locale: "vi" | "en"
+) {
+  if (false) {
+    return locale === "en" ? "Course purchase" : "Mua khóa học";
+  }
+
+  if (type === "ADMIN_DEBIT") {
+    return locale === "en" ? "Balance deduction" : "Trừ số dư";
+  }
+
+  if (type === "REFUND") {
+    return locale === "en" ? "Refund" : "Hoàn tiền";
+  }
+
+  if (type === "ENROLL") {
+    return locale === "en" ? "Course enrollment" : "Đăng ký khóa học";
+  }
+
+  return locale === "en" ? "Balance top-up" : "Cộng số dư";
+}
+
+function getTransactionTypeLabel(
+  type: PaymentAuditItem["type"],
+  locale: "vi" | "en"
+) {
+  if (type === "ENROLL") {
+    return locale === "en" ? "Course purchase" : "Mua khóa học";
+  }
+
+  if (type === "REFUND") {
+    return locale === "en" ? "Refund" : "Hoàn tiền";
+  }
+
+  if (type === "ADMIN_DEBIT") {
+    return locale === "en" ? "Balance deduction" : "Trừ số dư";
+  }
+
+  if (type === "TOPUP") {
+    return locale === "en" ? "Balance top-up" : "Cộng số dư";
+  }
+
+  return "-";
 }
 
 function getUserName(item: PaymentAuditItem) {
-  return item.user?.name?.trim() || "-";
+  return (
+    item.user?.name?.trim() ||
+    item.user?.email?.trim() ||
+    "-"
+  );
 }
 
 function getInitials(name?: string, email?: string) {
@@ -91,74 +185,146 @@ function getInitials(name?: string, email?: string) {
   return source.slice(0, 2).toUpperCase();
 }
 
-function parsePaymentCode(value: string) {
-  const digits = value.replace(/\D/g, "");
-  if (!digits) return undefined;
-  const parsed = Number(digits);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
-
-function statusConfig(status: PaymentHistoryStatus) {
+function getStatusTone(status: PaymentHistoryStatus) {
   switch (status) {
     case "PAID":
-      return { label: "Thành công", tone: "success" as const };
+      return "success" as const;
     case "FAILED":
-      return { label: "Thất bại", tone: "danger" as const };
+      return "danger" as const;
     case "CANCELLED":
-      return { label: "Đã hủy", tone: "neutral" as const };
+      return "neutral" as const;
     case "PENDING":
     default:
-      return { label: "Chờ xử lý", tone: "warning" as const };
+      return "warning" as const;
   }
 }
 
-function StatusBadge({ status }: { status: PaymentHistoryStatus }) {
-  const config = statusConfig(status);
+function getProviderLabel(
+  provider: PaymentHistoryProvider | null | undefined,
+  locale: "vi" | "en"
+) {
+  const normalized = provider?.trim().toLowerCase();
+  if (normalized === "balance") {
+    return locale === "en" ? "Balance" : "Số dư";
+  }
 
-  return <AdminStatusBadge tone={config.tone}>{config.label}</AdminStatusBadge>;
+  switch (provider) {
+    case "vnpay":
+      return "VNPAY";
+    case "payos":
+      return "PayOS";
+    default:
+      return provider?.trim() || "-";
+  }
 }
 
-function ProviderBadge({ provider }: { provider: PaymentHistoryProvider }) {
+function getFromDate(range: TimeRange) {
+  if (!range) return undefined;
+
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+
+  if (range === "7d") {
+    date.setDate(date.getDate() - 6);
+  } else if (range === "30d") {
+    date.setDate(date.getDate() - 29);
+  }
+
+  return date.toISOString();
+}
+
+function formatGatewayPayload(value: unknown, emptyText: string) {
+  if (value === null || value === undefined || value === "") return emptyText;
+  if (typeof value === "string") return value;
+
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function StatusBadge({
+  label,
+  status,
+}: {
+  label: string;
+  status: PaymentHistoryStatus;
+}) {
   return (
-    <span className="inline-flex h-7 items-center rounded-xl bg-slate-100 px-3 text-xs font-medium uppercase text-slate-700 dark:bg-white/10 dark:text-slate-100">
-      {formatProvider(provider)}
+    <AdminStatusBadge tone={getStatusTone(status)}>
+      {label}
+    </AdminStatusBadge>
+  );
+}
+
+function ProviderBadge({
+  locale,
+  provider,
+}: {
+  locale: "vi" | "en";
+  provider?: PaymentHistoryProvider | null;
+}) {
+  return (
+    <span className="inline-flex h-7 items-center rounded-xl bg-sky-50 px-3 text-xs font-semibold tracking-wide text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
+      {getProviderLabel(provider, locale)}
     </span>
   );
 }
 
 export default function AdminPaymentAuditsPage() {
+  const { locale, t } = useAdminPreferences();
   const [items, setItems] = useState<PaymentAuditItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [provider, setProvider] = useState<"" | PaymentHistoryProvider>("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<"" | PaymentHistoryStatus>("");
-  const [sortKey, setSortKey] = useState<PaymentAuditSortKey>("createdAt");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [timeRange, setTimeRange] = useState<TimeRange>("");
+  const [sortKey, setSortKey] =
+    useState<PaymentHistorySortKey>("createdAt");
+  const [sortDirection, setSortDirection] =
+    useState<SortDirection>("desc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
   const [detailItem, setDetailItem] = useState<PaymentAuditItem | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const listRequestIdRef = useRef(0);
+  const detailRequestIdRef = useRef(0);
 
-  const activeFilterCount = [provider, status].filter(Boolean).length;
+  const activeFilterCount = [status, timeRange].filter(Boolean).length;
+  const fromDate = useMemo(() => getFromDate(timeRange), [timeRange]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
   const loadData = useCallback(async () => {
+    const requestId = ++listRequestIdRef.current;
+
     try {
       setLoading(true);
       setError("");
 
-      const keyword = search.trim();
-      const paymentCode = parsePaymentCode(keyword);
       const result = await paymentAuditApi.getAdminList({
         page,
         limit: pageSize,
-        paymentCode,
-        userKeyword: paymentCode ? undefined : keyword || undefined,
-        provider: provider || undefined,
+        keyword: debouncedSearch || undefined,
         status: status || undefined,
+        fromDate,
+        sortBy: sortKey,
+        sortOrder: sortDirection,
       });
+
+      if (requestId !== listRequestIdRef.current) return;
 
       setItems(result.items);
       setPage(result.pagination.page);
@@ -166,221 +332,258 @@ export default function AdminPaymentAuditsPage() {
       setTotal(result.pagination.total);
       setTotalPages(Math.max(result.pagination.totalPages || 1, 1));
     } catch (loadError: unknown) {
+      if (requestId !== listRequestIdRef.current) return;
+
       setItems([]);
       setTotal(0);
       setTotalPages(1);
-      setError(getErrorMessage(loadError, "Không tải được dữ liệu thanh toán"));
+      setError(getErrorMessage(loadError, t("paymentHistory.loadFail")));
     } finally {
-      setLoading(false);
+      if (requestId === listRequestIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [page, pageSize, provider, search, status]);
+  }, [
+    debouncedSearch,
+    fromDate,
+    page,
+    pageSize,
+    sortDirection,
+    sortKey,
+    status,
+    t,
+  ]);
 
   useEffect(() => {
     void loadData();
   }, [loadData, refreshKey]);
 
+  const closeDetail = useCallback(() => {
+    detailRequestIdRef.current += 1;
+    setDetailItem(null);
+    setDetailError("");
+    setDetailLoading(false);
+  }, []);
+
+  const openDetail = useCallback(
+    async (item: PaymentAuditItem) => {
+      const requestId = ++detailRequestIdRef.current;
+      setDetailItem(item);
+      setDetailError("");
+      setDetailLoading(true);
+
+      try {
+        const result = await paymentAuditApi.getAdminTimeline(item._id);
+        if (requestId !== detailRequestIdRef.current) return;
+        setDetailItem(result.item || item);
+      } catch (detailLoadError: unknown) {
+        if (requestId !== detailRequestIdRef.current) return;
+        setDetailError(
+          getErrorMessage(
+            detailLoadError,
+            t("paymentHistory.detail.loadFail")
+          )
+        );
+      } finally {
+        if (requestId === detailRequestIdRef.current) {
+          setDetailLoading(false);
+        }
+      }
+    },
+    [t]
+  );
+
+  useEffect(() => {
+    if (!detailItem) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDetail();
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closeDetail, detailItem]);
+
   const filterSections = useMemo<AdminFilterSection[]>(
     () => [
       {
-        id: "provider",
-        title: "Phương thức",
-        options: [
-          {
-            id: "vnpay",
-            label: "VNPAY",
-            checked: provider === "vnpay",
-            onToggle: () => {
-              setPage(1);
-              setProvider((prev) => (prev === "vnpay" ? "" : "vnpay"));
-            },
+        id: "status",
+        title: t("paymentHistory.filter.status"),
+        options: (
+          ["PAID", "PENDING", "FAILED", "CANCELLED"] as const
+        ).map((value) => ({
+          id: value,
+          label: t(STATUS_LABEL_KEYS[value]),
+          checked: status === value,
+          onToggle: () => {
+            setPage(1);
+            setStatus((current) => (current === value ? "" : value));
           },
-          {
-            id: "payos",
-            label: "PAYOS",
-            checked: provider === "payos",
-            onToggle: () => {
-              setPage(1);
-              setProvider((prev) => (prev === "payos" ? "" : "payos"));
-            },
-          },
-        ],
+        })),
       },
       {
-        id: "status",
-        title: "Trạng thái",
+        id: "time",
+        title: t("paymentHistory.filter.time"),
         options: [
           {
-            id: "paid",
-            label: "Thành công",
-            checked: status === "PAID",
-            onToggle: () => {
-              setPage(1);
-              setStatus((prev) => (prev === "PAID" ? "" : "PAID"));
-            },
+            id: "today",
+            label: t("paymentHistory.time.today"),
+            value: "today" as const,
           },
           {
-            id: "pending",
-            label: "Chờ xử lý",
-            checked: status === "PENDING",
-            onToggle: () => {
-              setPage(1);
-              setStatus((prev) => (prev === "PENDING" ? "" : "PENDING"));
-            },
+            id: "7d",
+            label: t("paymentHistory.time.last7Days"),
+            value: "7d" as const,
           },
           {
-            id: "failed",
-            label: "Thất bại",
-            checked: status === "FAILED",
-            onToggle: () => {
-              setPage(1);
-              setStatus((prev) => (prev === "FAILED" ? "" : "FAILED"));
-            },
+            id: "30d",
+            label: t("paymentHistory.time.last30Days"),
+            value: "30d" as const,
           },
-          {
-            id: "cancelled",
-            label: "Đã hủy",
-            checked: status === "CANCELLED",
-            onToggle: () => {
-              setPage(1);
-              setStatus((prev) => (prev === "CANCELLED" ? "" : "CANCELLED"));
-            },
+        ].map((option) => ({
+          id: option.id,
+          label: option.label,
+          checked: timeRange === option.value,
+          onToggle: () => {
+            setPage(1);
+            setTimeRange((current) =>
+              current === option.value ? "" : option.value
+            );
           },
-        ],
+        })),
       },
     ],
-    [provider, status]
+    [status, t, timeRange]
   );
 
-  const sortedItems = useMemo(() => {
-    const multiplier = sortDirection === "asc" ? 1 : -1;
-
-    return [...items].sort((a, b) => {
-      let left: string | number = "";
-      let right: string | number = "";
-
-      if (sortKey === "paymentCode") {
-        left = a.paymentCode;
-        right = b.paymentCode;
-      } else if (sortKey === "user") {
-        left = getUserName(a);
-        right = getUserName(b);
-      } else if (sortKey === "provider") {
-        left = a.provider;
-        right = b.provider;
-      } else if (sortKey === "amount") {
-        left = a.amount;
-        right = b.amount;
-      } else if (sortKey === "status") {
-        left = a.status;
-        right = b.status;
-      } else {
-        left = new Date(a.paidAt || a.createdAt).getTime();
-        right = new Date(b.paidAt || b.createdAt).getTime();
-      }
-
-      if (typeof left === "number" && typeof right === "number") {
-        return (left - right) * multiplier;
-      }
-
-      return String(left).localeCompare(String(right), "vi") * multiplier;
-    });
-  }, [items, sortDirection, sortKey]);
-
   const columns = useMemo<
-    AdminTableColumn<PaymentAuditItem, PaymentAuditSortKey>[]
+    AdminTableColumn<PaymentAuditItem, PaymentHistorySortKey>[]
   >(
     () => [
       {
         id: "paymentCode",
-        label: "Mã đơn hàng",
+        label: t("paymentHistory.column.order"),
         sortKey: "paymentCode",
-        widthClassName: "w-[15%]",
+        widthClassName: "w-[18%]",
+        headerClassName: "break-words",
         render: (item) => (
-          <span className="font-medium text-slate-950 dark:text-white">
-            {formatOrderCode(item.paymentCode)}
-          </span>
+          <div className="min-w-0">
+            <div className="truncate font-mono text-sm font-semibold text-slate-950 dark:text-white">
+              {getTransactionCode(item)}
+            </div>
+            <div className="mt-1 truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">
+              {getTransactionTypeLabel(item.type, locale)}
+            </div>
+          </div>
         ),
       },
       {
         id: "user",
-        label: "Người dùng",
-        sortKey: "user",
-        widthClassName: "w-[24%]",
+        label: t("paymentHistory.column.customer"),
+        widthClassName: "w-[18%]",
+        headerClassName: "break-words",
         render: (item) => (
           <AdminEntityCell
             title={getUserName(item)}
             subtitle={item.user?.email || "-"}
             fallback={getInitials(item.user?.name, item.user?.email)}
+            hideMedia
           />
         ),
       },
       {
         id: "provider",
-        label: "Phương thức",
+        label: t("paymentHistory.column.provider"),
         sortKey: "provider",
-        widthClassName: "w-[13%]",
-        render: (item) => <ProviderBadge provider={item.provider} />,
+        widthClassName: "w-[19%]",
+        headerClassName: "whitespace-nowrap",
+        render: (item) => <ProviderBadge locale={locale} provider={item.provider} />,
       },
       {
         id: "amount",
-        label: "Giá",
+        label: t("paymentHistory.column.amount"),
         sortKey: "amount",
-        widthClassName: "w-[14%]",
+        widthClassName: "w-[13%]",
+        headerClassName: "break-words",
         render: (item) => (
-          <span className="font-medium text-slate-950 dark:text-white">
-            {formatMoney(item.amount)}
+          <span
+            className={cn(
+              "whitespace-nowrap font-semibold",
+              isDebitTransaction(item)
+                ? "text-rose-600 dark:text-rose-300"
+                : "text-slate-950 dark:text-white"
+            )}
+          >
+            {formatSignedMoney(item, locale)}
           </span>
         ),
       },
       {
         id: "status",
-        label: "Trạng thái",
+        label: t("paymentHistory.column.status"),
         sortKey: "status",
-        widthClassName: "w-[14%]",
-        render: (item) => <StatusBadge status={item.status} />,
+        widthClassName: "w-[13%]",
+        headerClassName: "break-words",
+        render: (item) => (
+          <StatusBadge
+            status={item.status}
+            label={t(STATUS_LABEL_KEYS[item.status])}
+          />
+        ),
       },
       {
         id: "createdAt",
-        label: "Ngày mua",
+        label: t("paymentHistory.column.createdAt"),
         sortKey: "createdAt",
-        widthClassName: "w-[14%]",
+        widthClassName: "w-[12%]",
+        headerClassName: "break-words",
         cellClassName: "whitespace-nowrap",
         render: (item) => (
           <span className="font-medium text-slate-900 dark:text-slate-100">
-            {formatDate(item.paidAt || item.createdAt)}
+            {formatDate(item.createdAt, locale)}
           </span>
         ),
       },
       {
         id: "actions",
-        label: "Hành động",
-        widthClassName: "w-[6%]",
-        align: "right",
+        label: t("paymentHistory.column.actions"),
+        widthClassName: "w-[7%]",
+        headerClassName: "whitespace-nowrap",
+        align: "center",
         render: (item) => (
-          <AdminActionIconButton title="Xem" onClick={() => setDetailItem(item)}>
+          <AdminActionIconButton
+            title={t("paymentHistory.action.view")}
+            onClick={() => void openDetail(item)}
+          >
             <Eye className="h-4 w-4" />
           </AdminActionIconButton>
         ),
       },
     ],
-    []
+    [locale, openDetail, t]
   );
 
   return (
-    <main className="space-y-4">
+    <main className="space-y-5">
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200">
           {error}
         </div>
       ) : null}
 
-      <AdminListTable<PaymentAuditItem, PaymentAuditSortKey>
-        rows={sortedItems}
+      <AdminListTable<PaymentAuditItem, PaymentHistorySortKey>
+        rows={items}
         columns={columns}
         rowKey={(item) => item._id}
         loading={loading}
         searchValue={search}
-        searchPlaceholder="Tìm theo mã đơn hoặc người dùng..."
+        searchPlaceholder={t("paymentHistory.searchPlaceholder")}
         onSearchChange={(value) => {
           setSearch(value);
           setPage(1);
@@ -390,8 +593,9 @@ export default function AdminPaymentAuditsPage() {
         onApplyFilters={() => setPage(1)}
         onClearFilters={() => {
           setSearch("");
-          setProvider("");
+          setDebouncedSearch("");
           setStatus("");
+          setTimeRange("");
           setPage(1);
         }}
         sortBy={sortKey}
@@ -399,8 +603,9 @@ export default function AdminPaymentAuditsPage() {
         onSortChange={(nextSortBy, nextSortOrder) => {
           setSortKey(nextSortBy);
           setSortDirection(nextSortOrder);
+          setPage(1);
         }}
-        onReload={() => setRefreshKey((prev) => prev + 1)}
+        onReload={() => setRefreshKey((current) => current + 1)}
         pagination={{
           currentPage: page,
           totalPages,
@@ -413,104 +618,278 @@ export default function AdminPaymentAuditsPage() {
           onPageChange: setPage,
           pageSizeOptions: [10, 20, 50],
         }}
-        emptyText="Chưa có giao dịch phù hợp"
+        emptyText={t("paymentHistory.empty")}
         labels={{
-          apply: "Áp dụng",
-          clear: "Xóa lọc",
-          filter: "Lọc",
-          loading: "Đang tải giao dịch...",
-          noData: "Không có dữ liệu",
-          of: "trên",
-          reload: "Làm mới",
-          rows: "Dòng",
-          search: "Tìm kiếm",
-          showing: "Hiển thị",
+          apply: t("dict.apply"),
+          clear: t("dict.clearFilter"),
+          filter: t("dict.filter"),
+          loading: t("paymentHistory.loading"),
+          noData: t("dict.noData"),
+          of: locale === "vi" ? "trên" : "of",
+          reload: t("dict.reload"),
+          rows: locale === "vi" ? "Dòng" : "Rows",
+          search: t("dict.search"),
+          showing: t("dict.showing"),
         }}
         tableMinWidthClassName="min-w-full"
+        fitContainer
       />
 
       {detailItem ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70">
-          <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
-            <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                  {formatOrderCode(detailItem.paymentCode)}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {getUserName(detailItem)} · {detailItem.user?.email || "-"}
-                </p>
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeDetail();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-detail-title"
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950"
+          >
+            <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6 dark:border-white/10">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-300">
+                  <ReceiptText className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2
+                    id="payment-detail-title"
+                    className="text-lg font-bold text-slate-950 dark:text-white"
+                  >
+                    {t("paymentHistory.detail.title")}
+                  </h2>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {getTransactionCode(detailItem)}
+                    </span>
+                    <StatusBadge
+                      status={detailItem.status}
+                      label={t(STATUS_LABEL_KEYS[detailItem.status])}
+                    />
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => setDetailItem(null)}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                onClick={closeDetail}
+                title={t("paymentHistory.detail.close")}
+                aria-label={t("paymentHistory.detail.close")}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
-            </div>
+            </header>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5 sm:p-6">
+              {detailLoading ? (
+                <div className="flex items-center gap-2 rounded-xl bg-sky-50 px-4 py-3 text-sm font-medium text-sky-700 dark:bg-sky-500/15 dark:text-sky-200">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-current" />
+                  {t("paymentHistory.detail.loading")}
+                </div>
+              ) : null}
+
+              {detailError ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-200">
+                  {detailError}
+                </div>
+              ) : null}
+
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
-                  <div className="text-xs font-medium uppercase text-slate-400">
-                    Phương thức
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <CircleDollarSign className="h-4 w-4" />
+                    {t("paymentHistory.column.amount")}
                   </div>
-                  <div className="mt-2">
-                    <ProviderBadge provider={detailItem.provider} />
+                  <div
+                    className={cn(
+                      "mt-2 text-lg font-bold",
+                      isDebitTransaction(detailItem)
+                        ? "text-rose-600 dark:text-rose-300"
+                        : "text-slate-950 dark:text-white"
+                    )}
+                  >
+                    {formatSignedMoney(detailItem, locale)}
                   </div>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
-                  <div className="text-xs font-medium uppercase text-slate-400">
-                    Giá
-                  </div>
-                  <div className="mt-1 font-medium text-slate-950 dark:text-white">
-                    {formatMoney(detailItem.amount)}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-900/70">
-                  <div className="text-xs font-medium uppercase text-slate-400">
-                    Trạng thái
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <CreditCard className="h-4 w-4" />
+                    {t("paymentHistory.column.provider")}
                   </div>
                   <div className="mt-2">
-                    <StatusBadge status={detailItem.status} />
+                    <ProviderBadge
+                      locale={locale}
+                      provider={detailItem.provider}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {t("paymentHistory.column.status")}
+                  </div>
+                  <div className="mt-2">
+                    <StatusBadge
+                      status={detailItem.status}
+                      label={t(STATUS_LABEL_KEYS[detailItem.status])}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/70">
-                <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-950 dark:border-white/10 dark:text-white">
-                  Gói đã mua
-                </div>
-                <div className="divide-y divide-slate-200 dark:divide-white/10">
-                  {detailItem.items.length ? (
-                    detailItem.items.map((entry) => (
-                      <div
-                        key={`${entry.courseId}-${entry.title}`}
-                        className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate font-medium text-slate-950 dark:text-white">
-                            {entry.title}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            SL: {entry.quantity}
-                          </div>
-                        </div>
-                        <div className="shrink-0 font-medium text-slate-950 dark:text-white">
-                          {formatMoney(entry.subtotal)}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                      Không có gói
+              <div className="grid gap-4 lg:grid-cols-2">
+                <section className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+                    <UserRound className="h-4 w-4 text-sky-600 dark:text-sky-300" />
+                    {t("paymentHistory.detail.customer")}
+                  </h3>
+                  <div className="mt-4">
+                    <AdminEntityCell
+                      title={getUserName(detailItem)}
+                      subtitle={detailItem.user?.email || "-"}
+                      meta={detailItem.user?._id ? `ID: ${detailItem.user._id}` : undefined}
+                      fallback={getInitials(
+                        detailItem.user?.name,
+                        detailItem.user?.email
+                      )}
+                      hideMedia
+                    />
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                  <h3 className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+                    <Hash className="h-4 w-4 text-sky-600 dark:text-sky-300" />
+                    {t("paymentHistory.detail.gateway")}
+                  </h3>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        {t("paymentHistory.column.provider")}
+                      </dt>
+                      <dd className="font-semibold text-slate-950 dark:text-white">
+                        {getProviderLabel(detailItem.provider, locale)}
+                      </dd>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        {t("paymentHistory.detail.transactionCode")}
+                      </dt>
+                      <dd className="max-w-[65%] break-all text-right font-mono font-semibold text-slate-950 dark:text-white">
+                        {detailItem.gatewayTransactionNo || "-"}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
               </div>
+
+              <section className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-slate-950 dark:text-white">
+                  <Clock3 className="h-4 w-4 text-sky-600 dark:text-sky-300" />
+                  {t("paymentHistory.detail.timeline")}
+                </h3>
+                <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {[
+                    {
+                      label: t("paymentHistory.detail.createdAt"),
+                      value: detailItem.createdAt,
+                    },
+                    {
+                      label: t("paymentHistory.detail.paidAt"),
+                      value: detailItem.paidAt,
+                    },
+                    {
+                      label: t("paymentHistory.detail.updatedAt"),
+                      value: detailItem.updatedAt,
+                    },
+                  ].map((entry) => (
+                    <div
+                      key={entry.label}
+                      className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-white/[0.04]"
+                    >
+                      <dt className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {entry.label}
+                      </dt>
+                      <dd className="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
+                        {formatDate(entry.value, locale)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section className="overflow-hidden rounded-xl border border-slate-200 dark:border-white/10">
+                <div className="border-b border-slate-200 px-4 py-3 dark:border-white/10">
+                  <h3 className="text-sm font-bold text-slate-950 dark:text-white">
+                    {t("paymentHistory.detail.items")}
+                  </h3>
+                </div>
+                {detailItem.items.length ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] text-sm">
+                      <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-white/[0.03] dark:text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3">{t("dict.course")}</th>
+                          <th className="px-4 py-3 text-center">
+                            {t("paymentHistory.detail.quantity")}
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            {t("paymentHistory.detail.unitPrice")}
+                          </th>
+                          <th className="px-4 py-3 text-right">
+                            {t("paymentHistory.detail.subtotal")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                        {detailItem.items.map((entry, index) => (
+                          <tr key={`${entry.courseId}-${index}`}>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-slate-950 dark:text-white">
+                                {entry.title}
+                              </div>
+                              <div className="mt-1 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                                {entry.courseId}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center font-medium">
+                              {entry.quantity}
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium">
+                              {formatMoney(entry.unitPrice, locale)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-slate-950 dark:text-white">
+                              {formatMoney(entry.subtotal, locale)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                    {t("paymentHistory.detail.noItems")}
+                  </div>
+                )}
+              </section>
+
+              <details className="rounded-xl border border-slate-200 dark:border-white/10">
+                <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-950 dark:text-white">
+                  {t("paymentHistory.detail.rawData")}
+                </summary>
+                <div className="border-t border-slate-200 p-4 dark:border-white/10">
+                  <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-slate-950 p-4 text-xs leading-5 text-slate-200">
+                    {formatGatewayPayload(
+                      detailItem.gatewayPayload,
+                      t("paymentHistory.detail.noRawData")
+                    )}
+                  </pre>
+                </div>
+              </details>
             </div>
-          </div>
+          </section>
         </div>
       ) : null}
     </main>

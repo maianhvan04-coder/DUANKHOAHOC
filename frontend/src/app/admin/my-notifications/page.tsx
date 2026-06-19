@@ -1,16 +1,24 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Bell,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CreditCard,
+  Eye,
   Info,
   RefreshCw,
+  ReceiptText,
   ShieldCheck,
+  UserPlus,
+  UserRound,
+  X,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +42,31 @@ type TypeMeta = {
   icon: LucideIcon;
   badgeClass: string;
   iconClass: string;
+};
+
+type CoursePurchaseMetadata = {
+  kind?: string;
+  source?: string;
+  buyer?: {
+    id?: string;
+    name?: string;
+    email?: string;
+  };
+  courses?: Array<{
+    courseId?: string;
+    title?: string;
+    quantity?: number;
+    unitPrice?: number;
+    subtotal?: number;
+  }>;
+  amount?: number;
+  provider?: string | null;
+  paymentCode?: number | null;
+  transactionCode?: string | null;
+  gatewayTransactionNo?: string | null;
+  mode?: string | null;
+  classRoomId?: string | null;
+  studyId?: string | null;
 };
 
 const TYPE_OPTIONS: NotificationType[] = ["INFO", "SUCCESS", "WARNING", "ERROR"];
@@ -67,6 +100,79 @@ const TYPE_META: Record<NotificationType, TypeMeta> = {
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback = 0) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function getSafeActionUrl(item: NotificationItem) {
+  const url = item.actionUrl?.trim();
+  if (!url || !url.startsWith("/admin/")) return "";
+  return url;
+}
+
+function formatMoney(value: unknown) {
+  return `${new Intl.NumberFormat("vi-VN").format(asNumber(value))} đ`;
+}
+
+function getCoursePurchaseMetadata(
+  item: NotificationItem
+): CoursePurchaseMetadata | null {
+  const metadata = item.metadata;
+  if (!isRecord(metadata) || metadata.kind !== "COURSE_PURCHASE") return null;
+
+  const buyer = isRecord(metadata.buyer) ? metadata.buyer : {};
+  const courses = Array.isArray(metadata.courses)
+    ? metadata.courses
+        .filter(isRecord)
+        .map((course) => ({
+          courseId: asString(course.courseId),
+          title: asString(course.title),
+          quantity: asNumber(course.quantity, 1),
+          unitPrice: asNumber(course.unitPrice),
+          subtotal: asNumber(course.subtotal),
+        }))
+    : [];
+
+  return {
+    kind: "COURSE_PURCHASE",
+    source: asString(metadata.source),
+    buyer: {
+      id: asString(buyer.id),
+      name: asString(buyer.name),
+      email: asString(buyer.email),
+    },
+    courses,
+    amount: asNumber(metadata.amount),
+    provider:
+      typeof metadata.provider === "string" ? metadata.provider : null,
+    paymentCode:
+      metadata.paymentCode === null || metadata.paymentCode === undefined
+        ? null
+        : asNumber(metadata.paymentCode),
+    transactionCode:
+      typeof metadata.transactionCode === "string"
+        ? metadata.transactionCode
+        : null,
+    gatewayTransactionNo:
+      typeof metadata.gatewayTransactionNo === "string"
+        ? metadata.gatewayTransactionNo
+        : null,
+    mode: typeof metadata.mode === "string" ? metadata.mode : null,
+    classRoomId:
+      typeof metadata.classRoomId === "string" ? metadata.classRoomId : null,
+    studyId: typeof metadata.studyId === "string" ? metadata.studyId : null,
+  };
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -160,11 +266,14 @@ function StatCard({
 }
 
 export default function AdminMyNotificationsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [selectedNotification, setSelectedNotification] =
+    useState<NotificationItem | null>(null);
 
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -271,6 +380,21 @@ export default function AdminMyNotificationsPage() {
     } finally {
       setActionLoading(null);
     }
+  }
+
+  async function openDetail(item: NotificationItem) {
+    setSelectedNotification(item);
+    if (!item.isRead) {
+      await markAsRead(item);
+    }
+  }
+
+  function goToNotificationAction(item: NotificationItem) {
+    const url = getSafeActionUrl(item);
+    if (!url) return;
+
+    setSelectedNotification(null);
+    router.push(url);
   }
 
   async function markAllAsRead() {
@@ -510,7 +634,15 @@ export default function AdminMyNotificationsPage() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 justify-end">
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void openDetail(item)}
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#0D56A6] px-4 text-sm font-bold text-white transition hover:bg-[#0B4A8E]"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Xem chi tiết
+                        </button>
                         <button
                           type="button"
                           onClick={() => void markAsRead(item)}
@@ -559,6 +691,150 @@ export default function AdminMyNotificationsPage() {
           </div>
         </section>
       </main>
+
+      {selectedNotification
+        ? (() => {
+            const purchase = getCoursePurchaseMetadata(selectedNotification);
+            const actionUrl = getSafeActionUrl(selectedNotification);
+
+            return (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
+                <section className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950">
+                  <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-white/10">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <NotificationTypeBadge type={selectedNotification.type} />
+                        {purchase ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                            <ReceiptText className="h-3.5 w-3.5" />
+                            Mua khóa học
+                          </span>
+                        ) : null}
+                      </div>
+                      <h2 className="mt-3 text-2xl font-black leading-tight text-slate-950 dark:text-white">
+                        {selectedNotification.title}
+                      </h2>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        {selectedNotification.message}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNotification(null)}
+                      className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </header>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                    {purchase ? (
+                      <div className="space-y-4">
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              <UserRound className="h-4 w-4" />
+                              Học viên
+                            </div>
+                            <div className="mt-2 truncate text-sm font-black text-slate-950 dark:text-white">
+                              {purchase.buyer?.name || "Học viên"}
+                            </div>
+                            <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+                              {purchase.buyer?.email || "-"}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              <CreditCard className="h-4 w-4" />
+                              Thanh toán
+                            </div>
+                            <div className="mt-2 text-sm font-black text-slate-950 dark:text-white">
+                              {formatMoney(purchase.amount)}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              <ReceiptText className="h-4 w-4" />
+                              Mã giao dịch
+                            </div>
+                            <div className="mt-2 break-all font-mono text-sm font-black text-slate-950 dark:text-white">
+                              {purchase.transactionCode ||
+                                purchase.gatewayTransactionNo ||
+                                purchase.paymentCode ||
+                                "-"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <section className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+                            Khóa học đã mua
+                          </div>
+                          <div className="divide-y divide-slate-200 dark:divide-white/10">
+                            {(purchase.courses || []).length ? (
+                              purchase.courses?.map((course, index) => (
+                                <div
+                                  key={`${course.courseId || index}`}
+                                  className="grid gap-3 px-4 py-3 text-sm md:grid-cols-[minmax(0,1fr)_120px_140px]"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="truncate font-bold text-slate-950 dark:text-white">
+                                      {course.title || "Khóa học"}
+                                    </div>
+                                    <div className="mt-1 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
+                                      {course.courseId || "-"}
+                                    </div>
+                                  </div>
+                                  <div className="font-semibold text-slate-700 dark:text-slate-200">
+                                    SL: {course.quantity || 1}
+                                  </div>
+                                  <div className="font-bold text-slate-950 dark:text-white md:text-right">
+                                    {formatMoney(course.subtotal)}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-6 text-center text-sm text-slate-500">
+                                Không có dữ liệu khóa học
+                              </div>
+                            )}
+                          </div>
+                        </section>
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+                        {selectedNotification.message}
+                      </div>
+                    )}
+                  </div>
+
+                  <footer className="flex flex-col gap-3 border-t border-slate-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-end dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNotification(null)}
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
+                    >
+                      Đóng
+                    </button>
+                    {actionUrl ? (
+                      <button
+                        type="button"
+                        onClick={() => goToNotificationAction(selectedNotification)}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#0D56A6] px-5 text-sm font-bold text-white transition hover:bg-[#0B4A8E]"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        {selectedNotification.actionLabel || "Gán lớp học"}
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </footer>
+                </section>
+              </div>
+            );
+          })()
+        : null}
     </>
   );
 }

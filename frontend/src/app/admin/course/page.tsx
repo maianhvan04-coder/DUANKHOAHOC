@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FolderKanban,
+  ImageIcon,
   Lock,
   LockOpen,
   Pencil,
@@ -43,8 +44,33 @@ function cn(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (typeof error !== "object" || error === null) return fallback;
+
+  const maybeError = error as {
+    message?: string;
+    response?: {
+      data?: {
+        message?: string;
+        error?: string;
+        errors?: Array<{ message?: string }>;
+      };
+    };
+  };
+  const data = maybeError.response?.data;
+
+  return (
+    data?.errors?.find((item) => item.message)?.message ||
+    data?.message ||
+    data?.error ||
+    maybeError.message ||
+    fallback
+  );
+}
+
 type ViewMode = "active" | "deleted";
 type FormMode = "create" | "edit";
+type ImageSource = "file" | "url";
 type ProductSortKey =
   | "title"
   | "category"
@@ -55,7 +81,9 @@ type ProductSortKey =
 type ProductFormState = {
   title: string;
   category: string;
+  imageSource: ImageSource;
   image: File | null;
+  imageUrl: string;
   shortDescription: string;
   durationText: string;
   status: ProductStatus;
@@ -66,7 +94,9 @@ type ProductFormState = {
 const INITIAL_FORM: ProductFormState = {
   title: "",
   category: "",
+  imageSource: "file",
   image: null,
+  imageUrl: "",
   shortDescription: "",
   durationText: "",
   status: "OPEN",
@@ -133,6 +163,7 @@ export default function AdminProductsPage() {
   });
 
   const objectUrlRef = useRef<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const clearObjectUrl = () => {
     if (objectUrlRef.current) {
@@ -152,6 +183,15 @@ export default function AdminProductsPage() {
     }
 
     setImagePreview(fallback);
+  };
+
+  const clearSelectedImageFile = () => {
+    clearObjectUrl();
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+    setForm((prev) => ({ ...prev, image: null }));
+    setImagePreview(editingItem?.image || "");
   };
 
   useEffect(() => {
@@ -239,7 +279,9 @@ export default function AdminProductsPage() {
     setForm({
       title: item.title || "",
       category: getCategoryId(item.category),
+      imageSource: "file",
       image: null,
+      imageUrl: "",
       shortDescription: item.shortDescription || "",
       durationText: item.durationText || "",
       status: item.status || "OPEN",
@@ -286,7 +328,9 @@ export default function AdminProductsPage() {
       const payload = {
         title,
         category,
-        image: form.image,
+        image: form.imageSource === "file" ? form.image : null,
+        imageUrl:
+          form.imageSource === "url" ? form.imageUrl.trim() || undefined : undefined,
         shortDescription,
         durationText,
         status: form.status,
@@ -309,9 +353,12 @@ export default function AdminProductsPage() {
     } catch (error) {
       console.error(error);
       toast.error(
-        formMode === "create"
-          ? "Thêm khóa học thất bại"
-          : "Cập nhật khóa học thất bại"
+        getErrorMessage(
+          error,
+          formMode === "create"
+            ? "Thêm khóa học thất bại"
+            : "Cập nhật khóa học thất bại"
+        )
       );
     } finally {
       setSubmitting(false);
@@ -724,25 +771,14 @@ export default function AdminProductsPage() {
             }}
             onReload={() => void handleRefresh()}
             toolbarEnd={
-              <>
-                <button
-                  type="button"
-                  onClick={openCategoryModal}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-white/10"
-                  title="Quản lý danh mục"
-                >
-                  <FolderKanban className="h-4 w-4" />
-                  Danh mục
-                </button>
-                <button
-                  type="button"
-                  onClick={openCreateForm}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Course
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={openCreateForm}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700"
+              >
+                <Plus className="h-4 w-4" />
+                New Course
+              </button>
             }
             pagination={{
               currentPage,
@@ -1320,21 +1356,130 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                    Ảnh
-                  </label>
+                <div className="md:col-span-2 grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+                  <div className="relative pt-2">
+                    <label className="absolute left-4 top-0 z-10 bg-white px-2 text-sm font-bold text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      Ảnh <span className="text-rose-600">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={form.imageSource}
+                        onChange={(e) => {
+                          const imageSource = e.target.value as ImageSource;
+                          clearObjectUrl();
+                          setForm((prev) => ({
+                            ...prev,
+                            imageSource,
+                            image: null,
+                            imageUrl: imageSource === "file" ? "" : prev.imageUrl,
+                          }));
+                          setImagePreview(
+                            imageSource === "url"
+                              ? form.imageUrl.trim() || editingItem?.image || ""
+                              : editingItem?.image || ""
+                          );
+                        }}
+                        className="h-14 w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 pr-10 text-sm font-bold text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
+                      >
+                        <option value="file">Tệp</option>
+                        <option value="url">Đường dẫn</option>
+                      </select>
+                      <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400" />
+                    </div>
+                  </div>
 
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setForm((prev) => ({ ...prev, image: file }));
-                      setPreviewFromFile(file, editingItem?.image || "");
-                    }}
-                    className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700 dark:text-slate-200 dark:file:bg-emerald-500/15 dark:file:text-emerald-200"
-                  />
+                  {form.imageSource === "file" ? (
+                    <div className="relative pt-2">
+                      <label className="absolute left-4 top-0 z-10 bg-white px-2 text-sm font-bold text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                        Tệp ảnh <span className="text-rose-600">*</span>
+                      </label>
+                      <div className="flex h-14 w-full items-center overflow-hidden rounded-xl border border-slate-300 bg-white text-sm font-bold text-slate-700 transition focus-within:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100">
+                        <span className="ml-4 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-300">
+                          {imagePreview ? (
+                            <img
+                              src={imagePreview}
+                              alt="Xem trước ảnh"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="h-4 w-4" />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate px-4">
+                          {form.image?.name ||
+                            (editingItem?.image ? "Ảnh hiện tại" : "Chọn tệp")}
+                        </span>
+                        {form.image ? (
+                          <button
+                            type="button"
+                            onClick={clearSelectedImageFile}
+                            className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-100"
+                            aria-label="Bỏ ảnh đã chọn"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        ) : null}
+                        <label
+                          htmlFor="course-image-upload"
+                          className="mr-4 cursor-pointer rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-200 dark:hover:bg-rose-500/25"
+                        >
+                          Chọn
+                        </label>
+                        <input
+                          ref={imageInputRef}
+                          id="course-image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setForm((prev) => ({
+                              ...prev,
+                              image: file,
+                              imageUrl: "",
+                            }));
+                            setPreviewFromFile(file, editingItem?.image || "");
+                          }}
+                          className="sr-only"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative pt-2">
+                      <label className="absolute left-4 top-0 z-10 bg-white px-2 text-sm font-bold text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                        URL ảnh banner <span className="text-rose-600">*</span>
+                      </label>
+                      <div className="flex gap-3">
+                        <input
+                          value={form.imageUrl}
+                          onChange={(e) => {
+                            const imageUrl = e.target.value;
+                            clearObjectUrl();
+                            setForm((prev) => ({
+                              ...prev,
+                              image: null,
+                              imageUrl,
+                            }));
+                            setImagePreview(
+                              imageUrl.trim() || editingItem?.image || ""
+                            );
+                          }}
+                          placeholder="https://..."
+                          className="h-14 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+                        />
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-300 bg-slate-50 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                          {imagePreview ? (
+                            <img
+                              src={imagePreview}
+                              alt="Xem trước ảnh"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="h-5 w-5" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1387,20 +1532,6 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                {imagePreview ? (
-                  <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Preview
-                    </label>
-                    <div className="h-[120px] w-full overflow-hidden rounded-xl border border-slate-300 bg-slate-100 dark:border-white/10 dark:bg-slate-900">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </div>
-                ) : null}
               </div>
             </div>
 

@@ -1,12 +1,33 @@
-import { Types } from "mongoose";
-import { PaymentOrderModel, type PaymentOrderDocument } from "../../payment/payment.model";
+import { isValidObjectId, Types } from "mongoose";
+import { PaymentMethodModel } from "../../payment-method/payment-method.model";
 import { UserModel } from "../../user/user.model";
+import { WalletTransactionModel } from "../../wallet/wallet.model";
 import type {
   PaymentHistoryItem,
   PaymentHistoryListQuery,
   PaymentHistoryListResult,
+  PaymentHistoryProvider,
+  PaymentHistoryStatus,
+  PaymentHistorySummary,
+  PaymentHistoryTransactionType,
   PaymentHistoryUser,
 } from "./payment-audit.model";
+
+type PaymentMethodSnapshot = {
+  _id?: unknown;
+  name?: string;
+  code?: string;
+} | null;
+
+type CourseSnapshot = {
+  _id?: unknown;
+  title?: string;
+  price?: number;
+} | null;
+
+const PAYMENT_TRANSACTION_TYPES: PaymentHistoryTransactionType[] = [
+  "ENROLL",
+];
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -26,17 +47,82 @@ function normalizeUser(user: unknown): PaymentHistoryUser {
   };
 }
 
+function getPaymentMethod(doc: any): PaymentMethodSnapshot {
+  const value = doc.paymentMethod;
+  if (!value || typeof value !== "object") return null;
+  return value as PaymentMethodSnapshot;
+}
+
+function getProvider(method: PaymentMethodSnapshot): PaymentHistoryProvider {
+  return method?.name?.trim() || method?.code?.trim() || "balance";
+}
+
+function mapTypeToStatus(type: PaymentHistoryTransactionType): PaymentHistoryStatus {
+  return "PAID";
+}
+
+function getCourse(doc: any): CourseSnapshot {
+  const value = doc.course;
+  if (!value || typeof value !== "object") return null;
+  return value as CourseSnapshot;
+}
+
+function buildPaymentCode(doc: any) {
+  const createdAt = new Date(doc.createdAt || Date.now()).getTime();
+  const idTail = String(doc._id || "").slice(-6);
+  const tailNumber = Number.parseInt(idTail, 16);
+  const safeTail = Number.isFinite(tailNumber) ? tailNumber % 1000000 : 0;
+  return Number(`${String(createdAt).slice(-7)}${String(safeTail).padStart(6, "0")}`);
+}
+
 function mapItem(doc: any): PaymentHistoryItem {
+  const method = getPaymentMethod(doc);
+  const course = getCourse(doc);
+  const transactionCode = String(doc.transactionCode || doc._id || "");
+  const type = String(doc.type || "ENROLL") as PaymentHistoryTransactionType;
+  const amount = Number(doc.amount || 0);
+  const courseId = course?._id ? String(course._id) : String(doc.course || "");
+  const courseTitle =
+    course?.title?.trim() ||
+    String(doc.note || "").replace(/^Đăng ký khóa học:\s*/i, "").trim() ||
+    "Khóa học";
+
   return {
     _id: String(doc._id),
-    paymentCode: Number(doc.paymentCode || 0),
-    provider: doc.provider,
-    status: doc.status,
-    amount: Number(doc.amount || 0),
-    items: Array.isArray(doc.items) ? doc.items : [],
-    gatewayTransactionNo: doc.gatewayTransactionNo ?? null,
-    gatewayPayload: doc.gatewayPayload ?? null,
-    paidAt: doc.paidAt ?? null,
+    paymentCode: buildPaymentCode(doc),
+    transactionCode,
+    type,
+    provider: getProvider(method),
+    status: mapTypeToStatus(type),
+    amount,
+    items: courseId
+      ? [
+          {
+            courseId,
+            title: courseTitle,
+            quantity: 1,
+            unitPrice: Number(course?.price || amount),
+            subtotal: amount,
+          },
+        ]
+      : [],
+    gatewayTransactionNo: transactionCode,
+    gatewayPayload: {
+      type,
+      paymentMethod: method
+        ? {
+            id: String(method._id || ""),
+            name: method.name || "",
+            code: method.code || "",
+          }
+        : null,
+      transactionCode,
+      currency: doc.currency || "VND",
+      note: doc.note || "",
+      balanceBefore: Number(doc.balanceBefore || 0),
+      balanceAfter: Number(doc.balanceAfter || 0),
+    },
+    paidAt: doc.createdAt ?? null,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     user:
@@ -62,11 +148,27 @@ async function findUserIdsByKeyword(keyword?: string) {
   return users.map((user) => user._id);
 }
 
+async function findPaymentMethodIdsByProvider(provider?: string) {
+  const normalized = provider?.trim();
+  if (!normalized) return [];
+
+  const regex = new RegExp(`^${escapeRegex(normalized)}$`, "i");
+  const methods = await PaymentMethodModel.find({
+    $or: [{ name: regex }, { code: regex }],
+  })
+    .select("_id")
+    .lean();
+
+  return methods.map((method) => method._id);
+}
+
 async function buildFilter(
   query: Partial<PaymentHistoryListQuery>,
   scopeUserId?: string
 ) {
-  const filter: Record<string, unknown> = {};
+  const filter: Record<string, unknown> = {
+    type: { $in: PAYMENT_TRANSACTION_TYPES },
+  };
 
   if (scopeUserId) {
     filter.user = new Types.ObjectId(scopeUserId);
@@ -75,27 +177,61 @@ async function buildFilter(
   }
 
   if (query.paymentCode) {
-    filter.paymentCode = query.paymentCode;
+    const text = String(query.paymentCode).trim();
+    if (isValidObjectId(text)) {
+      filter._id = new Types.ObjectId(text);
+    } else {
+      filter.transactionCode = new RegExp(escapeRegex(text), "i");
+    }
   }
 
   if (query.provider) {
-    filter.provider = query.provider;
+    const normalizedProvider = query.provider.trim().toLowerCase();
+    if (["balance", "số dư", "so du"].includes(normalizedProvider)) {
+      filter.paymentMethod = null;
+    } else {
+      const methodIds = await findPaymentMethodIdsByProvider(query.provider);
+      filter.paymentMethod = methodIds.length
+        ? { $in: methodIds }
+        : new Types.ObjectId("000000000000000000000000");
+    }
   }
 
-  if (query.status) {
-    filter.status = query.status;
+  if (query.status && query.status !== "PAID") {
+    filter._id = new Types.ObjectId("000000000000000000000000");
+  }
+
+  if (query.fromDate || query.toDate) {
+    const createdAt: Record<string, Date> = {};
+
+    if (query.fromDate) {
+      createdAt.$gte = query.fromDate;
+    }
+
+    if (query.toDate) {
+      createdAt.$lte = query.toDate;
+    }
+
+    filter.createdAt = createdAt;
   }
 
   if (query.keyword?.trim()) {
     const keyword = query.keyword.trim();
     const regex = new RegExp(escapeRegex(keyword), "i");
     const ors: Record<string, unknown>[] = [
-      { gatewayTransactionNo: regex },
-      { "items.title": regex },
+      { transactionCode: regex },
+      { note: regex },
     ];
 
-    if (/^\d+$/.test(keyword)) {
-      ors.unshift({ paymentCode: Number(keyword) });
+    if (isValidObjectId(keyword)) {
+      ors.unshift({ _id: new Types.ObjectId(keyword) });
+    }
+
+    if (!scopeUserId) {
+      const userIds = await findUserIdsByKeyword(keyword);
+      if (userIds.length) {
+        ors.push({ user: { $in: userIds } });
+      }
     }
 
     filter.$or = ors;
@@ -109,6 +245,72 @@ async function buildFilter(
   return filter;
 }
 
+function buildSort(query: PaymentHistoryListQuery) {
+  const direction = query.sortOrder === "asc" ? 1 : -1;
+  const sortFieldMap: Record<string, string> = {
+    paymentCode: "transactionCode",
+    provider: "paymentMethod",
+    amount: "amount",
+    status: "type",
+    createdAt: "createdAt",
+    paidAt: "createdAt",
+  };
+
+  return {
+    [sortFieldMap[query.sortBy] || "createdAt"]: direction,
+    _id: direction,
+  } as Record<string, 1 | -1>;
+}
+
+async function getSummary(
+  filter: Record<string, unknown>
+): Promise<PaymentHistorySummary> {
+  const [summary] = await WalletTransactionModel.aggregate<{
+    totalOrders: number;
+    totalAmount: number;
+    paidAmount: number;
+    paidCount: number;
+  }>([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        totalOrders: { $sum: 1 },
+        totalAmount: { $sum: "$amount" },
+        paidAmount: { $sum: "$amount" },
+        paidCount: { $sum: 1 },
+      },
+    },
+    { $project: { _id: 0 } },
+  ]);
+
+  return {
+    totalOrders: Number(summary?.totalOrders || 0),
+    totalAmount: Number(summary?.totalAmount || 0),
+    paidAmount: Number(summary?.paidAmount || 0),
+    paidCount: Number(summary?.paidCount || 0),
+    pendingCount: 0,
+    failedCount: 0,
+    cancelledCount: 0,
+  };
+}
+
+function queryTransactions(filter: Record<string, unknown>) {
+  return WalletTransactionModel.find(filter)
+    .populate("user", "name email")
+    .populate("paymentMethod", "name code")
+    .populate("course", "title price")
+    .lean();
+}
+
+function queryTransaction(filter: Record<string, unknown>) {
+  return WalletTransactionModel.findOne(filter)
+    .populate("user", "name email")
+    .populate("paymentMethod", "name code")
+    .populate("course", "title price")
+    .lean();
+}
+
 export async function getMyPaymentHistoryRepo(
   userId: string,
   query: PaymentHistoryListQuery
@@ -116,13 +318,13 @@ export async function getMyPaymentHistoryRepo(
   const skip = (query.page - 1) * query.limit;
   const filter = await buildFilter(query, userId);
 
-  const [docs, total] = await Promise.all([
-    PaymentOrderModel.find(filter)
-      .sort({ createdAt: -1, _id: -1 })
+  const [docs, total, summary] = await Promise.all([
+    queryTransactions(filter)
+      .sort(buildSort(query))
       .skip(skip)
-      .limit(query.limit)
-      .lean(),
-    PaymentOrderModel.countDocuments(filter),
+      .limit(query.limit),
+    WalletTransactionModel.countDocuments(filter),
+    getSummary(filter),
   ]);
 
   return {
@@ -133,17 +335,26 @@ export async function getMyPaymentHistoryRepo(
       total,
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
     },
+    summary,
   };
 }
 
 export async function getMyPaymentHistoryDetailRepo(
   userId: string,
-  paymentCode: number
+  idOrCode: string
 ): Promise<PaymentHistoryItem | null> {
-  const doc = await PaymentOrderModel.findOne({
+  const filter: Record<string, unknown> = {
     user: new Types.ObjectId(userId),
-    paymentCode,
-  }).lean();
+    type: { $in: PAYMENT_TRANSACTION_TYPES },
+  };
+
+  if (isValidObjectId(idOrCode)) {
+    filter._id = new Types.ObjectId(idOrCode);
+  } else {
+    filter.transactionCode = idOrCode;
+  }
+
+  const doc = await queryTransaction(filter);
 
   return doc ? mapItem(doc) : null;
 }
@@ -154,14 +365,13 @@ export async function getAdminPaymentHistoryRepo(
   const skip = (query.page - 1) * query.limit;
   const filter = await buildFilter(query);
 
-  const [docs, total] = await Promise.all([
-    PaymentOrderModel.find(filter)
-      .populate("user", "name email")
-      .sort({ createdAt: -1, _id: -1 })
+  const [docs, total, summary] = await Promise.all([
+    queryTransactions(filter)
+      .sort(buildSort(query))
       .skip(skip)
-      .limit(query.limit)
-      .lean(),
-    PaymentOrderModel.countDocuments(filter),
+      .limit(query.limit),
+    WalletTransactionModel.countDocuments(filter),
+    getSummary(filter),
   ]);
 
   return {
@@ -172,15 +382,24 @@ export async function getAdminPaymentHistoryRepo(
       total,
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
     },
+    summary,
   };
 }
 
 export async function getAdminPaymentHistoryDetailRepo(
-  paymentCode: number
+  idOrCode: string
 ): Promise<PaymentHistoryItem | null> {
-  const doc = await PaymentOrderModel.findOne({ paymentCode })
-    .populate("user", "name email")
-    .lean();
+  const filter: Record<string, unknown> = {
+    type: { $in: PAYMENT_TRANSACTION_TYPES },
+  };
+
+  if (isValidObjectId(idOrCode)) {
+    filter._id = new Types.ObjectId(idOrCode);
+  } else {
+    filter.transactionCode = idOrCode;
+  }
+
+  const doc = await queryTransaction(filter);
 
   return doc ? mapItem(doc) : null;
 }

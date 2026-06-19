@@ -6,15 +6,11 @@ import {
   BookOpen,
   ChevronRight,
   GraduationCap,
-  Layers3,
   Menu,
 } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
-
-function getCategoryHref() {
-  return "/#khoa-hoc";
-}
+import { productApi, type ProductItem } from "@/app/api/course.api";
 
 function filterActiveTree(items: CategoryItem[]): CategoryItem[] {
   return items
@@ -35,61 +31,38 @@ function CategorySkeleton() {
   );
 }
 
-function RecursiveCategoryLinks({
-  items,
-  depth = 0,
-}: {
-  items: CategoryItem[];
-  depth?: number;
-}) {
-  return (
-    <div className={depth === 0 ? "grid gap-x-8 gap-y-1.5 md:grid-cols-2 xl:grid-cols-3" : "mt-1 space-y-1 border-l border-slate-100 pl-4"}>
-      {items.map((item) => {
-        const children = item.children || [];
-        const Icon = depth === 0 ? BookOpen : Layers3;
-
-        return (
-          <div key={item._id} className="min-w-0">
-            <Link
-              href={getCategoryHref()}
-              className="group flex min-h-8 items-center gap-2 text-[14px] font-medium leading-5 text-slate-700 transition hover:text-[#0D6EAF]"
-            >
-              <Icon className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:text-[#0D6EAF]" />
-              <span className="line-clamp-2">{item.name}</span>
-            </Link>
-
-            {children.length ? (
-              <RecursiveCategoryLinks items={children} depth={depth + 1} />
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
+function getProductCategoryId(category: ProductItem["category"]) {
+  return typeof category === "string" ? category : category?._id || "";
 }
 
-function CategoryGroup({ item }: { item: CategoryItem }) {
-  const children = item.children || [];
+function collectCategoryIds(item?: CategoryItem): string[] {
+  if (!item) return [];
 
+  return [
+    item._id,
+    ...(item.children || []).flatMap((child) => collectCategoryIds(child)),
+  ];
+}
+
+function CourseLink({ item }: { item: ProductItem }) {
   return (
-    <section>
-      <h3 className="text-[16px] font-bold uppercase tracking-[0.01em] text-[#0D6EAF]">
-        {item.name}
-      </h3>
-
-      <div className="mt-2">
-        {children.length ? (
-          <RecursiveCategoryLinks items={children} />
-        ) : (
-          <RecursiveCategoryLinks items={[item]} />
-        )}
-      </div>
-    </section>
+    <Link
+      href={`/khoa-hoc/${item._id}`}
+      className="group flex min-w-0 items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-3 transition hover:border-[#0D6EAF]/30 hover:bg-sky-50/60 hover:shadow-sm"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-[#0D6EAF] transition group-hover:bg-[#0D6EAF] group-hover:text-white">
+        <BookOpen className="h-4 w-4" />
+      </span>
+      <span className="line-clamp-2 min-w-0 flex-1 text-[14px] font-bold leading-5 text-slate-800 transition group-hover:text-[#0D6EAF]">
+        {item.title}
+      </span>
+    </Link>
   );
 }
 
 export default function HomeCategoryPanel() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [courses, setCourses] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategoryId, setActiveCategoryId] = useState("");
   const [activeTab, setActiveTab] = useState<"courses" | "books">("courses");
@@ -100,13 +73,22 @@ export default function HomeCategoryPanel() {
     async function loadCategories() {
       try {
         setLoading(true);
-        const response = await categoryApi.getTree();
+        const [categoryResponse, productResponse] = await Promise.all([
+          categoryApi.getTree(),
+          productApi.getAll({ limit: 100 }),
+        ]);
 
-        if (mounted) setCategories(response.items || []);
+        if (mounted) {
+          setCategories(categoryResponse.items || []);
+          setCourses(productResponse.items || []);
+        }
       } catch (error) {
-        console.error("Load category tree failed:", error);
+        console.error("Load category panel failed:", error);
 
-        if (mounted) setCategories([]);
+        if (mounted) {
+          setCategories([]);
+          setCourses([]);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -134,13 +116,26 @@ export default function HomeCategoryPanel() {
     rootCategories.find((item) => item._id === activeCategoryId) ||
     rootCategories[0];
 
-  const panelGroups =
-    activeCategory?.children?.length ? activeCategory.children : rootCategories;
+  const activeCategoryIds = useMemo(
+    () => new Set(collectCategoryIds(activeCategory)),
+    [activeCategory]
+  );
+
+  const activeCourses = useMemo(
+    () =>
+      courses.filter(
+        (course) =>
+          course.isActive !== false &&
+          !course.isDeleted &&
+          activeCategoryIds.has(getProductCategoryId(course.category))
+      ),
+    [activeCategoryIds, courses]
+  );
 
   return (
-    <div className="group/category relative h-full min-h-[320px] md:min-h-[400px] lg:min-h-[500px]">
+    <div className="group/category relative h-[240px] md:h-[320px] lg:h-[420px]">
       <aside className="h-full overflow-hidden rounded-b-[4px] bg-white shadow-[0_4px_16px_rgba(15,23,42,0.16)]">
-        <div className="flex h-12 items-center gap-3 bg-slate-100 px-4 text-[15px] font-semibold text-slate-700">
+        <div className="flex h-12 items-center gap-3 border-b border-slate-100 bg-white px-4 text-[15px] font-semibold text-slate-700">
           <Menu className="h-5 w-5 shrink-0" />
           Các khóa học
         </div>
@@ -148,7 +143,7 @@ export default function HomeCategoryPanel() {
         {loading ? (
           <CategorySkeleton />
         ) : rootCategories.length ? (
-          <div className="max-h-[calc(100%-48px)] overflow-y-auto py-2 2xl:py-2.5">
+          <div className="h-[calc(100%-48px)] overflow-y-auto bg-white py-2 2xl:py-2.5">
             {rootCategories.map((item) => {
               const active = item._id === activeCategory?._id;
 
@@ -231,11 +226,34 @@ export default function HomeCategoryPanel() {
 
           {activeTab === "courses" ? (
             <div className="h-[calc(100%-56px)] overflow-y-auto px-5 py-5">
-              <div className="space-y-5">
-                {panelGroups.map((item) => (
-                  <CategoryGroup key={item._id} item={item} />
-                ))}
+              <div className="mb-4">
+                <h3 className="text-[17px] font-black uppercase tracking-[0.01em] text-[#0D6EAF]">
+                  Khóa học {activeCategory?.name || ""}
+                </h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Chọn khóa học để xem chi tiết và đăng ký.
+                </p>
               </div>
+
+              {activeCourses.length ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {activeCourses.map((course) => (
+                    <CourseLink key={course._id} item={course} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                  <div>
+                    <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
+                    <p className="mt-3 text-[15px] font-bold text-slate-700">
+                      Chưa có khóa học trong danh mục này
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Vui lòng chọn danh mục khác hoặc quay lại sau.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex h-[calc(100%-56px)] items-center justify-center px-8 text-center">

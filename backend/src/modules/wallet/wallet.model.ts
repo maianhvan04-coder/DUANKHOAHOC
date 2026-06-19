@@ -7,7 +7,11 @@ export type WalletDocument = {
   updatedAt: Date;
 };
 
-export type WalletTransactionType = "TOPUP" | "ENROLL" | "REFUND";
+export type WalletTransactionType =
+  | "TOPUP"
+  | "ENROLL"
+  | "REFUND"
+  | "ADMIN_DEBIT";
 
 export type WalletTransactionDocument = {
   user: Types.ObjectId;
@@ -17,7 +21,11 @@ export type WalletTransactionDocument = {
   balanceAfter: number;
   course?: Types.ObjectId | null;
   classRoom?: Types.ObjectId | null;
+  paymentMethod?: Types.ObjectId | null;
+  actor?: Types.ObjectId | null;
   mode?: "ONLINE" | "OFFLINE" | null;
+  transactionCode?: string;
+  currency: string;
   note: string;
   createdAt: Date;
   updatedAt: Date;
@@ -54,7 +62,7 @@ const walletTransactionSchema = new Schema<WalletTransactionDocument>(
     },
     type: {
       type: String,
-      enum: ["TOPUP", "ENROLL", "REFUND"],
+      enum: ["TOPUP", "ENROLL", "REFUND", "ADMIN_DEBIT"],
       required: true,
       index: true,
     },
@@ -83,10 +91,33 @@ const walletTransactionSchema = new Schema<WalletTransactionDocument>(
       ref: "ClassRoom",
       default: null,
     },
+    paymentMethod: {
+      type: Schema.Types.ObjectId,
+      ref: "PaymentMethod",
+      default: null,
+      index: true,
+    },
+    actor: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     mode: {
       type: String,
       enum: ["ONLINE", "OFFLINE", null],
       default: null,
+    },
+    transactionCode: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    currency: {
+      type: String,
+      default: "VND",
+      trim: true,
+      uppercase: true,
     },
     note: {
       type: String,

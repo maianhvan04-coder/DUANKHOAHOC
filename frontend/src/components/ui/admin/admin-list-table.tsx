@@ -94,6 +94,7 @@ type AdminListTableProps<TItem, TSortKey extends string> = {
   emptyText?: string;
   labels?: AdminListTableLabels;
   tableMinWidthClassName?: string;
+  fitContainer?: boolean;
   toolbarStart?: ReactNode;
   toolbarEnd?: ReactNode;
 };
@@ -175,6 +176,7 @@ export function AdminEntityCell({
   image,
   fallback,
   icon,
+  hideMedia,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -182,19 +184,22 @@ export function AdminEntityCell({
   image?: string;
   fallback?: string;
   icon?: ReactNode;
+  hideMedia?: boolean;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-bold text-slate-700 dark:bg-white/10 dark:text-slate-100">
-        {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt="" className="h-full w-full object-cover" />
-        ) : icon ? (
-          icon
-        ) : (
-          fallback || "-"
-        )}
-      </div>
+      {!hideMedia ? (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-sm font-bold text-slate-700 dark:bg-white/10 dark:text-slate-100">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" className="h-full w-full object-cover" />
+          ) : icon ? (
+            icon
+          ) : (
+            fallback || "-"
+          )}
+        </div>
+      ) : null}
 
       <div className="min-w-0">
         <div className="truncate font-semibold text-slate-900 dark:text-white">
@@ -235,6 +240,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
   emptyText,
   labels: labelOverrides,
   tableMinWidthClassName = "min-w-[1080px]",
+  fitContainer = false,
   toolbarStart,
   toolbarEnd,
 }: AdminListTableProps<TItem, TSortKey>) {
@@ -296,7 +302,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
           ) : null}
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="relative min-w-[240px] flex-1 lg:max-w-md">
+            <div className="relative min-w-0 flex-[1_1_240px] lg:max-w-md">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={searchValue}
@@ -410,7 +416,7 @@ export default function AdminListTable<TItem, TSortKey extends string>({
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-950/45">
-        <div className="overflow-x-auto">
+        <div className={cn(fitContainer ? "overflow-x-hidden" : "overflow-x-auto")}>
           <table
             className={cn(
               "w-full table-fixed border-collapse text-sm",
@@ -419,29 +425,38 @@ export default function AdminListTable<TItem, TSortKey extends string>({
           >
             <thead className="border-b border-slate-200 bg-white text-slate-900 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100">
               <tr>
-                {columns.map((column) => (
-                  <th
-                    key={column.id}
-                    className={cn(
-                      "px-4 py-3 text-left text-sm font-bold",
-                      column.widthClassName,
-                      column.headerClassName,
-                      column.align === "center" && "text-center",
-                      column.align === "right" && "text-right"
-                    )}
-                  >
+                {columns.map((column) => {
+                  const headerNoWrap =
+                    typeof column.headerClassName === "string" &&
+                    column.headerClassName.includes("whitespace-nowrap");
+
+                  return (
+                    <th
+                      key={column.id}
+                      className={cn(
+                        fitContainer
+                          ? "px-2.5 py-3 text-left text-sm font-bold leading-tight"
+                          : "px-4 py-3 text-left text-sm font-bold",
+                        column.widthClassName,
+                        column.headerClassName,
+                        column.align === "center" && "text-center",
+                        column.align === "right" && "text-right"
+                      )}
+                    >
                     {column.sortKey ? (
                       <button
                         type="button"
                         onClick={() => handleSortClick(column.sortKey as TSortKey)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 bg-transparent p-0 text-left text-sm font-bold text-slate-900 transition hover:text-sky-600 dark:text-slate-100 dark:hover:text-sky-300",
+                          "inline-flex max-w-full items-center gap-1.5 bg-transparent p-0 text-left text-sm font-bold text-slate-900 transition hover:text-sky-600 dark:text-slate-100 dark:hover:text-sky-300",
+                          fitContainer && !headerNoWrap && "whitespace-normal leading-tight",
+                          headerNoWrap && "whitespace-nowrap",
                           column.align === "center" && "justify-center",
                           column.align === "right" && "justify-end"
                         )}
                         title={typeof column.label === "string" ? column.label : undefined}
                       >
-                        <span>{column.label}</span>
+                        <span className="min-w-0">{column.label}</span>
                         {hasUserSorted && sortBy === column.sortKey ? (
                           sortOrder === "asc" ? (
                             <ChevronUp className="h-3.5 w-3.5" />
@@ -455,8 +470,9 @@ export default function AdminListTable<TItem, TSortKey extends string>({
                     ) : (
                       column.label
                     )}
-                  </th>
-                ))}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
 
@@ -489,7 +505,9 @@ export default function AdminListTable<TItem, TSortKey extends string>({
                       <td
                         key={column.id}
                         className={cn(
-                          "px-4 py-3.5 align-middle text-slate-700 dark:text-slate-200",
+                          fitContainer
+                            ? "px-2.5 py-3 align-middle text-slate-700 dark:text-slate-200"
+                            : "px-4 py-3.5 align-middle text-slate-700 dark:text-slate-200",
                           column.widthClassName,
                           column.cellClassName,
                           column.align === "center" && "text-center",

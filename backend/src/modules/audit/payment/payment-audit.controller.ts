@@ -24,6 +24,7 @@ export async function getMyPaymentHistoryController(
       ok: true,
       items: data.items,
       pagination: data.pagination,
+      summary: data.summary,
     });
   } catch (error) {
     next(error);
@@ -37,7 +38,7 @@ export async function getMyPaymentHistoryDetailController(
 ) {
   try {
     const userId = getUserId(req);
-    const paymentCode = Number(req.params.paymentCode);
+    const paymentCode = String(req.params.paymentCode || "");
 
     const item = await getMyPaymentHistoryDetailService(userId, paymentCode);
 
@@ -68,6 +69,7 @@ export async function getAdminPaymentHistoryController(
       ok: true,
       items: data.items,
       pagination: data.pagination,
+      summary: data.summary,
     });
   } catch (error) {
     next(error);
@@ -80,7 +82,7 @@ export async function getAdminPaymentHistoryDetailController(
   next: NextFunction
 ) {
   try {
-    const paymentCode = Number(req.params.paymentCode);
+    const paymentCode = String(req.params.paymentCode || "");
 
     const item = await getAdminPaymentHistoryDetailService(paymentCode);
 

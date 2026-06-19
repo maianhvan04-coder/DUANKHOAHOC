@@ -100,6 +100,9 @@ export const PERMISSIONS = Object.freeze({
   PAYMENT_AUDIT_READ_OWN: "payment_audit:read_own",
   PAYMENT_AUDIT_READ_ALL: "payment_audit:read_all",
   PAYMENT_AUDIT_MANAGE: "payment_audit:manage",
+  BALANCE_HISTORY_READ: "balance_history:read",
+  BANK_HISTORY_READ: "bank_history:read",
+  WALLET_BALANCE_UPDATE: "wallet:balance_update",
 
   SECURITY_AUDIT_READ_OWN: "security_audit:read_own",
   SECURITY_AUDIT_READ_ALL: "security_audit:read_all",

@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, MessageCircle, X } from "lucide-react";
+import { BookOpen, CheckCircle2, Laptop, Mail, MessageCircle, UserRound, X } from "lucide-react";
 
 import { categoryApi, type CategoryItem } from "@/app/api/category.api";
-import { classroomApi } from "@/app/api/classroom.api";
 import {
   productApi,
   type ProductItem,
@@ -93,7 +92,7 @@ function isAllowedImage(src?: string | null) {
 
   try {
     const url = new URL(src);
-    return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
+    return url.protocol === "https:";
   } catch {
     return false;
   }
@@ -258,8 +257,6 @@ export function CourseDetailView({
   );
   const [balance, setBalance] = useState(0);
   const [walletLoading, setWalletLoading] = useState(true);
-  const [classLoading, setClassLoading] = useState(true);
-  const [classModes, setClassModes] = useState<ProductMode[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [topupLoading, setTopupLoading] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -270,25 +267,18 @@ export function CourseDetailView({
   const image = getCourseImage(course, index);
   const price = Number(course.price || 0);
   const missingAmount = Math.max(price - balance, 0);
-  const enabledModes = useMemo(
-    () => availableModes.filter((mode) => classModes.includes(mode)),
-    [availableModes, classModes]
-  );
-  const selectableModes = classLoading ? availableModes : enabledModes;
-  const selectedModeAvailable = selectableModes.includes(selectedMode);
+  const selectedModeAvailable = availableModes.includes(selectedMode);
   const canRegister =
     course.status === "OPEN" &&
     course.isActive !== false &&
     missingAmount <= 0 &&
     selectedModeAvailable &&
-    !classLoading &&
     !submitting;
   const canOpenRegister =
     course.status === "OPEN" &&
     course.isActive !== false &&
     missingAmount <= 0 &&
-    selectedModeAvailable &&
-    !classLoading;
+    selectedModeAvailable;
 
   useEffect(() => {
     setFormName(user?.name || "");
@@ -296,43 +286,11 @@ export function CourseDetailView({
   }, [user?.email, user?.name]);
 
   useEffect(() => {
-    const nextMode = selectableModes.includes(selectedMode)
+    const nextMode = availableModes.includes(selectedMode)
       ? selectedMode
-      : selectableModes[0] || availableModes[0] || "ONLINE";
+      : availableModes[0] || "ONLINE";
     setSelectedMode(nextMode);
-  }, [availableModes, selectableModes, selectedMode]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadClasses() {
-      try {
-        setClassLoading(true);
-        const items = await classroomApi.list({ courseId: course._id });
-        if (!mounted) return;
-
-        const nextModes = Array.from(
-          new Set(
-            items
-              .filter((item) => item.isActive !== false && item.isDeleted !== true)
-              .map((item) => item.mode)
-              .filter((mode): mode is ProductMode => mode === "ONLINE" || mode === "OFFLINE")
-          )
-        );
-        setClassModes(nextModes);
-      } catch {
-        if (mounted) setClassModes([]);
-      } finally {
-        if (mounted) setClassLoading(false);
-      }
-    }
-
-    void loadClasses();
-
-    return () => {
-      mounted = false;
-    };
-  }, [course._id]);
+  }, [availableModes, selectedMode]);
 
   useEffect(() => {
     let mounted = true;
@@ -407,7 +365,7 @@ export function CourseDetailView({
       });
       setBalance(Number(data.balance || 0));
       emitWalletBalanceChanged();
-      setMessage("Đăng ký khóa học thành công.");
+      setMessage("Mua khóa học thành công. Vui lòng chờ quản trị viên gán lớp.");
       setRegisterOpen(false);
       return true;
     } catch (err) {
@@ -545,69 +503,120 @@ export function CourseDetailView({
       </div>
 
       {registerOpen ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/55 px-4 py-6">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
           <form
-            className="w-full max-w-[560px] overflow-hidden rounded-[4px] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.28)]"
+            className="w-full max-w-[560px] overflow-hidden rounded-2xl border border-white/70 bg-white shadow-[0_28px_90px_rgba(15,23,42,0.35)]"
             onSubmit={(event) => {
               event.preventDefault();
               void handleEnroll();
             }}
           >
-            <div className="relative px-6 pb-5 pt-6">
+            <div className="relative border-b border-slate-100 px-6 pb-5 pt-6">
               <button
                 type="button"
                 onClick={() => setRegisterOpen(false)}
                 aria-label="Đóng"
-                className="absolute right-4 top-4 inline-flex h-8 w-8 items-center justify-center text-slate-400 transition hover:text-slate-700"
+                className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              <h2 className="mx-auto max-w-[420px] text-center text-2xl font-black uppercase leading-8 text-[#0D56A6]">
-                Đăng kí khóa học
-              </h2>
-
-              <div className="mt-8 space-y-4">
-                <input
-                  value={formName}
-                  readOnly
-                  aria-label="Họ và tên"
-                  className="h-14 w-full rounded-none border-0 bg-[#D8EAFF] px-5 text-base font-medium text-[#0D56A6] outline-none"
-                  placeholder="Họ và tên"
-                />
-                <input
-                  value={formEmail}
-                  readOnly
-                  aria-label="Email"
-                  className="h-14 w-full rounded-none border-0 bg-[#D8EAFF] px-5 text-base font-medium text-[#0D56A6] outline-none"
-                  placeholder="Email"
-                />
-                <select
-                  value={selectedMode}
-                  onChange={(event) => setSelectedMode(event.target.value as ProductMode)}
-                  aria-label="Chọn hình thức học"
-                  className="h-14 w-full rounded-none border-0 bg-[#D8EAFF] px-5 text-base font-medium text-slate-700 outline-none"
-                >
-                  {(["ONLINE", "OFFLINE"] as ProductMode[]).map((mode) => (
-                    <option
-                      key={mode}
-                      value={mode}
-                      disabled={!selectableModes.includes(mode)}
-                    >
-                      {getModeLabel(mode)}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-start gap-4 pr-10">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0D56A6] text-white shadow-[0_12px_28px_rgba(13,86,166,0.26)]">
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-black leading-8 text-[#0D56A6]">
+                    Đăng kí khóa học
+                  </h2>
+                  <p className="mt-1 line-clamp-2 text-sm font-semibold text-slate-600">
+                    {course.title}
+                  </p>
+                </div>
               </div>
 
-              {!classLoading && selectableModes.length === 0 ? (
-                <p className="mt-4 rounded-[4px] bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
-                  Chưa có lớp phù hợp để đăng ký khóa học này.
-                </p>
-              ) : null}
+              <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Học phí
+                  </p>
+                  <p className="mt-1 text-lg font-black text-orange-600">
+                    {formatPrice(price)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                    Hình thức
+                  </p>
+                  <p className="mt-1 text-lg font-black text-slate-900">
+                    {getModeLabel(selectedMode)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 pt-5">
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Họ và tên
+                  </span>
+                  <span className="flex h-14 items-center gap-3 rounded-xl border border-slate-200 bg-sky-50/80 px-4 text-[#0D56A6]">
+                    <UserRound className="h-5 w-5 shrink-0 text-[#0D56A6]/70" />
+                    <input
+                      value={formName}
+                      readOnly
+                      aria-label="Họ và tên"
+                      className="min-w-0 flex-1 bg-transparent text-base font-bold outline-none"
+                      placeholder="Họ và tên"
+                    />
+                  </span>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Email
+                  </span>
+                  <span className="flex h-14 items-center gap-3 rounded-xl border border-slate-200 bg-sky-50/80 px-4 text-[#0D56A6]">
+                    <Mail className="h-5 w-5 shrink-0 text-[#0D56A6]/70" />
+                    <input
+                      value={formEmail}
+                      readOnly
+                      aria-label="Email"
+                      className="min-w-0 flex-1 bg-transparent text-base font-bold outline-none"
+                      placeholder="Email"
+                    />
+                  </span>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-slate-700">
+                    Hình thức học
+                  </span>
+                  <span className="flex h-14 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-800 transition focus-within:border-[#0D56A6] focus-within:ring-4 focus-within:ring-sky-100">
+                    <Laptop className="h-5 w-5 shrink-0 text-[#0D56A6]/70" />
+                    <select
+                      value={selectedMode}
+                      onChange={(event) => setSelectedMode(event.target.value as ProductMode)}
+                      aria-label="Chọn hình thức học"
+                      className="min-w-0 flex-1 bg-transparent text-base font-bold outline-none"
+                    >
+                      {(["ONLINE", "OFFLINE"] as ProductMode[]).map((mode) => (
+                        <option
+                          key={mode}
+                          value={mode}
+                          disabled={!availableModes.includes(mode)}
+                        >
+                          {getModeLabel(mode)}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                </label>
+              </div>
 
               {error ? (
-                <p className="mt-4 rounded-[4px] bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                <p className="mt-4 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                   {error}
                 </p>
               ) : null}
@@ -615,8 +624,9 @@ export function CourseDetailView({
               <button
                 type="submit"
                 disabled={!canRegister || walletLoading}
-                className="mt-5 h-14 w-full rounded-none bg-[#0D56A6] text-base font-black uppercase text-white transition hover:bg-[#0B4A8E] disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#0D56A6] text-base font-black uppercase text-white shadow-[0_14px_30px_rgba(13,86,166,0.24)] transition hover:bg-[#0B4A8E] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
+                <CheckCircle2 className="h-5 w-5" />
                 {submitting ? "Đang đăng kí..." : "Đăng kí ngay"}
               </button>
             </div>

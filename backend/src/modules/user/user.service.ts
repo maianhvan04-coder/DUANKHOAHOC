@@ -9,6 +9,7 @@ import { StudentStudyModel } from "../student/student-study.model";
 import { syncStudentProfileForUser } from "../student/student-profile.sync";
 import { TeacherModel } from "../teacher/teacher.model";
 import { syncTeacherProfileForUser } from "../teacher/teacher-profile.sync";
+import { WalletModel } from "../wallet/wallet.model";
 import {
   escapeRegex,
   getQueryString,
@@ -135,8 +136,31 @@ export const userService = {
     ]);
 
     const items = await Promise.all(users.map((user) => withAccessRoles(user)));
+    const userIds = items
+      .map((item) => item?._id)
+      .filter(Boolean)
+      .map((id) => new Types.ObjectId(String(id)));
+    const wallets = userIds.length
+      ? await WalletModel.find({ user: { $in: userIds } })
+          .select("user balance")
+          .lean()
+      : [];
+    const balanceByUserId = new Map(
+      wallets.map((wallet) => [
+        String(wallet.user),
+        Number(wallet.balance || 0),
+      ])
+    );
+    const itemsWithBalance = items.map((item) =>
+      item?._id
+        ? {
+            ...item,
+            balance: balanceByUserId.get(String(item._id)) || 0,
+          }
+        : item
+    );
 
-    return makeListResponse(items, total, pagination);
+    return makeListResponse(itemsWithBalance, total, pagination);
   },
 
   async getById(id: string) {

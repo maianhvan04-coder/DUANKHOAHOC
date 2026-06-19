@@ -4,14 +4,22 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import {
+  Loader2,
   Lock,
   LockOpen,
   Pencil,
   Plus,
+  RefreshCw,
   RotateCcw,
   Trash2,
+  WalletCards,
+  X,
 } from "lucide-react";
 import { userApi, type UserRow } from "@/app/api/user.api";
+import {
+  paymentMethodApi,
+  type PaymentMethodItem,
+} from "@/app/api/payment-method.api";
 import { rbacApi } from "@/app/api/rbac.api";
 import UserFormModal, { type UserFormInitial } from "@/components/ui/admin/users/UserFormModal";
 import AdminListTable, {
@@ -21,6 +29,9 @@ import AdminListTable, {
   type AdminFilterSection,
   type AdminTableColumn,
 } from "@/components/ui/admin/admin-list-table";
+import { useAdminPreferences } from "@/i18n";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { hasPermission } from "@/lib/helpers/auth/access";
 import {
   makePaginationMeta,
   type PaginationMeta,
@@ -34,9 +45,38 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 type TabKey = "USERS" | "DELETED";
 type FormRole = string;
 type UserSortKey = "name" | "email" | "role" | "status" | "createdAt";
+type BalanceTransactionType = "CREDIT" | "DEBIT";
+
+type BalanceFormState = {
+  paymentMethodId: string;
+  transactionType: BalanceTransactionType;
+  currency: string;
+  amount: string;
+  transactionCode: string;
+  note: string;
+};
 
 const SYSTEM_ROLE_OPTIONS = ["USER", "STUDENT", "TEACHER", "MANAGER"];
 const BLOCKED_FORM_ROLE_SET = new Set(["ADMIN"]);
+
+function generateTransactionCode() {
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `ADM${Date.now().toString().slice(-8)}${random}`;
+}
+
+function createBalanceForm(
+  paymentMethodId = "",
+  note = "Cộng tiền tài khoản"
+): BalanceFormState {
+  return {
+    paymentMethodId,
+    transactionType: "CREDIT",
+    currency: "VND",
+    amount: "",
+    transactionCode: generateTransactionCode(),
+    note,
+  };
+}
 
 function isBlockedFormRole(role: string) {
   return BLOCKED_FORM_ROLE_SET.has(role.trim().toUpperCase());
@@ -57,6 +97,7 @@ type UserVM = {
   email: string;
   roles: string[];
   active: boolean;
+  balance: number;
   createdAt?: string;
   deleted: boolean;
 };
@@ -105,6 +146,13 @@ function pickBoolean(obj: unknown, key: string): boolean | undefined {
   const v = o[key];
   return typeof v === "boolean" ? v : undefined;
 }
+function pickNumber(obj: unknown, key: string): number | undefined {
+  const o = getObj(obj);
+  if (!o) return undefined;
+  const v = o[key];
+  const parsed = Number(v);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 function pickStringArray(obj: unknown, key: string): string[] | undefined {
   const o = getObj(obj);
   if (!o) return undefined;
@@ -140,13 +188,14 @@ function normalizeUser(row: UserRow): UserVM {
     .filter((x) => x.length > 0);
 
   const active = pickBoolean(raw, "active") ?? true;
+  const balance = pickNumber(raw, "balance") ?? 0;
   const createdAt = pickString(raw, "createdAt");
 
   const deletedAt = pickString(raw, "deletedAt");
   const isDeleted = pickBoolean(raw, "isDeleted") ?? false;
   const deleted = isDeleted || (typeof deletedAt === "string" && deletedAt.length > 0);
 
-  return { id, name, email, roles, active, createdAt, deleted };
+  return { id, name, email, roles, active, balance, createdAt, deleted };
 }
 
 function formatCreated(d?: string) {
@@ -154,6 +203,19 @@ function formatCreated(d?: string) {
   const dt = new Date(d);
   if (Number.isNaN(dt.getTime())) return "—";
   return dt.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
+
+function formatMoney(value?: number, locale: "vi" | "en" = "vi") {
+  return new Intl.NumberFormat(locale === "en" ? "en-US" : "vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function parseMoneyInput(value: string) {
+  const parsed = Number(String(value || "").replace(/\D/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function getInitials(name?: string) {
@@ -267,7 +329,230 @@ function IconBtn({
   );
 }
 
+function BalanceUpdateModal({
+  user,
+  methods,
+  form,
+  loadingMethods,
+  saving,
+  onClose,
+  onChange,
+  onGenerateCode,
+  onSubmit,
+}: {
+  user: UserVM;
+  methods: PaymentMethodItem[];
+  form: BalanceFormState;
+  loadingMethods: boolean;
+  saving: boolean;
+  onClose: () => void;
+  onChange: (patch: Partial<BalanceFormState>) => void;
+  onGenerateCode: () => void;
+  onSubmit: () => void;
+}) {
+  const { locale, t } = useAdminPreferences();
+  const creditNote = t("users.balance.note.credit");
+  const debitNote = t("users.balance.note.debit");
+  const defaultNotes = new Set([
+    creditNote,
+    debitNote,
+    "Cộng tiền tài khoản",
+    "Trừ tiền tài khoản",
+  ]);
+  const inputClass =
+    "h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
+  const labelClass =
+    "mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200";
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm dark:bg-slate-950/70"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !saving) onClose();
+      }}
+    >
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+        className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-950 shadow-2xl dark:border-white/10 dark:bg-slate-950 dark:text-slate-100"
+      >
+        <header className="flex items-start justify-between border-b border-slate-200 px-6 py-5 dark:border-white/10">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+              {t("users.balance.modal.title")}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {user.name || user.email} · {t("users.balance.modal.current")}:{" "}
+              {formatMoney(user.balance, locale)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10"
+            aria-label={t("users.balance.modal.close")}
+            title={t("users.balance.modal.close")}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto px-6 py-5 lg:grid-cols-[1.1fr_0.9fr_0.7fr]">
+          <label>
+            <span className={labelClass}>
+              {t("users.balance.field.paymentMethod")} <span className="text-rose-500">*</span>
+            </span>
+            <select
+              value={form.paymentMethodId}
+              onChange={(event) =>
+                onChange({ paymentMethodId: event.target.value })
+              }
+              disabled={loadingMethods || saving}
+              className={inputClass}
+              required
+            >
+              <option value="">
+                {loadingMethods
+                  ? t("users.balance.loadingMethods")
+                  : t("users.balance.placeholder.paymentMethod")}
+              </option>
+              {methods.map((method) => (
+                <option key={method._id} value={method._id}>
+                  {method.name} ({method.code})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span className={labelClass}>
+              {t("users.balance.field.transactionType")} <span className="text-rose-500">*</span>
+            </span>
+            <select
+              value={form.transactionType}
+              onChange={(event) => {
+                const transactionType = event.target.value as BalanceTransactionType;
+                onChange({
+                  transactionType,
+                  note:
+                    defaultNotes.has(form.note)
+                      ? transactionType === "DEBIT"
+                        ? debitNote
+                        : creditNote
+                      : form.note,
+                });
+              }}
+              disabled={saving}
+              className={inputClass}
+              required
+            >
+              <option value="CREDIT">{t("users.balance.type.credit")}</option>
+              <option value="DEBIT">{t("users.balance.type.debit")}</option>
+            </select>
+          </label>
+
+          <label>
+            <span className={labelClass}>
+              {t("users.balance.field.currency")} <span className="text-rose-500">*</span>
+            </span>
+            <select
+              value={form.currency}
+              onChange={(event) => onChange({ currency: event.target.value })}
+              disabled={saving}
+              className={inputClass}
+              required
+            >
+              <option value="VND">VND</option>
+            </select>
+          </label>
+
+          <label>
+            <span className={labelClass}>
+              {t("users.balance.field.amount")} <span className="text-rose-500">*</span>
+            </span>
+            <input
+              value={form.amount}
+              onChange={(event) => onChange({ amount: event.target.value })}
+              inputMode="numeric"
+              placeholder={t("users.balance.placeholder.amount")}
+              disabled={saving}
+              className={inputClass}
+              required
+            />
+          </label>
+
+          <label className="lg:col-span-2">
+            <span className={labelClass}>
+              {t("users.balance.field.transactionCode")} <span className="text-rose-500">*</span>
+            </span>
+            <div className="flex gap-3">
+              <input
+                value={form.transactionCode}
+                onChange={(event) =>
+                  onChange({ transactionCode: event.target.value })
+                }
+                disabled={saving}
+                className={cn(inputClass, "min-w-0 flex-1")}
+                required
+              />
+              <button
+                type="button"
+                onClick={onGenerateCode}
+                disabled={saving}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-600 text-white transition hover:bg-sky-700 disabled:opacity-60"
+                title={t("users.balance.action.generateCode")}
+                aria-label={t("users.balance.action.generateCode")}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          </label>
+
+          <label className="lg:col-span-3">
+            <span className={labelClass}>
+              {t("users.balance.field.note")} <span className="text-rose-500">*</span>
+            </span>
+            <textarea
+              value={form.note}
+              onChange={(event) => onChange({ note: event.target.value })}
+              disabled={saving}
+              rows={4}
+              className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500"
+              required
+            />
+          </label>
+        </div>
+
+        <footer className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4 dark:border-white/10">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+          >
+            {t("users.balance.modal.close")}
+          </button>
+          <button
+            type="submit"
+            disabled={saving || loadingMethods || methods.length === 0}
+            className="inline-flex h-10 min-w-24 items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {saving ? t("users.balance.modal.saving") : t("users.balance.modal.save")}
+          </button>
+        </footer>
+      </form>
+    </div>
+  );
+}
+
 export default function UsersPage() {
+  const { locale, t } = useAdminPreferences();
+  const { access } = useAuth();
+  const canUpdateBalance = hasPermission(access, "wallet:balance_update");
   const [items, setItems] = useState<UserVM[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -288,6 +573,13 @@ export default function UsersPage() {
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<UserFormInitial | null>(null);
   const [saving, setSaving] = useState(false);
+  const [balanceTarget, setBalanceTarget] = useState<UserVM | null>(null);
+  const [balanceForm, setBalanceForm] = useState<BalanceFormState>(() =>
+    createBalanceForm()
+  );
+  const [balanceSaving, setBalanceSaving] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
   const [availableRoleCodes, setAvailableRoleCodes] = useState<string[]>(
     SYSTEM_ROLE_OPTIONS
   );
@@ -313,6 +605,22 @@ export default function UsersPage() {
       setAvailableRoleCodes((prev) => normalizeRoleOptions(prev));
     }
   }, []);
+
+  const loadPaymentMethods = useCallback(async () => {
+    try {
+      setPaymentMethodsLoading(true);
+      const data = await paymentMethodApi.getActive();
+      setPaymentMethods(data.items || []);
+      return data.items || [];
+    } catch (error) {
+      console.error(error);
+      toast.error(t("users.balance.error.loadMethods"));
+      setPaymentMethods([]);
+      return [];
+    } finally {
+      setPaymentMethodsLoading(false);
+    }
+  }, [t]);
 
   const toggleOne = useCallback((id: string) => {
     setSelected((prev) => {
@@ -398,6 +706,73 @@ export default function UsersPage() {
 
     setEditing(mapped);
     setOpenForm(true);
+  };
+
+  const onOpenBalanceModal = async (u: UserVM) => {
+    if (!canUpdateBalance) return;
+
+    const currentMethods = paymentMethods.length
+      ? paymentMethods
+      : await loadPaymentMethods();
+
+    setBalanceForm(
+      createBalanceForm(
+        currentMethods[0]?._id || "",
+        t("users.balance.note.credit")
+      )
+    );
+    setBalanceTarget(u);
+  };
+
+  const onSubmitBalance = async () => {
+    if (!balanceTarget) return;
+
+    const amount = parseMoneyInput(balanceForm.amount);
+    if (!balanceForm.paymentMethodId) {
+      toast.error(t("users.balance.error.paymentMethodRequired"));
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error(t("users.balance.error.amountInvalid"));
+      return;
+    }
+
+    if (!balanceForm.transactionCode.trim()) {
+      toast.error(t("users.balance.error.transactionCodeRequired"));
+      return;
+    }
+
+    if (!balanceForm.note.trim()) {
+      toast.error(t("users.balance.error.noteRequired"));
+      return;
+    }
+
+    try {
+      setBalanceSaving(true);
+      const result = await userApi.updateBalance(balanceTarget.id, {
+        paymentMethodId: balanceForm.paymentMethodId,
+        transactionType: balanceForm.transactionType,
+        amount,
+        transactionCode: balanceForm.transactionCode.trim(),
+        currency: balanceForm.currency,
+        note: balanceForm.note.trim(),
+      });
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === balanceTarget.id
+            ? { ...item, balance: Number(result.balance || 0) }
+            : item
+        )
+      );
+      setBalanceTarget(null);
+      toast.success(t("users.balance.success.updated"));
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, t("users.balance.error.updateFailed")));
+    } finally {
+      setBalanceSaving(false);
+    }
   };
   /** toggle status (only USERS tab) */
   const onToggleStatus = async (u: UserVM) => {
@@ -671,6 +1046,16 @@ export default function UsersPage() {
           ),
       },
       {
+        id: "balance",
+        label: t("users.column.balance"),
+        widthClassName: "w-[160px]",
+        render: (u) => (
+          <span className="whitespace-nowrap font-bold text-slate-950 dark:text-white">
+            {formatMoney(u.balance, locale)}
+          </span>
+        ),
+      },
+      {
         id: "status",
         label: "Status",
         sortKey: "status",
@@ -696,13 +1081,21 @@ export default function UsersPage() {
       {
         id: "actions",
         label: <div className="text-right">Actions</div>,
-        widthClassName: "w-[150px]",
+        widthClassName: "w-[180px]",
         align: "right",
         render: (u) => (
           <div className="flex items-center justify-end gap-2">
             <AdminActionIconButton title="Edit" onClick={() => onEdit(u)}>
               <Pencil className="h-4 w-4" />
             </AdminActionIconButton>
+            {canUpdateBalance ? (
+              <AdminActionIconButton
+                title={t("users.balance.action.update")}
+                onClick={() => void onOpenBalanceModal(u)}
+              >
+                <WalletCards className="h-4 w-4" />
+              </AdminActionIconButton>
+            ) : null}
             <AdminActionIconButton
               title={u.active ? "Lock" : "Unlock"}
               disabled={statusBusy.has(u.id)}
@@ -773,7 +1166,7 @@ export default function UsersPage() {
             pageSizeOptions: [5, 10, 20],
           }}
           emptyText={err || "Không có dữ liệu"}
-          tableMinWidthClassName="min-w-[984px]"
+          tableMinWidthClassName="min-w-[1120px]"
         />
 
         {/* Table */}
@@ -991,6 +1384,32 @@ export default function UsersPage() {
           onSubmit={onSubmit}
         />
       )}
+
+      {balanceTarget ? (
+        <BalanceUpdateModal
+          user={balanceTarget}
+          methods={paymentMethods}
+          form={balanceForm}
+          loadingMethods={paymentMethodsLoading}
+          saving={balanceSaving}
+          onClose={() => {
+            if (!balanceSaving) setBalanceTarget(null);
+          }}
+          onChange={(patch) =>
+            setBalanceForm((current) => ({
+              ...current,
+              ...patch,
+            }))
+          }
+          onGenerateCode={() =>
+            setBalanceForm((current) => ({
+              ...current,
+              transactionCode: generateTransactionCode(),
+            }))
+          }
+          onSubmit={() => void onSubmitBalance()}
+        />
+      ) : null}
     </>
   );
 }

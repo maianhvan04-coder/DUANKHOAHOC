@@ -33,6 +33,8 @@ type Props = {
   open: boolean;
   studentId: string;
   studentName: string;
+  autoOpenForm?: boolean;
+  initialCourseId?: string;
   onClose: () => void;
 };
 
@@ -221,11 +223,18 @@ function getTeacherNameFromClassRoom(classRoom: ClassRoomOption | null) {
   return "";
 }
 
+function getCourseIdFromClassRoom(classRoom: ClassRoomOption | null) {
+  if (!classRoom?.course) return "";
+  if (typeof classRoom.course === "string") return classRoom.course;
+  return classRoom.course._id || classRoom.course.id || "";
+}
+
 type StudyFormProps = {
   mode: FormMode;
   initialData: StudentStudyItem | null;
   studentId: string;
   classRooms: ClassRoomOption[];
+  initialCourseId?: string;
   saving: boolean;
   onDone: () => Promise<void>;
   onCloseForm: () => void;
@@ -236,6 +245,7 @@ function StudyForm({
   initialData,
   studentId,
   classRooms,
+  initialCourseId,
   saving,
   onDone,
   onCloseForm,
@@ -249,6 +259,27 @@ function StudyForm({
     () => classRooms.find((item) => item._id === form.classRoom) || null,
     [classRooms, form.classRoom]
   );
+  const visibleClassRooms = useMemo(() => {
+    if (!initialCourseId || mode !== "create") return classRooms;
+
+    const matched = classRooms.filter(
+      (item) => getCourseIdFromClassRoom(item) === initialCourseId
+    );
+
+    return matched.length ? matched : classRooms;
+  }, [classRooms, initialCourseId, mode]);
+
+  useEffect(() => {
+    if (mode !== "create" || form.classRoom || !initialCourseId) return;
+
+    const matched = classRooms.filter(
+      (item) => getCourseIdFromClassRoom(item) === initialCourseId
+    );
+
+    if (matched.length === 1) {
+      setForm((prev) => ({ ...prev, classRoom: matched[0]._id }));
+    }
+  }, [classRooms, form.classRoom, initialCourseId, mode]);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -303,7 +334,7 @@ function StudyForm({
           className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-sky-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-100"
         >
           <option value="">Chọn lớp học</option>
-          {classRooms.map((item) => (
+          {visibleClassRooms.map((item) => (
             <option key={item._id} value={item._id}>
               {item.className}
               {getCourseTitleFromClassRoom(item)
@@ -447,6 +478,8 @@ function StudyForm({
 export default function StudentStudyModal({
   open,
   studentId,
+  autoOpenForm = false,
+  initialCourseId,
   onClose,
 }: Props) {
   const [loading, setLoading] = useState(false);
@@ -488,9 +521,9 @@ export default function StudentStudyModal({
     if (!open) return;
     setFormMode("create");
     setEditingItem(null);
-    setFormOpen(false);
+    setFormOpen(autoOpenForm);
     void loadData();
-  }, [loadData, open]);
+  }, [autoOpenForm, loadData, open]);
 
   const formKey = useMemo(() => {
     return `${formMode}-${editingItem?._id ?? "new"}-${studentId}`;
@@ -859,6 +892,7 @@ export default function StudentStudyModal({
                 initialData={editingItem}
                 studentId={studentId}
                 classRooms={classRooms}
+                initialCourseId={initialCourseId}
                 saving={saving}
                 onDone={handleDone}
                 onCloseForm={closeForm}

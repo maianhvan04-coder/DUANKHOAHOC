@@ -293,7 +293,14 @@ export default function CartPage() {
       setCheckingOut(true);
       setError("");
 
-      const res = await paymentApi.createSession();
+      const res = await paymentApi.createSession(
+        selectedItems.map((item) => ({
+          courseId: item.courseId,
+          title: item.course?.title || item.title,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        }))
+      );
       const checkoutUrl =
         res?.data?.checkoutUrl ||
         res?.data?.data?.checkoutUrl ||

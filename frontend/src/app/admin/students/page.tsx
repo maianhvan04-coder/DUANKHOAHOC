@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
@@ -234,6 +235,13 @@ const studentApi = {
     };
   },
 
+  async getById(id: string): Promise<StudentItem> {
+    const res = await http.get(`/api/students/${id}`);
+    const body = isRecord(res.data) ? res.data : {};
+    const raw = body.item ?? body.data ?? body;
+    return normalizeStudent(raw);
+  },
+
   async create(payload: CreateStudentPayload): Promise<void> {
     await http.post("/api/students", payload);
   },
@@ -436,6 +444,13 @@ function StudentFormModal({
 }
 
 export default function AdminStudentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const assignStudentId = searchParams.get("studentId")?.trim() || "";
+  const assignCourseId = searchParams.get("courseId")?.trim() || "";
+  const shouldAutoOpenAssign =
+    searchParams.get("assign") === "1" && Boolean(assignStudentId);
+
   const [items, setItems] = useState<StudentItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -496,6 +511,46 @@ export default function AdminStudentsPage() {
     void loadData();
   }, [viewMode, search, statusFilter, sortKey, sortDirection, page, rowsPerPage]);
 
+  useEffect(() => {
+    if (!shouldAutoOpenAssign || !assignStudentId) return;
+    if (studyStudent?.id === assignStudentId) return;
+
+    let cancelled = false;
+
+    async function openAssignmentFromQuery() {
+      const localItem = items.find((item) => item._id === assignStudentId);
+
+      if (localItem) {
+        setStudyStudent({
+          id: localItem._id,
+          name: localItem.name || localItem.email || "Học viên",
+        });
+        return;
+      }
+
+      try {
+        const student = await studentApi.getById(assignStudentId);
+        if (cancelled) return;
+
+        setStudyStudent({
+          id: student._id,
+          name: student.name || student.email || "Học viên",
+        });
+      } catch (error: unknown) {
+        if (cancelled) return;
+        toast.error(
+          getErrorMessage(error, "Không mở được học viên từ thông báo")
+        );
+      }
+    }
+
+    void openAssignmentFromQuery();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assignStudentId, items, shouldAutoOpenAssign, studyStudent?.id]);
+
   const pagedItems = items;
   const totalPages = serverPagination.totalPages;
   const currentPage = serverPagination.page;
@@ -517,6 +572,14 @@ export default function AdminStudentsPage() {
     setFormMode("edit");
     setEditingItem(item);
     setFormOpen(true);
+  }
+
+  function closeStudyModal() {
+    setStudyStudent(null);
+
+    if (shouldAutoOpenAssign) {
+      router.replace("/admin/students");
+    }
   }
 
   async function handleSubmitForm(values: StudentFormState) {
@@ -1203,7 +1266,9 @@ export default function AdminStudentsPage() {
         open={Boolean(studyStudent)}
         studentId={studyStudent?.id ?? ""}
         studentName={studyStudent?.name ?? ""}
-        onClose={() => setStudyStudent(null)}
+        autoOpenForm={shouldAutoOpenAssign}
+        initialCourseId={assignCourseId}
+        onClose={closeStudyModal}
       />
     </>
   );

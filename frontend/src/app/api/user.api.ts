@@ -12,6 +12,7 @@ export type UserRow = {
   role: string;
   roles?: string[];
   active: boolean;
+  balance?: number;
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
@@ -74,6 +75,7 @@ function parseUser(it: unknown): UserRow | null {
 
   const role = parseRole(o.role);
   const active = typeof o.active === "boolean" ? o.active : true;
+  const balance = Number(o.balance || 0);
   const deletedAt =
     o.deletedAt === null
       ? null
@@ -88,6 +90,7 @@ function parseUser(it: unknown): UserRow | null {
     role,
     roles: parseRoles(o.roles, role),
     active,
+    balance: Number.isFinite(balance) ? balance : 0,
     createdAt: typeof o.createdAt === "string" ? o.createdAt : undefined,
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined,
     deletedAt,
@@ -170,5 +173,26 @@ export const userApi = {
 
   restore: async (id: string): Promise<void> => {
     await http.patch(`/api/users/${id}/restore`);
+  },
+
+  updateBalance: async (
+    id: string,
+    payload: {
+      paymentMethodId: string;
+      transactionType: "CREDIT" | "DEBIT";
+      amount: number;
+      transactionCode?: string;
+      currency?: string;
+      note: string;
+    }
+  ): Promise<{ message?: string; balance: number; balanceBefore: number; balanceAfter: number }> => {
+    const res = await http.post<{
+      message?: string;
+      balance: number;
+      balanceBefore: number;
+      balanceAfter: number;
+    }>(`/api/wallet/admin/users/${id}/balance`, payload);
+
+    return res.data;
   },
 };

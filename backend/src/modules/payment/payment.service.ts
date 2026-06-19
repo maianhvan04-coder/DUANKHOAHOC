@@ -1,4 +1,6 @@
 import { Types } from "mongoose";
+import { createCoursePurchaseAdminNotifications } from "../notification/notification.service";
+import { ensureStudentProfileForPurchaser } from "../student/student-profile.sync";
 import { PaymentOrderModel } from "./payment.model";
 import type {
   CreateCheckoutSessionInput,
@@ -159,6 +161,34 @@ export async function markOrderPaid(params: {
   await order.save();
 
   await grantPurchasedCourses(String(order.user), order.items);
+
+  try {
+    const synced = await ensureStudentProfileForPurchaser(String(order.user));
+    if (!synced) {
+      throw new Error("Không thể tạo hồ sơ học viên cho tài khoản mua khóa học");
+    }
+
+    await createCoursePurchaseAdminNotifications({
+      userId: String(order.user),
+      source: "PAYMENT",
+      amount: Number(order.amount || 0),
+      provider: order.provider,
+      paymentCode: order.paymentCode,
+      gatewayTransactionNo: order.gatewayTransactionNo ?? null,
+      courses: order.items.map((item) => ({
+        courseId: item.courseId,
+        title: item.title,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        subtotal: item.subtotal,
+      })),
+    });
+  } catch (notificationError) {
+    console.error(
+      "Failed to create course purchase notifications",
+      notificationError
+    );
+  }
 
   return order;
 }

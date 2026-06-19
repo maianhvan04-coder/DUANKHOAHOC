@@ -95,14 +95,13 @@ async function callGemini(params: {
   const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${params.model}:generateContent?key=${encodeURIComponent(
-      params.key
-    )}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${params.model}:generateContent`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-goog-api-key": params.key,
       },
       signal: controller.signal,
       body: JSON.stringify({

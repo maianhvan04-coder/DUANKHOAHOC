@@ -58,6 +58,7 @@ export type CreateProductBody = {
   isActive?: boolean | "true" | "false";
   modes?: ProductMode | ProductMode[];
   image?: File | null;
+  imageUrl?: string;
 };
 
 export type UpdateProductBody = {
@@ -72,6 +73,7 @@ export type UpdateProductBody = {
   isActive?: boolean | "true" | "false";
   modes?: ProductMode | ProductMode[];
   image?: File | null;
+  imageUrl?: string;
 };
 
 function buildProductFormData(body: CreateProductBody | UpdateProductBody) {

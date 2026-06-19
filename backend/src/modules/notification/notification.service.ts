@@ -1,4 +1,5 @@
 import { Types, type SortOrder } from "mongoose";
+import { ROLES } from "../../constants/roles";
 import { UserModel } from "../user/user.model";
 import {
   NotificationModel,
@@ -20,6 +21,10 @@ export type CreateNotificationPayload = {
   title: string;
   message: string;
   type?: NotificationType;
+  actionUrl?: string | null;
+  actionLabel?: string | null;
+  metadata?: Record<string, unknown> | null;
+  isSent?: boolean;
   createdBy?: string | null;
 };
 
@@ -51,6 +56,26 @@ export type NotificationListQuery = {
 export type NotificationRecipientQuery = {
   keyword?: string;
   limit?: string;
+};
+
+export type CoursePurchaseNotificationInput = {
+  userId: string;
+  source: "PAYMENT" | "WALLET";
+  amount: number;
+  provider?: string | null;
+  paymentCode?: number | null;
+  transactionCode?: string | null;
+  gatewayTransactionNo?: string | null;
+  mode?: string | null;
+  classRoomId?: string | null;
+  studyId?: string | null;
+  courses: Array<{
+    courseId: string;
+    title: string;
+    quantity?: number;
+    unitPrice?: number;
+    subtotal?: number;
+  }>;
 };
 
 function parseBooleanLike(value?: boolean | "true" | "false") {
@@ -198,13 +223,18 @@ export async function createNotification(payload: CreateNotificationPayload) {
     throw createHttpError("User không hợp lệ", 400);
   }
 
+  const sentAt = payload.isSent ? new Date() : null;
+
   const notification = await NotificationModel.create({
     userId: new Types.ObjectId(payload.userId),
     title: payload.title,
     message: payload.message,
     type: payload.type ?? "INFO",
-    isSent: false,
-    sentAt: null,
+    actionUrl: payload.actionUrl ?? null,
+    actionLabel: payload.actionLabel ?? null,
+    metadata: payload.metadata ?? null,
+    isSent: payload.isSent ?? false,
+    sentAt,
     isRead: false,
     readAt: null,
     createdBy:
@@ -214,6 +244,95 @@ export async function createNotification(payload: CreateNotificationPayload) {
   });
 
   return notification;
+}
+
+function formatVnd(value: number) {
+  return `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))} đ`;
+}
+
+function buildCourseSummary(courses: CoursePurchaseNotificationInput["courses"]) {
+  const titles = courses
+    .map((item) => item.title?.trim())
+    .filter(Boolean);
+
+  if (titles.length === 0) return "Chưa rõ khóa học";
+  if (titles.length === 1) return titles[0];
+
+  return `${titles[0]} và ${titles.length - 1} khóa học khác`;
+}
+
+export async function createCoursePurchaseAdminNotifications(
+  input: CoursePurchaseNotificationInput
+) {
+  if (!Types.ObjectId.isValid(input.userId)) return [];
+
+  const [buyer, admins] = await Promise.all([
+    UserModel.findById(input.userId).select("_id name email").lean(),
+    UserModel.find({
+      role: ROLES.ADMIN,
+      active: true,
+      deletedAt: null,
+    })
+      .select("_id")
+      .lean(),
+  ]);
+
+  if (!buyer || admins.length === 0) return [];
+
+  const courses = input.courses.map((item) => ({
+    courseId: item.courseId,
+    title: item.title,
+    quantity: Number(item.quantity || 1),
+    unitPrice: Number(item.unitPrice || 0),
+    subtotal: Number(item.subtotal || 0),
+  }));
+  const firstCourseId = courses[0]?.courseId || "";
+  const actionUrl = `/admin/students?studentId=${buyer._id.toString()}&assign=1${
+    firstCourseId ? `&courseId=${encodeURIComponent(firstCourseId)}` : ""
+  }`;
+  const title = "Học viên mua khóa học thành công";
+  const message = [
+    `Học viên: ${buyer.name || "Học viên"}`,
+    `Email: ${buyer.email || "-"}`,
+    `Khóa học: ${buildCourseSummary(courses)}`,
+    `Số tiền: ${formatVnd(input.amount)}`,
+    "Bấm xem chi tiết để gán lớp học cho tài khoản này.",
+  ].join("\n");
+  const now = new Date();
+
+  const docs = admins.map((admin) => ({
+    userId: admin._id,
+    title,
+    message,
+    type: "SUCCESS" as NotificationType,
+    actionUrl,
+    actionLabel: "Gán lớp học",
+    metadata: {
+      kind: "COURSE_PURCHASE",
+      source: input.source,
+      buyer: {
+        id: buyer._id.toString(),
+        name: buyer.name || "",
+        email: buyer.email || "",
+      },
+      courses,
+      amount: Number(input.amount || 0),
+      provider: input.provider ?? null,
+      paymentCode: input.paymentCode ?? null,
+      transactionCode: input.transactionCode ?? null,
+      gatewayTransactionNo: input.gatewayTransactionNo ?? null,
+      mode: input.mode ?? null,
+      classRoomId: input.classRoomId ?? null,
+      studyId: input.studyId ?? null,
+    },
+    isSent: true,
+    sentAt: now,
+    isRead: false,
+    readAt: null,
+    createdBy: null,
+  }));
+
+  return NotificationModel.insertMany(docs);
 }
 
 export async function getAdminNotifications(query: NotificationListQuery) {

@@ -104,11 +104,14 @@ function getTypeLabel(type: PaymentMethodType) {
 function getTransactionLabel(type: WalletTransaction["type"]) {
   if (type === "TOPUP") return "Nạp tiền";
   if (type === "ENROLL") return "Đăng ký khóa học";
+  if (type === "ADMIN_DEBIT") return "Điều chỉnh giảm";
   return "Hoàn tiền";
 }
 
 function getTransactionAmountClass(type: WalletTransaction["type"]) {
-  return type === "ENROLL" ? "text-rose-400" : "text-emerald-400";
+  return type === "ENROLL" || type === "ADMIN_DEBIT"
+    ? "text-rose-400"
+    : "text-emerald-400";
 }
 
 function buildTransferCode(method: PaymentMethodItem) {
@@ -480,7 +483,7 @@ export default function WalletTopupPage() {
                     getTransactionAmountClass(item.type)
                   )}
                 >
-                  {item.type === "ENROLL" ? "-" : "+"}
+                  {item.type === "ENROLL" || item.type === "ADMIN_DEBIT" ? "-" : "+"}
                   {formatMoney(item.amount)}
                 </td>
                 <td className="px-5 py-4 font-bold">

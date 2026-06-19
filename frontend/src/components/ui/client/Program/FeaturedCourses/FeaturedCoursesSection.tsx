@@ -47,7 +47,7 @@ function isAllowedImage(src?: string | null) {
 
   try {
     const url = new URL(src);
-    return url.protocol === "https:" && url.hostname === "res.cloudinary.com";
+    return url.protocol === "https:";
   } catch {
     return false;
   }

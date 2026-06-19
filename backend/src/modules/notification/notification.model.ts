@@ -7,6 +7,9 @@ export interface Notification {
   title: string;
   message: string;
   type: NotificationType;
+  actionUrl?: string | null;
+  actionLabel?: string | null;
+  metadata?: Record<string, unknown> | null;
   isSent: boolean;
   sentAt: Date | null;
   isRead: boolean;
@@ -43,6 +46,24 @@ const notificationSchema = new Schema<Notification>(
       type: String,
       enum: ["INFO", "SUCCESS", "WARNING", "ERROR"],
       default: "INFO",
+    },
+
+    actionUrl: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    actionLabel: {
+      type: String,
+      trim: true,
+      default: null,
+      maxlength: 120,
+    },
+
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: null,
     },
 
     isSent: {

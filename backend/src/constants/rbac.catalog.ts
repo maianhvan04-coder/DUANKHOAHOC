@@ -89,6 +89,15 @@ const BASE_PERMISSION_META = Object.freeze({
     PERMISSION_GROUPS.USERS.label,
     150
   ),
+  [PERMISSIONS.WALLET_BALANCE_UPDATE]: meta(
+    PERMISSIONS.WALLET_BALANCE_UPDATE,
+    "wallet",
+    "balance_update",
+    "Cập nhật số dư người dùng",
+    PERMISSION_GROUPS.USERS.key,
+    PERMISSION_GROUPS.USERS.label,
+    155
+  ),
   [PERMISSIONS.USER_SET_ROLES]: meta(
     PERMISSIONS.USER_SET_ROLES,
     "user",
@@ -852,32 +861,51 @@ const BASE_PERMISSION_META = Object.freeze({
     870
   ),
 
+  [PERMISSIONS.BALANCE_HISTORY_READ]: meta(
+    PERMISSIONS.BALANCE_HISTORY_READ,
+    "balance_history",
+    "read",
+    "Xem lịch sử số dư",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    872
+  ),
+  [PERMISSIONS.BANK_HISTORY_READ]: meta(
+    PERMISSIONS.BANK_HISTORY_READ,
+    "bank_history",
+    "read",
+    "Xem lịch sử ngân hàng",
+    PERMISSION_GROUPS.AUDIT.key,
+    PERMISSION_GROUPS.AUDIT.label,
+    874
+  ),
+
   // SECURITY AUDIT
   [PERMISSIONS.SECURITY_AUDIT_READ_OWN]: meta(
     PERMISSIONS.SECURITY_AUDIT_READ_OWN,
     "security_audit",
     "read_own",
-    "Xem audit bảo mật của chính mình",
-    PERMISSION_GROUPS.AUDIT.key,
-    PERMISSION_GROUPS.AUDIT.label,
+    "Xem nhật kí hệ thống của chính mình",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
     880
   ),
   [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: meta(
     PERMISSIONS.SECURITY_AUDIT_READ_ALL,
     "security_audit",
     "read_all",
-    "Xem toàn bộ audit bảo mật",
-    PERMISSION_GROUPS.AUDIT.key,
-    PERMISSION_GROUPS.AUDIT.label,
+    "Xem toàn bộ nhật kí hệ thống",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
     890
   ),
   [PERMISSIONS.SECURITY_AUDIT_MANAGE]: meta(
     PERMISSIONS.SECURITY_AUDIT_MANAGE,
     "security_audit",
     "manage",
-    "Quản lý audit bảo mật",
-    PERMISSION_GROUPS.AUDIT.key,
-    PERMISSION_GROUPS.AUDIT.label,
+    "Quản lý nhật kí hệ thống",
+    PERMISSION_GROUPS.SYSTEM.key,
+    PERMISSION_GROUPS.SYSTEM.label,
     900
   ),
 
@@ -1092,6 +1120,7 @@ const SIMPLIFIED_PERMISSION_LABELS: Partial<Record<PermissionKey, string>> = {
   [PERMISSIONS.USER_UPDATE]: "Sửa người dùng",
   [PERMISSIONS.USER_DELETE]: "Xóa người dùng",
   [PERMISSIONS.USER_CHANGE_STATUS]: "Khóa/mở khóa người dùng",
+  [PERMISSIONS.WALLET_BALANCE_UPDATE]: "Cập nhật số dư người dùng",
 
   [PERMISSIONS.CATEGORY_READ]: "Xem danh mục",
   [PERMISSIONS.CATEGORY_CREATE]: "Thêm danh mục",
@@ -1165,7 +1194,9 @@ const SIMPLIFIED_PERMISSION_LABELS: Partial<Record<PermissionKey, string>> = {
   [PERMISSIONS.BLOG_CHANGE_STATUS]: "Xuất bản/ẩn bài viết",
 
   [PERMISSIONS.PAYMENT_AUDIT_READ_ALL]: "Xem lịch sử thanh toán",
-  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: "Xem lịch sử bảo mật",
+  [PERMISSIONS.BALANCE_HISTORY_READ]: "Xem lịch sử số dư",
+  [PERMISSIONS.BANK_HISTORY_READ]: "Xem lịch sử ngân hàng",
+  [PERMISSIONS.SECURITY_AUDIT_READ_ALL]: "Xem nhật kí hệ thống",
 
   [PERMISSIONS.RBAC_READ]: "Xem phân quyền",
   [PERMISSIONS.RBAC_CREATE_ROLE]: "Thêm vai trò",
@@ -1209,6 +1240,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
     PERMISSIONS.USER_READ,
     PERMISSIONS.USER_UPDATE,
     PERMISSIONS.USER_CHANGE_STATUS,
+    PERMISSIONS.WALLET_BALANCE_UPDATE,
 
     PERMISSIONS.CATEGORY_READ,
     PERMISSIONS.CATEGORY_CREATE,
@@ -1251,6 +1283,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<Role, PermissionKey[]> = {
     PERMISSIONS.PAYMENT_METHOD_UPDATE,
     PERMISSIONS.PAYMENT_METHOD_DELETE,
     PERMISSIONS.PAYMENT_METHOD_CHANGE_STATUS,
+    PERMISSIONS.PAYMENT_AUDIT_READ_ALL,
+    PERMISSIONS.BALANCE_HISTORY_READ,
+    PERMISSIONS.BANK_HISTORY_READ,
 
     PERMISSIONS.BLOG_READ,
     PERMISSIONS.BLOG_CREATE,
@@ -1349,12 +1384,14 @@ const BASE_ADMIN_SCREENS = Object.freeze({
       PERMISSIONS.USER_CREATE,
       PERMISSIONS.USER_UPDATE,
       PERMISSIONS.USER_CHANGE_STATUS,
+      PERMISSIONS.WALLET_BALANCE_UPDATE,
     ],
     actions: {
       view: [PERMISSIONS.USER_READ],
       create: [PERMISSIONS.USER_CREATE],
       update: [PERMISSIONS.USER_UPDATE],
       changeStatus: [PERMISSIONS.USER_CHANGE_STATUS],
+      updateBalance: [PERMISSIONS.WALLET_BALANCE_UPDATE],
     },
   },
 
@@ -1364,7 +1401,12 @@ const BASE_ADMIN_SCREENS = Object.freeze({
     label: "Danh mục",
     icon: "folder-kanban",
     order: 20,
-    routes: ["/admin/category", "/admin/category/:id"],
+    routes: [
+      "/admin/course/categories",
+      "/admin/course/categories/:id",
+      "/admin/category",
+      "/admin/category/:id",
+    ],
     accessAny: [
       PERMISSIONS.CATEGORY_READ,
       PERMISSIONS.CATEGORY_CREATE,
@@ -1545,6 +1587,27 @@ const BASE_ADMIN_SCREENS = Object.freeze({
     },
   },
 
+  BLOG_CATEGORIES: {
+    key: "blog-categories",
+    group: PERMISSION_GROUPS.BLOGS.key,
+    label: "Danh mục bài viết",
+    icon: "folder-kanban",
+    order: 78.5,
+    routes: ["/admin/blog/categories", "/admin/blog/categories/:id"],
+    accessAny: [
+      PERMISSIONS.BLOG_READ,
+      PERMISSIONS.BLOG_CREATE,
+      PERMISSIONS.BLOG_UPDATE,
+      PERMISSIONS.BLOG_CATEGORY_MANAGE,
+    ],
+    actions: {
+      view: [PERMISSIONS.BLOG_READ],
+      create: [PERMISSIONS.BLOG_CREATE],
+      update: [PERMISSIONS.BLOG_UPDATE, PERMISSIONS.BLOG_CATEGORY_MANAGE],
+      changeStatus: [PERMISSIONS.BLOG_UPDATE, PERMISSIONS.BLOG_CATEGORY_MANAGE],
+    },
+  },
+
   PAYMENT_METHODS: {
     key: "payment-methods",
     group: PERMISSION_GROUPS.PAYMENT_METHODS.key,
@@ -1581,10 +1644,36 @@ const BASE_ADMIN_SCREENS = Object.freeze({
     },
   },
 
+  BALANCE_HISTORY: {
+    key: "balance-history",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Lịch sử số dư",
+    icon: "wallet-cards",
+    order: 81,
+    routes: ["/admin/balance-history"],
+    accessAny: [PERMISSIONS.BALANCE_HISTORY_READ],
+    actions: {
+      view: [PERMISSIONS.BALANCE_HISTORY_READ],
+    },
+  },
+
+  BANK_HISTORY: {
+    key: "bank-history",
+    group: PERMISSION_GROUPS.AUDIT.key,
+    label: "Lịch sử ngân hàng",
+    icon: "landmark",
+    order: 82,
+    routes: ["/admin/bank-history"],
+    accessAny: [PERMISSIONS.BANK_HISTORY_READ],
+    actions: {
+      view: [PERMISSIONS.BANK_HISTORY_READ],
+    },
+  },
+
   SECURITY_AUDITS: {
     key: "security-audits",
-    group: PERMISSION_GROUPS.AUDIT.key,
-    label: "Audit bảo mật",
+    group: PERMISSION_GROUPS.SYSTEM.key,
+    label: "Nhật kí hệ thống",
     icon: "shield-alert",
     order: 85,
     routes: ["/admin/security-audits"],

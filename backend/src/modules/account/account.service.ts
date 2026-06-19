@@ -62,7 +62,7 @@ type MyCourseStatus = "pending" | "approved" | "assigned";
 
 type MyCourseItem = {
   id: string;
-  source: "study" | "payment";
+  source: "study" | "payment" | "wallet";
   courseId: string;
   title: string;
   format: string;
@@ -245,6 +245,27 @@ function mapOrderCourse(params: {
   };
 }
 
+function mapWalletEnrollment(transaction: AnyObj): MyCourseItem {
+  const course = getObj(transaction.course);
+  const courseId = stringifyId(course) || stringifyId(transaction.course);
+
+  return {
+    id: stringifyId(transaction) || courseId,
+    source: "wallet",
+    courseId,
+    title: asString(course?.title) || "Khóa học",
+    format: formatProductMode(course ?? undefined),
+    desiredSchedule: "--",
+    className: "--",
+    teacherName: "--",
+    actualSchedule: "--",
+    status: "approved",
+    paymentCode: asString(transaction.transactionCode),
+    createdAt: asDateLike(transaction.createdAt),
+    updatedAt: asDateLike(transaction.updatedAt),
+  };
+}
+
 function getCourseSortTime(item: MyCourseItem) {
   const value = item.updatedAt ?? item.createdAt;
   if (!value) return 0;
@@ -350,13 +371,15 @@ export const accountService = {
   },
 
   async getMyCourses(userId: string): Promise<MyCourseItem[]> {
-    const [studiesRaw, ordersRaw] = await Promise.all([
+    const [studiesRaw, ordersRaw, walletEnrollmentsRaw] = await Promise.all([
       accountRepo.findStudiesByUser(userId),
       accountRepo.findCourseOrdersByUser(userId),
+      accountRepo.findWalletEnrollmentsByUser(userId),
     ]);
 
     const studies = (studiesRaw as unknown[]).filter(isObject);
     const orders = (ordersRaw as unknown[]).filter(isObject);
+    const walletEnrollments = (walletEnrollmentsRaw as unknown[]).filter(isObject);
     const orderCourseIds = orders
       .flatMap((order) => getObjectArray(order.items))
       .map((item) => asString(item.courseId))
@@ -391,6 +414,14 @@ export const accountService = {
         );
         seenCourseIds.add(courseId);
       });
+    });
+
+    walletEnrollments.forEach((transaction) => {
+      const walletItem = mapWalletEnrollment(transaction);
+      if (!walletItem.courseId || seenCourseIds.has(walletItem.courseId)) return;
+
+      items.push(walletItem);
+      seenCourseIds.add(walletItem.courseId);
     });
 
     return items.sort((left, right) => getCourseSortTime(right) - getCourseSortTime(left));

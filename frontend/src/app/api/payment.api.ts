@@ -1,9 +1,17 @@
 import { http } from "@/lib/utils/http";
 
+export type CheckoutItemPayload = {
+  courseId: string;
+  title: string;
+  quantity?: number;
+  unitPrice: number;
+};
+
 export const paymentApi = {
-  createSession() {
+  createSession(items: CheckoutItemPayload[]) {
     return http.post("/api/payments/checkout/create-session", {
       provider: "vnpay",
+      items,
     });
   },
 

@@ -1883,7 +1883,7 @@ export default function AdminClassesPage() {
           <AdminEntityCell
             title={item.className || "--"}
             subtitle={`Tối đa ${item.maxStudents} HV`}
-            icon={<School className="h-4 w-4 text-slate-500" />}
+            hideMedia
           />
         ),
       },

@@ -30,6 +30,7 @@ type ProductBody = {
   price?: string;
   isActive?: boolean | "true" | "false";
   modes?: "ONLINE" | "OFFLINE" | Array<"ONLINE" | "OFFLINE">;
+  imageUrl?: string;
 };
 
 function hasData(value: unknown) {
@@ -38,6 +39,21 @@ function hasData(value: unknown) {
     typeof value === "object" &&
     Object.keys(value as Record<string, unknown>).length > 0
   );
+}
+
+function buildImageDataFromUrl(value?: string) {
+  const imageUrl = String(value || "").trim();
+  if (!imageUrl) return undefined;
+
+  const parsed = new URL(imageUrl);
+  if (parsed.protocol !== "https:") {
+    throw new Error("URL ảnh phải bắt đầu bằng https");
+  }
+
+  return {
+    image: parsed.toString(),
+    imagePublicId: "",
+  };
 }
 
 export const productController = {
@@ -98,6 +114,8 @@ export const productController = {
           image: uploaded.secure_url,
           imagePublicId: uploaded.public_id,
         };
+      } else {
+        imageData = buildImageDataFromUrl(req.body.imageUrl);
       }
 
       const item = await productService.create(
@@ -120,7 +138,7 @@ export const productController = {
   ) {
     try {
       const hasBody = hasData(req.body);
-      const hasImage = !!req.file;
+      const hasImage = !!req.file || !!String(req.body.imageUrl || "").trim();
 
       if (!hasBody && !hasImage) {
         return res.status(400).json({
@@ -146,6 +164,10 @@ export const productController = {
           image: uploaded.secure_url,
           imagePublicId: uploaded.public_id,
         };
+      } else if (req.body.imageUrl?.trim()) {
+        const current = await productService.getById(req.params.id);
+        oldImagePublicId = current.imagePublicId || "";
+        imageData = buildImageDataFromUrl(req.body.imageUrl);
       }
 
       const item = await productService.update(req.params.id, req.body, imageData);
