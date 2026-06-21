@@ -73,52 +73,6 @@ function getCourseTitle(study: StudentStudyItem) {
   return className || "Chưa có tên học phần";
 }
 
-function pickString(source: unknown, keys: string[]) {
-  if (!isObject(source)) return "";
-
-  for (const key of keys) {
-    const raw = source[key];
-    if (isNonEmptyString(raw)) return raw.trim();
-  }
-
-  return "";
-}
-
-function getDateValue(study: StudentStudyItem) {
-  return (
-    study.startedAt ||
-    getClassRoom(study)?.startedAt ||
-    study.createdAt ||
-    ""
-  );
-}
-
-function inferSemesterFromDate(value: string) {
-  if (!value) return "";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-
-  if (month >= 8) return `${year}_${year + 1}_1`;
-  return `${year - 1}_${year}_2`;
-}
-
-function getSemester(study: StudentStudyItem) {
-  const course = getCourse(study);
-  const classRoom = getClassRoom(study);
-
-  return (
-    pickString(study, ["semester", "term", "hocKy", "academicTerm"]) ||
-    pickString(classRoom, ["semester", "term", "hocKy", "academicTerm"]) ||
-    pickString(course, ["semester", "term", "hocKy", "academicTerm"]) ||
-    inferSemesterFromDate(getDateValue(study)) ||
-    "--"
-  );
-}
-
 function formatScore(value: number | null | undefined) {
   const numberValue = Number(value ?? 0);
   if (!Number.isFinite(numberValue)) return "";
@@ -264,7 +218,7 @@ export default function StudentGradesPage() {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
                       <div className="rounded-xl bg-[#F4FAFF] px-2 py-2">
                         <div className="font-semibold text-slate-500">
                           C.Cần
@@ -275,43 +229,35 @@ export default function StudentGradesPage() {
                       </div>
                       <div className="rounded-xl bg-[#F4FAFF] px-2 py-2">
                         <div className="font-semibold text-slate-500">
-                          TBCTN
+                          Điểm TB
                         </div>
-                        <div className="mt-1 font-bold text-slate-950">
-                          {formatScore(scoreFromPercent(study.progressPercent))}
-                        </div>
-                      </div>
-                      <div className="rounded-xl bg-[#F4FAFF] px-2 py-2">
-                        <div className="font-semibold text-slate-500">TBC</div>
                         <div className="mt-1 font-bold text-slate-950">
                           {formatScore(study.finalAverage)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
                       <div className="rounded-xl border border-slate-200 px-2 py-2">
                         <div className="font-semibold text-slate-500">
-                          Học kỳ
+                          Điểm 1
                         </div>
-                        <div className="mt-1 font-bold text-slate-950">
-                          {getSemester(study)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-slate-200 px-2 py-2">
-                        <div className="font-semibold text-slate-500">TX1</div>
                         <div className="mt-1 font-bold text-slate-950">
                           {formatScore(study.test1)}
                         </div>
                       </div>
                       <div className="rounded-xl border border-slate-200 px-2 py-2">
-                        <div className="font-semibold text-slate-500">TX2</div>
+                        <div className="font-semibold text-slate-500">
+                          Điểm 2
+                        </div>
                         <div className="mt-1 font-bold text-slate-950">
                           {formatScore(study.test2)}
                         </div>
                       </div>
                       <div className="rounded-xl border border-slate-200 px-2 py-2">
-                        <div className="font-semibold text-slate-500">TX3</div>
+                        <div className="font-semibold text-slate-500">
+                          Điểm 3
+                        </div>
                         <div className="mt-1 font-bold text-slate-950">
                           {formatScore(study.test3)}
                         </div>
@@ -326,15 +272,13 @@ export default function StudentGradesPage() {
             <table className="w-full table-fixed border-collapse text-left text-[13px] text-slate-800">
               <colgroup>
                 <col className="w-[4%]" />
-                <col className="w-[29%]" />
+                <col className="w-[38%]" />
                 <col className="w-[11%]" />
-                <col className="w-[9%]" />
-                <col className="w-[10%]" />
-                <col className="w-[6.5%]" />
-                <col className="w-[6.5%]" />
-                <col className="w-[6.5%]" />
                 <col className="w-[8%]" />
-                <col className="w-[9.5%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
+                <col className="w-[10%]" />
+                <col className="w-[13%]" />
               </colgroup>
               <thead>
                 <tr className="bg-[#E6F5FF] text-[13px] font-bold leading-tight text-slate-800">
@@ -348,25 +292,13 @@ export default function StudentGradesPage() {
                     rowSpan={2}
                     className="border border-[#cbe7fb] px-3 py-3"
                   >
-                    Tên học phần
-                  </th>
-                  <th
-                    rowSpan={2}
-                    className="border border-[#cbe7fb] px-2 py-3 text-center"
-                  >
-                    Học kỳ
+                    Tên khóa học
                   </th>
                   <th
                     rowSpan={2}
                     className="border border-[#cbe7fb] px-2 py-3 text-center"
                   >
                     Điểm C.Cần
-                  </th>
-                  <th
-                    rowSpan={2}
-                    className="border border-[#cbe7fb] px-2 py-3 text-center"
-                  >
-                    Điểm TBCTN
                   </th>
                   <th
                     colSpan={3}
@@ -378,26 +310,25 @@ export default function StudentGradesPage() {
                     rowSpan={2}
                     className="border border-[#cbe7fb] px-2 py-3 text-center"
                   >
-                    Điểm TBC
+                    Điểm TB
                   </th>
                   <th
                     rowSpan={2}
                     className="border border-[#cbe7fb] px-2 py-3 text-center"
                   >
-                    <span className="block">DK thi</span>
-                    <span className="block">KTHP</span>
+                    Tổng kết
                   </th>
                 </tr>
 
                 <tr className="bg-[#E6F5FF] text-[13px] font-bold leading-tight text-slate-800">
                   <th className="border border-[#cbe7fb] px-2 py-2.5 text-center">
-                    TX 1
+                    Điểm 1
                   </th>
                   <th className="border border-[#cbe7fb] px-2 py-2.5 text-center">
-                    TX 2
+                    Điểm 2
                   </th>
                   <th className="border border-[#cbe7fb] px-2 py-2.5 text-center">
-                    TX 3
+                    Điểm 3
                   </th>
                 </tr>
               </thead>
@@ -423,13 +354,7 @@ export default function StudentGradesPage() {
                         </div>
                       </td>
                       <td className="border border-[#cbe7fb] px-2 py-3 text-center">
-                        {getSemester(study)}
-                      </td>
-                      <td className="border border-[#cbe7fb] px-2 py-3 text-center">
                         {formatScore(scoreFromPercent(study.attendancePercent))}
-                      </td>
-                      <td className="border border-[#cbe7fb] px-2 py-3 text-center">
-                        {formatScore(scoreFromPercent(study.progressPercent))}
                       </td>
                       <td className="border border-[#cbe7fb] px-2 py-3 text-center">
                         {formatScore(study.test1)}

@@ -3,9 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  FolderKanban,
-  FolderTree,
-  Layers3,
   Lock,
   LockOpen,
   Pencil,
@@ -22,10 +19,6 @@ import AdminListTable, {
 } from "@/components/ui/admin/admin-list-table";
 import type { SortDirection } from "@/lib/utils/admin-list";
 import { toastConfirm } from "@/lib/utils/toast-confirm";
-
-function cn(...xs: Array<string | false | null | undefined>) {
-  return xs.filter(Boolean).join(" ");
-}
 
 type FormMode = "create" | "edit";
 type CategoryStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
@@ -55,14 +48,6 @@ type ParentCategoryOption = {
   label: string;
   depth: number;
 };
-
-function getCategoryInitials(name?: string) {
-  const value = String(name ?? "").trim();
-  if (!value) return "DM";
-
-  const parts = value.split(/\s+/).slice(0, 2);
-  return parts.map((part) => part[0]?.toUpperCase()).join("");
-}
 
 function getParentId(item: CategoryItem) {
   return item.parent || null;
@@ -413,20 +398,12 @@ export default function AdminCategoriesPage() {
       id: "category",
       label: "Name",
       sortKey: "name",
-      widthClassName: "w-[320px]",
+      widthClassName: "w-[28%]",
       render: (item) => (
         <AdminEntityCell
           title={item.name || "--"}
           subtitle={item.slug || "--"}
-          fallback={getCategoryInitials(item.name)}
-          icon={
-            <FolderKanban
-              className={cn(
-                "h-4 w-4",
-                item.isActive === false ? "text-amber-700" : "text-emerald-700"
-              )}
-            />
-          }
+          hideMedia
         />
       ),
     },
@@ -434,30 +411,26 @@ export default function AdminCategoriesPage() {
       id: "parent",
       label: "Parent",
       sortKey: "parent",
-      widthClassName: "w-[240px]",
+      widthClassName: "w-[17%]",
       render: (item) => {
         const parentId = getParentId(item);
         const parent = parentId ? categoryById.get(parentId) : null;
 
         if (!parent) {
           return (
-            <div className="flex min-w-0 items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-              <FolderTree className="h-4 w-4 shrink-0 text-slate-400" />
+            <div className="min-w-0 text-sm text-slate-500 dark:text-slate-400">
               <span className="truncate">Root category</span>
             </div>
           );
         }
 
         return (
-          <div className="flex min-w-0 items-center gap-2">
-            <Layers3 className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                {parent.name || "--"}
-              </div>
-              <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                {parent.slug || "--"}
-              </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+              {parent.name || "--"}
+            </div>
+            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {parent.slug || "--"}
             </div>
           </div>
         );
@@ -467,7 +440,7 @@ export default function AdminCategoriesPage() {
       id: "description",
       label: "Description",
       sortKey: "description",
-      widthClassName: "w-[360px]",
+      widthClassName: "w-[20%]",
       render: (item) => (
         <div className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
           {item.description || "No description"}
@@ -477,7 +450,7 @@ export default function AdminCategoriesPage() {
     {
       id: "status",
       label: "Status",
-      widthClassName: "w-[140px]",
+      widthClassName: "w-[11%]",
       render: (item) => {
         const label = item.isActive === false ? "LOCKED" : "ACTIVE";
 
@@ -494,13 +467,14 @@ export default function AdminCategoriesPage() {
       id: "date",
       label: "Updated",
       sortKey: "updatedAt",
-      widthClassName: "w-[170px]",
+      widthClassName: "w-[14%]",
+      cellClassName: "whitespace-nowrap",
       render: (item) => formatDateTime(item.updatedAt || item.createdAt),
     },
     {
       id: "actions",
       label: <div className="text-right">Actions</div>,
-      widthClassName: "w-[150px]",
+      widthClassName: "w-[10%]",
       align: "right",
       render: (item) => (
         <div className="flex items-center justify-end gap-2">
@@ -579,7 +553,8 @@ export default function AdminCategoriesPage() {
             pageSizeOptions: [5, 10, 20],
           }}
           emptyText="No categories found."
-          tableMinWidthClassName="min-w-[1220px]"
+          tableMinWidthClassName="min-w-0"
+          fitContainer
         />
       </div>
 

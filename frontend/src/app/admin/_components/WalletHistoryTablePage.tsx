@@ -100,8 +100,12 @@ function getActorName(item: AdminWalletHistoryItem) {
   return item.actor?.name?.trim() || item.actor?.email?.trim() || "-";
 }
 
-function getPaymentMethodName(item: AdminWalletHistoryItem) {
+function getPaymentMethodName(
+  item: AdminWalletHistoryItem,
+  balanceLabel: string
+) {
   const method = item.paymentMethod;
+  if (item.type === "ENROLL" && !method) return balanceLabel;
   if (!method) return "-";
   return method.name?.trim() || method.code?.trim() || "-";
 }
@@ -406,7 +410,10 @@ export default function WalletHistoryTablePage({
         render: (item) => (
           <div className="min-w-0">
             <div className="truncate font-semibold text-slate-950 dark:text-white">
-              {getPaymentMethodName(item)}
+              {getPaymentMethodName(
+                item,
+                t("walletHistory.paymentMethod.balance")
+              )}
             </div>
             <div className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
               {getTransactionCode(item)}

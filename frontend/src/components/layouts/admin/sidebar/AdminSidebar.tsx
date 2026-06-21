@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+  Banknote,
   Bell,
   BookOpen,
   CalendarDays,
@@ -20,6 +21,7 @@ import {
   NotebookPen,
   Settings,
   ShieldCheck,
+  Tags,
   User,
   Users,
   WalletCards,
@@ -113,7 +115,7 @@ const menuGroups: SidebarGroup[] = [
     items: [
       {
         href: "/admin/course/categories",
-        textKey: "sidebar.categories",
+        textKey: "sidebar.courseCategories",
         icon: FolderKanban,
         requiredGroupKeys: ["CATEGORIES"],
       },
@@ -130,8 +132,8 @@ const menuGroups: SidebarGroup[] = [
     items: [
       {
         href: "/admin/blog/categories",
-        textKey: "sidebar.categories",
-        icon: FolderKanban,
+        textKey: "sidebar.blogCategories",
+        icon: Tags,
         requiredGroupKeys: ["BLOGS"],
         requiredRolesAny: ["ADMIN"],
       },
@@ -203,7 +205,7 @@ const menuGroups: SidebarGroup[] = [
       {
         href: "/admin/bank-history",
         textKey: "sidebar.bankHistory",
-        icon: Landmark,
+        icon: Banknote,
         requiredGroupKeys: ["AUDIT"],
       },
     ],

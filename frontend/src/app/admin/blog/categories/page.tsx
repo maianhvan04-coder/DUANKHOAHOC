@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  FileText,
   Lock,
   LockOpen,
   Pencil,
@@ -36,17 +35,6 @@ const INITIAL_FORM: BlogCategoryFormState = {
   description: "",
   isActive: true,
 };
-
-function getInitials(name?: string) {
-  const value = String(name ?? "").trim();
-  if (!value) return "CM";
-
-  return value
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
 
 function formatDateTime(value?: string | null) {
   if (!value) return "--";
@@ -292,13 +280,12 @@ export default function AdminBlogCategoriesPage() {
       id: "category",
       label: "Danh mục",
       sortKey: "name",
-      widthClassName: "w-[320px]",
+      widthClassName: "w-[28%]",
       render: (item) => (
         <AdminEntityCell
           title={item.name || "--"}
           subtitle={item.slug || "--"}
-          fallback={getInitials(item.name)}
-          icon={<FileText className="h-4 w-4 text-slate-500" />}
+          hideMedia
         />
       ),
     },
@@ -306,7 +293,7 @@ export default function AdminBlogCategoriesPage() {
       id: "description",
       label: "Mô tả",
       sortKey: "description",
-      widthClassName: "w-[420px]",
+      widthClassName: "w-[28%]",
       render: (item) => (
         <div className="line-clamp-2 text-sm text-slate-600 dark:text-slate-300">
           {item.description || "Không có mô tả"}
@@ -316,7 +303,7 @@ export default function AdminBlogCategoriesPage() {
     {
       id: "status",
       label: "Trạng thái",
-      widthClassName: "w-[160px]",
+      widthClassName: "w-[14%]",
       render: (item) => (
         <AdminStatusBadge tone={item.isActive === false ? "warning" : "success"}>
           {item.isActive === false ? "ĐANG ẨN" : "HIỂN THỊ"}
@@ -327,13 +314,14 @@ export default function AdminBlogCategoriesPage() {
       id: "updatedAt",
       label: "Cập nhật",
       sortKey: "updatedAt",
-      widthClassName: "w-[180px]",
+      widthClassName: "w-[16%]",
+      cellClassName: "whitespace-nowrap",
       render: (item) => formatDateTime(item.updatedAt || item.createdAt),
     },
     {
       id: "actions",
       label: <div className="text-right">Thao tác</div>,
-      widthClassName: "w-[150px]",
+      widthClassName: "w-[14%]",
       align: "right",
       render: (item) => {
         const isBusy = busyId === item._id;
@@ -417,7 +405,8 @@ export default function AdminBlogCategoriesPage() {
           pageSizeOptions: [5, 10, 20],
         }}
         emptyText="Chưa có danh mục bài viết."
-        tableMinWidthClassName="min-w-[1100px]"
+        tableMinWidthClassName="min-w-0"
+        fitContainer
       />
 
       {isFormOpen ? (

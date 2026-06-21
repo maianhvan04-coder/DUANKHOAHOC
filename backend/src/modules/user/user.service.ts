@@ -3,6 +3,7 @@ import { isValidObjectId, Types } from "mongoose";
 import { ROLES } from "../../constants/roles";
 import { UserModel } from "./user.model";
 import { getUserAccess, setRolesForUser } from "../rbac/rbac.service";
+import RoleModel from "../rbac/models/role.model";
 import UserRole from "../rbac/models/userRole.model";
 import { StudentModel } from "../student/student.model";
 import { StudentStudyModel } from "../student/student-study.model";
@@ -82,6 +83,54 @@ async function withAccessRoles<T extends Record<string, any>>(user: T | null) {
   };
 }
 
+async function buildEffectiveRoleFilter(roleCode: string) {
+  const normalizedRole = roleCode.trim().toUpperCase();
+  const activeRoles = await RoleModel.find({
+    isDeleted: false,
+    isActive: true,
+  })
+    .select("_id code")
+    .lean();
+
+  const activeRoleIds = activeRoles.map((role) => role._id);
+  const targetRoleIds = activeRoles
+    .filter(
+      (role) => String(role.code || "").trim().toUpperCase() === normalizedRole
+    )
+    .map((role) => role._id);
+
+  const [usersWithEffectiveAssignments, usersAssignedToRole] =
+    await Promise.all([
+      UserRole.distinct("userId", {
+        roleId: { $in: activeRoleIds },
+        isDeleted: false,
+      }),
+      UserRole.distinct("userId", {
+        roleId: { $in: targetRoleIds },
+        isDeleted: false,
+      }),
+    ]);
+
+  const legacyRoleFilter =
+    normalizedRole === ROLES.USER
+      ? {
+          $nin: activeRoles
+            .map((role) => String(role.code || "").trim().toUpperCase())
+            .filter((code) => code !== ROLES.USER),
+        }
+      : normalizedRole;
+
+  return {
+    $or: [
+      { _id: { $in: usersAssignedToRole } },
+      {
+        _id: { $nin: usersWithEffectiveAssignments },
+        role: legacyRoleFilter,
+      },
+    ],
+  };
+}
+
 export const userService = {
   async list(deleted: boolean, query: ListQueryInput = {}) {
     const filter: Record<string, unknown> = deleted
@@ -98,7 +147,7 @@ export const userService = {
 
     const role = getQueryString(query, ["role"]);
     if (role && role.toUpperCase() !== "ALL") {
-      filter.role = role.toUpperCase();
+      filter.$and = [await buildEffectiveRoleFilter(role)];
     }
 
     const status = getQueryString(query, ["status"]).toUpperCase();
